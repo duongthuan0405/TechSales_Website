@@ -1,7 +1,7 @@
 namespace CommonModule.MessageConstants;
 public static class MessageConstant
 {
-    public const string MSG1 = "Please fill in all required fields.";
+    public const string MSG1 =  "Please fill in all required fields.";
     public const string MSG2 = "Invalid email format.";
     public const string MSG3 = "Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character.";
     public const string MSG4 = "Password and confirmation password do not match.";
@@ -123,4 +123,9 @@ public static class MessageConstant
     public const string MSG120 = "Get order details for staff successfully.";
     public const string MSG121 = "Order has been shipped successfully.";
     public const string MSG122 = "Order has been delivered successfully.";
+
+    private static string GetString(string key)
+    {
+        return $"String with {key}";
+    }
 }
