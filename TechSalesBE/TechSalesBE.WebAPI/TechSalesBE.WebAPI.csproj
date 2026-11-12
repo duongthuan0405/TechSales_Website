@@ -10,4 +10,13 @@
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Modules\AuthModule\AuthModule.csproj" />
+    <ProjectReference Include="..\Modules\CommonModule\CommonModule.csproj" />
+  </ItemGroup>
+
 </Project>
