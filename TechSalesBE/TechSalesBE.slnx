@@ -1,5 +1,7 @@
 <Solution>
   <Project Path="Modules/AuthModule/AuthModule.csproj" />
   <Project Path="Modules/CommonModule/CommonModule.csproj" />
+  <Project Path="Modules/MailModule/MailModule.csproj" />
   <Project Path="TechSalesBE.WebAPI/TechSalesBE.WebAPI.csproj" />
+  <Project Path="Test/Test.csproj" Id="ab102e83-c5bf-416d-8734-53204abaf0ff" />
 </Solution>

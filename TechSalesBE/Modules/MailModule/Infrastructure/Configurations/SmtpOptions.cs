@@ -9,7 +9,7 @@ public enum SmtpSecurity
 
 public sealed class SmtpOptions
 {
-    public const string SectionName = "Mail";
+    public const string SectionName = "MAIL";
     public string Host { get; set; } = string.Empty;
     public int Port { get; set; } = 587;
     public string FromEmail { get; set; } = string.Empty;
