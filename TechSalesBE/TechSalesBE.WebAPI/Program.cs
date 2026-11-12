@@ -1,4 +1,7 @@
 
+using AuthModule.Presentation.ModuleRegistration;
+using CommonModule.Presentation.ModuleRegistration;
+
 namespace TechSalesBE.WebAPI
 {
     public class Program
@@ -13,6 +16,9 @@ namespace TechSalesBE.WebAPI
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
 
+            //builder.Services.RegisterAuthModule(builder.Configuration);
+            builder.Services.RegisterCommonModule(builder.Configuration);
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
@@ -21,7 +27,7 @@ namespace TechSalesBE.WebAPI
                 app.MapOpenApi();
             }
 
-            app.UseHttpsRedirection();
+            //app.UseHttpsRedirection();
 
             app.UseAuthorization();
 
@@ -31,4 +37,5 @@ namespace TechSalesBE.WebAPI
             app.Run();
         }
     }
+
 }
