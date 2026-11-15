@@ -1,8 +1,8 @@
 namespace CommonModule.BusinessExceptions;
-public abstract class BusinessException : Exception
+public class BusinessException : Exception
 {
     private Dictionary<string, List<string>> _errors = new();
-    public abstract string Code { get; }
+    public string Code { get; }
 
     public Dictionary<string, List<string>> Errors
     {
@@ -26,9 +26,11 @@ public abstract class BusinessException : Exception
         }
     }
 
-    public BusinessException(string message = "", Dictionary<string, List<string>>? errors = null) 
+    public BusinessException(string code, string message = "", Dictionary<string, List<string>>? errors = null) 
         : base(message)
     {
+        Code = code;
+
         if(errors != null)
         {
             _errors = errors;
