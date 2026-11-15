@@ -1,5 +1,5 @@
-using MailModule.Domain.Enums;
 using MailModule.Domain.Exceptions;
+using CommonModule.Domain.Exceptions;
 
 namespace MailModule.Domain.Entities;
 

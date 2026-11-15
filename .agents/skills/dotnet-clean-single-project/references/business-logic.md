@@ -18,7 +18,7 @@ Một handler chịu trách nhiệm một UC nhưng không sở hữu mọi thu�
 
 ## 2. Quy tắc dùng chung giữa Domain và validator
 
-Khi cùng một invariant cần được kiểm tra ở Domain và UCInput_Validator, tách predicate thành rule thuần dùng chung. Code/message có thể hardcode hoặc đặt cùng rule khi hữu ích; không bắt buộc catalog hay resolver. Không tạo interface hoặc hệ thống rule tổng quát khi một static class đã đủ.
+Khi cùng một invariant cần được kiểm tra ở Domain và UCInput_Validator, tách predicate thành rule thuần dùng chung. Code phải tham chiếu DomainExceptionCode, không hardcode lại giá trị; message có thể hardcode hoặc đặt cùng rule khi hữu ích; không bắt buộc catalog hay resolver. Không tạo interface hoặc hệ thống rule tổng quát khi một static class đã đủ.
 
 ```text
 Domain/
@@ -38,7 +38,7 @@ Ví dụ chỉ dùng khi yêu cầu thực tế quy định giá trị phải d�
 // Domain/Rules/PositiveValueRule.cs
 public static class PositiveValueRule
 {
-    public const string ErrorCode = "VALUE_MUST_BE_POSITIVE";
+    public const string ErrorCode = DomainExceptionCode.VALUE_MUST_BE_POSITIVE;
     public const string ErrorMessage = "Giá trị phải lớn hơn 0.";
 
     public static bool IsSatisfied(int value) => value > 0;
@@ -53,7 +53,7 @@ public void ChangeValue(int value)
 {
     if (!PositiveValueRule.IsSatisfied(value))
     {
-        throw new DomainException(PositiveValueRule.ErrorMessage);
+        throw new DomainException(PositiveValueRule.ErrorCode, PositiveValueRule.ErrorMessage);
     }
 
     Value = value;
@@ -76,7 +76,7 @@ public sealed class XXX_UCInput_Validator
 }
 ```
 
-Các đoạn trên minh họa cấu trúc, giả định input/entity có Value phù hợp và DomainException nhận message theo thiết kế tối giản ở mục 4. ErrorCode trên rule là tùy chọn cho validator/contract hiện có, không bắt buộc DomainException có Code. Validator phải chạy qua MediatR validation behavior.
+Các đoạn trên minh họa cấu trúc, giả định input/entity có Value phù hợp và DomainException nhận code/message theo mục 4. ErrorCode trên rule là alias tham chiếu DomainExceptionCode, không phải nơi định nghĩa lại giá trị code. Validator phải chạy qua MediatR validation behavior.
 
 Rule thuần không phụ thuộc FluentValidation, MediatR, HTTP, database hoặc SDK; không I/O hay side effect. Chỉ Application validator biết FluentValidation. Domain vẫn bảo vệ invariant khi được gọi từ job hoặc luồng khác; handler không cần kiểm tra lại lần thứ ba cùng điều kiện thuần.
 
@@ -91,24 +91,47 @@ Quyền truy cập endpoint thuộc Presentation; quyền trên tài nguyên và
 ## 4. Mã lỗi và ánh xạ HTTP
 
 
-Domain ném DomainException khi vi phạm invariant/quy tắc miền, không quyết định HTTP status. Cho phép message hardcode; không bắt buộc catalog, resolver, code/parameters hoặc exception con.
+Domain ném DomainException khi vi phạm invariant/quy tắc miền, không quyết định HTTP status. Cho phép message hardcode; code tập trung tại DomainExceptionCode, không bắt buộc catalog, resolver, parameters hoặc exception con.
 
 ### Quy ước DomainException
 
+Dùng một DomainException chung, chỉ mang string Code và Message, không chứa danh mục code của mọi module. Trong một project đặt tại Domain/Exceptions; codebase nhiều module có thể chia sẻ type tại phần Domain của Common. Static class DomainExceptionCode nằm ngoài exception, trong feature/module sở hữu quy tắc. Common không tham chiếu ngược module. Không dùng enum, nested Codes hoặc registry toàn cục để kiểm tra code. Khi đổi contract phải rà constructor, consumer và serializer.
+
 Khi thao tác Domain vi phạm invariant hoặc quy tắc miền, phải ném DomainException. Không trả false/null hoặc Result thất bại thay cho báo lỗi ở các hành vi cần bảo vệ invariant. Predicate như IsSatisfied vẫn trả bool; entity/domain behavior gọi predicate và ném lỗi khi thực hiện thao tác không hợp lệ. Lỗi lập trình/hạ tầng không tự động là DomainException.
 
-Đặt tại Domain/Exceptions/DomainException.cs:
+Ví dụ constant ngoài exception, tại Domain của feature/module:
+
+```csharp
+public static class DomainExceptionCode
+{
+    public const string VALUE_MUST_BE_POSITIVE = "FEATURE.VALUE_MUST_BE_POSITIVE";
+}
+```
+
+Class exception chung tại Domain/Exceptions/DomainException.cs:
 
 ```csharp
 namespace YourRootNamespace.Domain.Exceptions;
 
 public sealed class DomainException : Exception
 {
-    public DomainException(string message) : base(message) { }
+    public string Code { get; }
+
+    public DomainException(string code, string message)
+        : this(code, message, null) { }
+
+    public DomainException(string code, string message, Exception? innerException)
+        : base(message, innerException)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(code);
+        Code = code;
+    }
 }
 ```
 
 Thay namespace thực tế, thêm using System nếu cần. Dùng lại class hiện có nếu tương đương, không tạo trùng. Không thêm HTTP status hoặc framework dependency vào class này.
+
+Code là chuỗi, không còn thuộc tính enum như DOMAIN_EXCEPTION_CODE. Consumer đọc Code; nếu chuyển từ thiết kế enum phải cập nhật các nơi đọc/ghi/serialize, loại bỏ enum và nested Codes cũ trong phạm vi được giao. Giữ overload InnerException khi đã có để không mất thông tin chẩn đoán. Không trả InnerException hoặc nội dung lỗi kỹ thuật cho client. Constant đặc thù nằm trong module sở hữu; module khác không cần tham chiếu module đó chỉ để bắt DomainException chung.
 
 Ví dụ entity:
 
@@ -116,7 +139,7 @@ Ví dụ entity:
 public void ChangeValue(int value)
 {
     if (!PositiveValueRule.IsSatisfied(value))
-        throw new DomainException("Giá trị phải lớn hơn 0.");
+        throw new DomainException(DomainExceptionCode.VALUE_MUST_BE_POSITIVE, "Giá trị phải lớn hơn 0.");
 
     Value = value;
 }
@@ -124,7 +147,7 @@ public void ChangeValue(int value)
 
 Handler gọi Domain rồi để lỗi truyền lên. Không catch chỉ để throw lại, đổi loại hoặc trả thành công. Chỉ catch khi cần cleanup/rollback thuộc trách nhiệm handler; giữ lỗi gốc và ném lại sau cleanup, không để rollback che mất lỗi chính. Nếu transaction behavior/scope đã xử lý, không thêm catch thừa.
 
-Middleware Presentation bắt DomainException trước nhánh lỗi bất ngờ và mặc định trả 422. Chỉ map 409 khi có phân loại xung đột rõ ràng theo contract; không so khớp câu chữ Message để chọn status. Nếu chưa có phân loại, giữ mặc định 422 thay vì đoán nghĩa.
+Middleware Presentation bắt DomainException trước nhánh lỗi bất ngờ và mặc định trả 422. Ánh xạ Code bằng constant từ DomainExceptionCode; chỉ map 409 khi code có ý nghĩa xung đột rõ ràng theo contract; không so khớp câu chữ Message để chọn status. Nếu chưa có phân loại, giữ mặc định 422 thay vì đoán nghĩa.
 
 DomainException.Message là thông báo chủ đích an toàn cho client và có thể được trả theo response contract hiện hành. Không đưa dữ liệu nhạy cảm, nội dung exception kỹ thuật hoặc stack trace vào message. Lỗi ngoài dự kiến trả 500 với thông báo chung, log nội bộ. Validator vẫn trả 400 qua pipeline; Domain vẫn bảo vệ invariant ở các đường gọi khác.
 

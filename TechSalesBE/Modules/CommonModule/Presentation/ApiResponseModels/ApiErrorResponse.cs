@@ -8,6 +8,7 @@ namespace CommonModule.Presentation.ApiResponseModels
     public class ApiErrorResponse : ApiResponse<Dictionary<string, List<string>>>
     {
         public override bool Success => false;
+        public string Code { get; set; } = string.Empty;
 
 
         public ApiErrorResponse(string message, Dictionary<string, List<string>>? errors = null)

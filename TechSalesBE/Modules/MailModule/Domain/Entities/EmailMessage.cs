@@ -1,6 +1,6 @@
-using System.Net.Mail;
-using MailModule.Domain.Enums;
 using MailModule.Domain.Exceptions;
+using System.Net.Mail;
+using CommonModule.Domain.Exceptions;
 
 namespace MailModule.Domain.Entities;
 

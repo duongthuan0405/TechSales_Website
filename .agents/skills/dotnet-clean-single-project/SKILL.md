@@ -98,9 +98,9 @@ Entity/value object bảo vệ quy tắc luôn phải đúng trong miền thực
 
 ### Application và bộ bốn lớp UC
 
-Lỗi cấp UC dùng duy nhất một BusinessException concrete kế thừa Exception, không abstract và không tạo các exception con chỉ để phân loại. Constructor nhận `(string code, string message = "", Dictionary<string, List<string>>? errors = null)`; Code chỉ đọc, gán từ constructor. Giữ nguyên Message, Errors getter sao chép dictionary/từng list, AddError và cách nhận errors ở constructor. Middleware ánh xạ HTTP theo Code. DomainException độc lập, không kế thừa BusinessException. Xem mẫu đầy đủ trong [implementation.md](references/implementation.md).
+Lỗi cấp UC dùng duy nhất một BusinessException concrete kế thừa Exception, không abstract và không tạo các exception con chỉ để phân loại. Constructor nhận `(string code, string message = "", Dictionary<string, List<string>>? errors = null)`; Code kiểu string, chỉ đọc, gán từ constructor và không được rỗng. Dùng constant từ static class BusinessExceptionCode bên ngoài exception, không dùng enum hoặc nested Codes. Giữ nguyên Message, Errors getter sao chép dictionary/từng list, AddError và cách nhận errors ở constructor. Middleware ánh xạ HTTP theo Code. DomainException độc lập, không kế thừa BusinessException. Xem mẫu đầy đủ trong [implementation.md](references/implementation.md).
 
-Tạm thời cho phép hardcode code và message phản hồi; không bắt buộc static class mã lỗi, message catalog hoặc resolver.
+Cả BusinessException và DomainException dùng string Code. Danh mục code là static class bên ngoài exception: BusinessExceptionCode cho phân loại dùng chung; DomainExceptionCode thuộc từng feature/module sở hữu nghiệp vụ. Không gom domain code của mọi module vào phần dùng chung. Message vẫn hardcode, không bắt buộc catalog/resolver. Xem implementation.md.
 
 
 Về cách tập trung quy tắc nghiệp vụ, đọc [business-logic.md](references/business-logic.md). Domain là nguồn quyết định invariant; handler điều phối UC, validator dùng lại rule thuần khi cần kiểm tra sớm, Presentation ánh xạ lỗi sang HTTP. Không sao chép cùng điều kiện nghiệp vụ ở nhiều lớp hoặc gom mọi quy tắc vào một service toàn cục.
@@ -148,6 +148,8 @@ Policy ở endpoint kiểm tra quyền truy cập; handler vẫn kiểm tra quy�
 Đọc [implementation.md](references/implementation.md) khi triển khai chi tiết. Đọc [migration-and-review.md](references/migration-and-review.md) khi chuyển đổi code hiện hữu hoặc review kiến trúc.
 
 ## 6. Tiêu chí hoàn tất
+
+- Hai exception dùng string Code và kế thừa trực tiếp Exception; không dùng enum code, nested Codes hoặc exception con chỉ để phân loại. Type exception dùng chung, code đặc thù do feature/module sở hữu; Common không chứa danh mục Domain của mọi module.
 
 - Một project ứng dụng; không tạo project riêng cho layer/module.
 - Mỗi UC đủ bốn lớp đúng tên, đúng một handler, validation thực thi qua pipeline.

@@ -19,6 +19,45 @@ Request/response DTO thuộc Presentation; UCInput/UCOutput thuộc Application;
 
 ## 2. Validation và lỗi
 
+### Code kiểu string, static class ở ngoài exception
+
+Phân biệt **nơi chứa type exception** với **nơi sở hữu danh mục code**. Cấu trúc tổng quát trong một project:
+
+```text
+Domain/
+  Exceptions/DomainException.cs
+  <Feature>/Exceptions/DomainExceptionCode.cs
+Application/
+  Exceptions/BusinessException.cs
+  Exceptions/BusinessExceptionCode.cs
+```
+
+Trong codebase đã chia module, hai type exception có thể ở module dùng chung, còn `<Feature>/Exceptions/DomainExceptionCode.cs` ở module nghiệp vụ. Không tạo project mới để áp dụng quy tắc này. Module dùng chung không giữ enum, danh sách hay registry code đặc thù của các module khác. Khi cần tên class riêng trong một namespace, dùng `<Feature>DomainExceptionCode` thay cho việc gộp danh mục.
+
+Cả BusinessException và DomainException dùng string Code chỉ đọc và constructor nhận string code. Không dùng enum hoặc nested Codes; constructor từ chối code null/rỗng/whitespace, nhưng không kiểm tra danh mục toàn cục vì code được sở hữu phân tán.
+
+```csharp
+// Application/Exceptions hoặc phần Common tương đương:
+public static class BusinessExceptionCode
+{
+    public const string BAD_REQUEST = "BAD_REQUEST";
+    public const string UNAUTHORIZED = "UNAUTHORIZED";
+    public const string FORBIDDEN = "FORBIDDEN";
+    public const string NOT_FOUND = "NOT_FOUND";
+    public const string CONFLICT = "CONFLICT";
+}
+
+// Domain của feature/module sở hữu quy tắc:
+public static class DomainExceptionCode
+{
+    public const string VALUE_MUST_BE_POSITIVE = "FEATURE.VALUE_MUST_BE_POSITIVE";
+}
+```
+
+Tên FEATURE và code chỉ minh họa; chọn định danh phù hợp miền thực tế. BusinessExceptionCode dùng chung cho phân loại lỗi phổ biến. Mỗi module giữ DomainExceptionCode riêng trong namespace của nó; không gom code đặc thù vào Common chỉ vì exception nằm ở Common. Common không phụ thuộc module nghiệp vụ. Khi một project có nhiều feature, có thể dùng tên class theo feature để tránh nhầm danh mục.
+
+Nơi throw, validator và mapping tham chiếu constant, không lặp giá trị literal. Code cần duy nhất hoặc có tiền tố ngữ nghĩa khi dùng chung response/mapping; giữ mã công khai ổn định. Không chứa message hoặc HTTP status trong danh mục code. Message vẫn hardcode, HTTP mapping ở Presentation. Khi chuyển enum sang string phải rà consumer và JSON contract, không giữ giả định số enum là HTTP status. Không cần catalog/resolver hoặc exception con.
+
 ### BusinessException: một class concrete, phân loại bằng Code
 
 Dùng duy nhất BusinessException kế thừa trực tiếp Exception, không abstract và không tạo exception con chỉ để phân loại lỗi. Code là property chỉ đọc, được gán từ constructor:
@@ -46,6 +85,8 @@ public class BusinessException : Exception
         string message = "",
         Dictionary<string, List<string>>? errors = null) : base(message)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(code);
+
         Code = code;
         if (errors != null)
             _errors = errors;
@@ -56,7 +97,7 @@ public class BusinessException : Exception
 Đặt tại Application/Exceptions hoặc vị trí dùng chung tương đương đang có của ứng dụng. Chỉ thay cơ chế phân loại bằng Code: giữ nguyên Message, Errors getter sao chép dictionary/từng list, AddError và cách nhận dictionary ở constructor. Không thêm parameters, catalog, resolver hoặc thay đổi response contract.
 
 ```csharp
-throw new BusinessException("NOT_FOUND", "Không tìm thấy tài nguyên.");
+throw new BusinessException(BusinessExceptionCode.NOT_FOUND, "Không tìm thấy tài nguyên.");
 ```
 
 Middleware đọc Code, không so khớp Message hoặc phân biệt exception con:
@@ -71,10 +112,12 @@ Middleware đọc Code, không so khớp Message hoặc phân biệt exception c
 
 Giữ code công khai ổn định. Với code chưa có mapping, dùng chính sách fallback hiện hành. DomainException độc lập, không kế thừa BusinessException ở Application; không đưa HTTP status vào hai exception.
 
+Khi triển khai middleware, switch trên constant như BusinessExceptionCode.NOT_FOUND, không lặp literal tại từng nhánh và không so khớp Message. Response trả Code kiểu string theo contract hiện hành. Mapping Domain đặc thù được cấu hình tại Presentation/composition root có quyền biết feature tương ứng; không chuyển mapping hoặc danh mục code về Common để tiện truy cập. Danh mục code bên ngoài giúp giảm phụ thuộc, không tự tạo ranh giới truy cập giữa các namespace trong cùng assembly.
+
 Domain ném DomainException khi invariant/quy tắc miền bị vi phạm, theo [business-logic.md](business-logic.md). Handler không nuốt lỗi hoặc catch chỉ để rethrow/bọc lại. Middleware nhận diện loại này, mặc định trả 422; chỉ map 409 khi có phân loại xung đột rõ ràng. Exception ngoài dự kiến trả 500 với message chung an toàn. Không đặt HTTP status trong Domain hoặc đổi mọi exception .NET thành DomainException.
 
 
-Tạm thời cho phép hardcode code/message theo hợp đồng phản hồi hiện hành; không bắt buộc catalog, resolver hay thiết kế exception riêng. Không trả trực tiếp lỗi kỹ thuật ngoài dự kiến cho client.
+Hai exception dùng string Code từ static class bên ngoài theo phạm vi sở hữu nêu trên. Cho phép hardcode message theo hợp đồng phản hồi hiện hành; không bắt buộc catalog hoặc resolver. Không trả trực tiếp lỗi kỹ thuật ngoài dự kiến cho client.
 
 | Kiểm tra | Vị trí |
 |---|---|
