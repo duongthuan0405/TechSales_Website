@@ -1,6 +1,7 @@
 
 using AuthModule.Presentation.ModuleRegistration;
 using CommonModule.Presentation.ModuleRegistration;
+using CommonModule.Presentation.Middlewares;
 
 namespace TechSalesBE.WebAPI
 {
@@ -20,6 +21,7 @@ namespace TechSalesBE.WebAPI
             builder.Services.RegisterCommonModule(builder.Configuration);
 
             var app = builder.Build();
+            app.UseMiddleware<GlobalExceptionMiddleware>();
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())

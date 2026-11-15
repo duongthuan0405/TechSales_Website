@@ -29,6 +29,8 @@ public class BusinessException : Exception
     public BusinessException(string code, string message = "", Dictionary<string, List<string>>? errors = null) 
         : base(message)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(code);
+
         Code = code;
 
         if(errors != null)

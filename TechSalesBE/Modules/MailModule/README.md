@@ -1,6 +1,6 @@
 # MailModule
 
-Class library .NET 9 độc lập, có thể copy nguyên thư mục sang hệ thống khác hoặc đóng gói NuGet.
+Class library .NET 10 độc lập, có thể copy nguyên thư mục sang hệ thống khác hoặc đóng gói NuGet.
 
 ## Kiến trúc
 
@@ -84,3 +84,5 @@ Thư viện không phụ thuộc backend, database hoặc các nghiệp vụ đ�
 dotnet build MailModule/MailModule.csproj
 dotnet pack MailModule/MailModule.csproj -c Release -o artifacts
 ```
+
+DomainException is shared through CommonModule.Domain.Exceptions and exposes a string Code. Mail-specific string constants live in MailModule.Domain.Exceptions.DomainExceptionCode. MailModule targets .NET 10 and references CommonModule; message text and inner-exception handling remain unchanged.

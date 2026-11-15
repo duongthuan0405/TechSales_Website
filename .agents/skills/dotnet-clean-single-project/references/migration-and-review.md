@@ -19,6 +19,8 @@ Không suy diễn áp dụng skill thành yêu cầu xóa module, gộp mọi pr
 | Query/SDK trong handler/controller | Port Application và adapter Infrastructure |
 | Persistence entity dùng xuyên các lớp | Tách storage model, domain type và DTO |
 | Commit từng repository | Một owner transaction cho UC |
+| Enum exception code hoặc nested Codes | String Code, static class constant nằm ngoài exception |
+| Danh mục Domain code của mọi module trong Common | Chuyển code về feature/module sở hữu; giữ type DomainException chung |
 
 Một method cũ chưa chắc là một UC, có thể chỉ là helper. Xác định UC bằng mục tiêu của actor và kết quả nghiệp vụ. Không tạo UC cho từng câu lệnh database hoặc gộp mục tiêu độc lập chỉ để giảm file.
 
@@ -43,6 +45,9 @@ Tìm stub, giá trị thành công cố định, quyền bị bỏ qua, transact
 - Transaction có đúng một owner, rollback đúng và không giả định rollback được I/O từ xa không?
 - Mapping có giới hạn dữ liệu client được ghi và dữ liệu được trả không?
 - Quyền trên tài nguyên và concurrency có được thực thi thay vì chỉ check trước ghi không?
+- BusinessException và DomainException có dùng string Code, constant bên ngoài và độc lập về kế thừa không? BusinessException có giữ Errors/AddError không?
+- Code Domain đặc thù có nằm ở feature/module sở hữu thay vì Common không? Consumer đã bỏ enum/nested Codes/thuộc tính enum cũ và đọc Code chưa?
+- Middleware có map bằng code constant, giữ HTTP ở Presentation, không đoán theo Message và không đổi JSON string thành số ngoài ý muốn không?
 
 Kết hợp đọc mã, tìm import/signature và kiểm tra hành vi. Không kết luận chỉ dựa cây thư mục hoặc thêm test chỉ xác nhận tên file.
 
