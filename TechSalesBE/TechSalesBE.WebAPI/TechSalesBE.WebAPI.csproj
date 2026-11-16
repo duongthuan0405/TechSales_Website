@@ -19,4 +19,17 @@
     <ProjectReference Include="..\Modules\CommonModule\CommonModule.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Modules\CatalogModule\CatalogModule.csproj" />
+    <ProjectReference Include="..\Modules\InventoryModule\InventoryModule.csproj" />
+    <ProjectReference Include="..\Modules\CartModule\CartModule.csproj" />
+    <ProjectReference Include="..\Modules\OrderingModule\OrderingModule.csproj" />
+    <ProjectReference Include="..\Modules\ShippingModule\ShippingModule.csproj" />
+    <ProjectReference Include="..\Modules\PromotionModule\PromotionModule.csproj" />
+    <ProjectReference Include="..\Modules\AfterSaleModule\AfterSaleModule.csproj" />
+    <ProjectReference Include="..\Modules\PaymentRefundModule\PaymentRefundModule.csproj" />
+    <ProjectReference Include="..\Modules\ReviewNotificationModule\ReviewNotificationModule.csproj" />
+    <ProjectReference Include="..\Modules\MailModule\MailModule.csproj" />
+    <Folder Include="Integration\" />
+  </ItemGroup>
 </Project>

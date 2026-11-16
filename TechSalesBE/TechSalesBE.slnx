@@ -2,4 +2,14 @@
   <Project Path="Modules/AuthModule/AuthModule.csproj" />
   <Project Path="Modules/CommonModule/CommonModule.csproj" />
   <Project Path="TechSalesBE.WebAPI/TechSalesBE.WebAPI.csproj" />
+  <Project Path="Modules/CatalogModule/CatalogModule.csproj" />
+  <Project Path="Modules/InventoryModule/InventoryModule.csproj" />
+  <Project Path="Modules/CartModule/CartModule.csproj" />
+  <Project Path="Modules/OrderingModule/OrderingModule.csproj" />
+  <Project Path="Modules/ShippingModule/ShippingModule.csproj" />
+  <Project Path="Modules/PromotionModule/PromotionModule.csproj" />
+  <Project Path="Modules/AfterSaleModule/AfterSaleModule.csproj" />
+  <Project Path="Modules/PaymentRefundModule/PaymentRefundModule.csproj" />
+  <Project Path="Modules/ReviewNotificationModule/ReviewNotificationModule.csproj" />
+  <Project Path="Modules/MailModule/MailModule.csproj" />
 </Solution>
