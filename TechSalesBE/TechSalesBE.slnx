@@ -12,4 +12,5 @@
   <Project Path="Modules/PaymentRefundModule/PaymentRefundModule.csproj" />
   <Project Path="Modules/ReviewNotificationModule/ReviewNotificationModule.csproj" />
   <Project Path="Modules/MailModule/MailModule.csproj" />
+  <Project Path="Test/Test.csproj" Id="14b57c2b-15ba-4d23-93ff-41d089233bd7" />
 </Solution>

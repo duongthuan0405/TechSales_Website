@@ -5,6 +5,6 @@ namespace AuthModule.Domain.Enums
         PENDING,
         ACTIVE,
         BLOCKED,
-        DELETED
+        INACTIVE
     }
 }

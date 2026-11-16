@@ -7,11 +7,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
+    <PackageReference Include="DotNetEnv" Version="3.2.0" />
+    <PackageReference Include="NSwag.AspNetCore" Version="14.8.0" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="wwwroot\" />
+    <Content Update=".env;.env.*" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />
+    <None Update=".env;.env.*" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />
   </ItemGroup>
 
   <ItemGroup>
@@ -31,5 +34,11 @@
     <ProjectReference Include="..\Modules\ReviewNotificationModule\ReviewNotificationModule.csproj" />
     <ProjectReference Include="..\Modules\MailModule\MailModule.csproj" />
     <Folder Include="Integration\" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.14">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 </Project>

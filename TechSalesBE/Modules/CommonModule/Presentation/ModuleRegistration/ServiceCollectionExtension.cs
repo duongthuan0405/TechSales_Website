@@ -3,11 +3,13 @@ using Microsoft.Extensions.DependencyInjection;
 using CommonModule.Presentation.Middlewares;
 
 namespace CommonModule.Presentation.ModuleRegistration;
-public static class ServiceCollectionExtension
+public static class ModuleRegistration
 {
-    public static IServiceCollection RegisterCommonModule(this IServiceCollection services, IConfiguration configuration) 
+
+    public static IServiceCollection RegisterModule(this IServiceCollection services, IConfiguration configuration) 
     {
         services.AddTransient<GlobalExceptionMiddleware>();
+        services.AddControllers();
         return services;
     }
 }
