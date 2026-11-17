@@ -9,6 +9,7 @@ internal sealed class RolePermissionConfiguration : IEntityTypeConfiguration<Rol
     public void Configure(EntityTypeBuilder<RolePermissionDbModel> builder)
     {
         builder.ToTable("RolePermission");
+        builder.HasData(AuthSeedData.RolePermissions);
         builder.HasKey(e => new { e.RoleId, e.PermissionId });
         builder.Property(e => e.RoleId).HasColumnName("RoleId").HasColumnType("uuid").IsRequired().ValueGeneratedNever();
         builder.Property(e => e.PermissionId).HasColumnName("PermissionId").HasColumnType("uuid").IsRequired().ValueGeneratedNever();

@@ -1,21 +1,95 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using CommonModule.CustomAttributes;
-using Microsoft.AspNetCore.Http;
+using CommonModule.Presentation.Extensions;
+using AuthModule.Application.UseCases.Register;
+using AuthModule.Application.UseCases.Login;
+using AuthModule.Application.UseCases.VerifyEmail;
+using AuthModule.Application.UseCases.ForgotPassword;
+using AuthModule.Application.UseCases.ResetPassword;
+using AuthModule.Application.UseCases.ChangePassword;
+using AuthModule.Application.UseCases.Logout;
+using AuthModule.Presentation.DTOs;
+using CommonModule.Presentation.ApiResponseModels;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
-namespace AuthModule.Presentation.Controllers
+namespace AuthModule.Presentation.Controllers;
+[ApiController]
+[Route("api/auth")]
+public sealed class AuthController : ControllerBase
 {
-    [ApiController]
-    [Route("api/auth")]
-    public class AuthController : ControllerBase
+    private readonly ISender _sender;
+
+    public AuthController(ISender sender)
     {
-        [HttpGet("test")]
-        public async Task<ActionResult<string>> GetTest()
-        {
-            return StatusCode(StatusCodes.Status200OK, "Ok from Auth");
-        }
+        _sender = sender;
+    }
+
+    [AllowAnonymous]
+    [HttpPost("register")]
+    [EnableRateLimiting("auth-public")]
+    public async Task<IActionResult> Register(RegisterRequestDto request, CancellationToken ct)
+    {
+        Register_UCOutput result = await _sender.Send(new Register_UCInput(request.Email, request.Password, request.ConfirmPassword), ct);
+        ApiSuccessResponse<Register_UCOutput> response = new ApiSuccessResponse<Register_UCOutput>(null, result.Message);
+        return Created(string.Empty, response);
+    }
+
+    [AllowAnonymous]
+    [HttpPost("login")]
+    [EnableRateLimiting("auth-public")]
+    public async Task<IActionResult> Login(LoginRequestDto request, CancellationToken ct)
+    {
+        Login_UCOutput result = await _sender.Send(new Login_UCInput(request.Email, request.Password), ct);
+        ApiSuccessResponse<Login_UCOutput> response = new ApiSuccessResponse<Login_UCOutput>(result, "Signed in successfully.");
+        return Ok(response);
+    }
+
+    [AllowAnonymous]
+    [HttpPost("verify-email")]
+    [EnableRateLimiting("auth-public")]
+    public async Task<IActionResult> VerifyEmail(VerifyEmailRequestDto request, CancellationToken ct)
+    {
+        VerifyEmail_UCOutput result = await _sender.Send(new VerifyEmail_UCInput(request.Email, request.Token), ct);
+        ApiSuccessResponse<VerifyEmail_UCOutput> response = new ApiSuccessResponse<VerifyEmail_UCOutput>(null, result.Message);
+        return Ok(response);
+    }
+
+    [AllowAnonymous]
+    [HttpPost("forgot-password")]
+    [EnableRateLimiting("auth-public")]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordRequestDto request, CancellationToken ct)
+    {
+        ForgotPassword_UCOutput result = await _sender.Send(new ForgotPassword_UCInput(request.Email), ct);
+        ApiSuccessResponse<ForgotPassword_UCOutput> response = new ApiSuccessResponse<ForgotPassword_UCOutput>(null, result.Message);
+        return Ok(response);
+    }
+
+    [AllowAnonymous]
+    [HttpPut("reset-password")]
+    [EnableRateLimiting("auth-public")]
+    public async Task<IActionResult> ResetPassword(ResetPasswordRequestDto request, CancellationToken ct)
+    {
+        ResetPassword_UCOutput result = await _sender.Send(new ResetPassword_UCInput(request.Email, request.Token, request.NewPassword, request.ConfirmPassword), ct);
+        ApiSuccessResponse<ResetPassword_UCOutput> response = new ApiSuccessResponse<ResetPassword_UCOutput>(null, result.Message);
+        return Ok(response);
+    }
+
+    [Authorize]
+    [HttpPut("change-password")]
+    public async Task<IActionResult> ChangePassword(ChangePasswordRequestDto request, CancellationToken ct)
+    {
+        ChangePassword_UCOutput result = await _sender.Send(new ChangePassword_UCInput(this.GetActorId(), request.CurrentPassword, request.NewPassword, request.ConfirmPassword), ct);
+        ApiSuccessResponse<ChangePassword_UCOutput> response = new ApiSuccessResponse<ChangePassword_UCOutput>(null, result.Message);
+        return Ok(response);
+    }
+
+    [Authorize]
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout(CancellationToken ct)
+    {
+        Logout_UCOutput result = await _sender.Send(new Logout_UCInput(this.GetActorId()), ct);
+        ApiSuccessResponse<Logout_UCOutput> response = new ApiSuccessResponse<Logout_UCOutput>(null, result.Message);
+        return Ok(response);
     }
 }

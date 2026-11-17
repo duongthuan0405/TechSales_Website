@@ -64,6 +64,48 @@ namespace AuthModule.Migrations
                         .IsUnique();
 
                     b.ToTable("Permission", "identify_access");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("a0000000-0000-0000-0000-000000000001"),
+                            Code = "auth.customers.read",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 5, 12, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Module = "Auth",
+                            Name = "Read customers"
+                        },
+                        new
+                        {
+                            Id = new Guid("a0000000-0000-0000-0000-000000000002"),
+                            Code = "auth.staff.read",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 5, 12, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Module = "Auth",
+                            Name = "Read staff"
+                        },
+                        new
+                        {
+                            Id = new Guid("a0000000-0000-0000-0000-000000000003"),
+                            Code = "auth.users.manage",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 5, 12, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Module = "Auth",
+                            Name = "Create and update accounts"
+                        },
+                        new
+                        {
+                            Id = new Guid("a0000000-0000-0000-0000-000000000004"),
+                            Code = "auth.customers.lock",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 5, 12, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Module = "Auth",
+                            Name = "Lock and unlock accounts within hierarchy"
+                        },
+                        new
+                        {
+                            Id = new Guid("a0000000-0000-0000-0000-000000000005"),
+                            Code = "auth.rbac.manage",
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 5, 12, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Module = "Auth",
+                            Name = "Read and manage roles and permissions"
+                        });
                 });
 
             modelBuilder.Entity("AuthModule.Infrastructure.Persistence.Models.RoleDbModel", b =>
@@ -96,6 +138,36 @@ namespace AuthModule.Migrations
                         .IsUnique();
 
                     b.ToTable("Role", "identify_access");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("75595ed2-8e03-476c-a59c-864fbc57b1a9"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 5, 12, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Description = "Customer account",
+                            Name = "Customer"
+                        },
+                        new
+                        {
+                            Id = new Guid("8e2a0a54-e882-4174-ae34-32f299096d13"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 5, 12, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Description = "Sales and customer support staff",
+                            Name = "Staff"
+                        },
+                        new
+                        {
+                            Id = new Guid("c22cf7a1-67f6-479c-a3df-9504f8270fa6"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 5, 12, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Description = "Business administration",
+                            Name = "Business Admin"
+                        },
+                        new
+                        {
+                            Id = new Guid("668a08c6-9b2d-4189-96f9-7cc07e5a3b5a"),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 5, 12, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            Description = "Technical administration and RBAC",
+                            Name = "Technical Admin"
+                        });
                 });
 
             modelBuilder.Entity("AuthModule.Infrastructure.Persistence.Models.RolePermissionDbModel", b =>
@@ -113,6 +185,63 @@ namespace AuthModule.Migrations
                     b.HasIndex("PermissionId");
 
                     b.ToTable("RolePermission", "identify_access");
+
+                    b.HasData(
+                        new
+                        {
+                            RoleId = new Guid("8e2a0a54-e882-4174-ae34-32f299096d13"),
+                            PermissionId = new Guid("a0000000-0000-0000-0000-000000000001")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("8e2a0a54-e882-4174-ae34-32f299096d13"),
+                            PermissionId = new Guid("a0000000-0000-0000-0000-000000000004")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("c22cf7a1-67f6-479c-a3df-9504f8270fa6"),
+                            PermissionId = new Guid("a0000000-0000-0000-0000-000000000001")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("c22cf7a1-67f6-479c-a3df-9504f8270fa6"),
+                            PermissionId = new Guid("a0000000-0000-0000-0000-000000000002")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("c22cf7a1-67f6-479c-a3df-9504f8270fa6"),
+                            PermissionId = new Guid("a0000000-0000-0000-0000-000000000003")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("c22cf7a1-67f6-479c-a3df-9504f8270fa6"),
+                            PermissionId = new Guid("a0000000-0000-0000-0000-000000000004")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("668a08c6-9b2d-4189-96f9-7cc07e5a3b5a"),
+                            PermissionId = new Guid("a0000000-0000-0000-0000-000000000001")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("668a08c6-9b2d-4189-96f9-7cc07e5a3b5a"),
+                            PermissionId = new Guid("a0000000-0000-0000-0000-000000000002")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("668a08c6-9b2d-4189-96f9-7cc07e5a3b5a"),
+                            PermissionId = new Guid("a0000000-0000-0000-0000-000000000003")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("668a08c6-9b2d-4189-96f9-7cc07e5a3b5a"),
+                            PermissionId = new Guid("a0000000-0000-0000-0000-000000000004")
+                        },
+                        new
+                        {
+                            RoleId = new Guid("668a08c6-9b2d-4189-96f9-7cc07e5a3b5a"),
+                            PermissionId = new Guid("a0000000-0000-0000-0000-000000000005")
+                        });
                 });
 
             modelBuilder.Entity("AuthModule.Infrastructure.Persistence.Models.UserDbModel", b =>
@@ -146,6 +275,10 @@ namespace AuthModule.Migrations
                         .HasColumnType("character varying(255)")
                         .HasColumnName("HashedPassword");
 
+                    b.Property<DateTimeOffset?>("LastLoginFailedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("LastLoginFailedAt");
+
                     b.Property<DateTimeOffset?>("LockedUntil")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("LockedUntil");
@@ -166,6 +299,51 @@ namespace AuthModule.Migrations
                         .IsUnique();
 
                     b.ToTable("User", "identify_access");
+                });
+
+            modelBuilder.Entity("AuthModule.Infrastructure.Persistence.Models.UserOtpDbModel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("Id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreatedAt")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<DateTimeOffset>("ExpiredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ExpiredAt");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("Type");
+
+                    b.Property<DateTimeOffset?>("UsedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("UsedAt");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("UserId");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("Value");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "Type")
+                        .IsUnique();
+
+                    b.ToTable("UserOtp", "identify_access");
                 });
 
             modelBuilder.Entity("AuthModule.Infrastructure.Persistence.Models.UserProfileDbModel", b =>
@@ -227,51 +405,6 @@ namespace AuthModule.Migrations
                     b.ToTable("UserRole", "identify_access");
                 });
 
-            modelBuilder.Entity("AuthModule.Infrastructure.Persistence.Models.UserTokenDbModel", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("Id");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("CreatedAt")
-                        .HasDefaultValueSql("now()");
-
-                    b.Property<DateTimeOffset>("ExpiredAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("ExpiredAt");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("Type");
-
-                    b.Property<DateTimeOffset?>("UsedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("UsedAt");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("UserId");
-
-                    b.Property<string>("Value")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("Value");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId", "Type")
-                        .IsUnique();
-
-                    b.ToTable("UserToken", "identify_access");
-                });
-
             modelBuilder.Entity("AuthModule.Infrastructure.Persistence.Models.RolePermissionDbModel", b =>
                 {
                     b.HasOne("AuthModule.Infrastructure.Persistence.Models.PermissionDbModel", "Permission")
@@ -289,6 +422,17 @@ namespace AuthModule.Migrations
                     b.Navigation("Permission");
 
                     b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("AuthModule.Infrastructure.Persistence.Models.UserOtpDbModel", b =>
+                {
+                    b.HasOne("AuthModule.Infrastructure.Persistence.Models.UserDbModel", "User")
+                        .WithMany("Otps")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("AuthModule.Infrastructure.Persistence.Models.UserProfileDbModel", b =>
@@ -321,17 +465,6 @@ namespace AuthModule.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("AuthModule.Infrastructure.Persistence.Models.UserTokenDbModel", b =>
-                {
-                    b.HasOne("AuthModule.Infrastructure.Persistence.Models.UserDbModel", "User")
-                        .WithMany("Tokens")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("AuthModule.Infrastructure.Persistence.Models.PermissionDbModel", b =>
                 {
                     b.Navigation("RolePermissions");
@@ -346,9 +479,9 @@ namespace AuthModule.Migrations
 
             modelBuilder.Entity("AuthModule.Infrastructure.Persistence.Models.UserDbModel", b =>
                 {
-                    b.Navigation("Profile");
+                    b.Navigation("Otps");
 
-                    b.Navigation("Tokens");
+                    b.Navigation("Profile");
 
                     b.Navigation("UserRoles");
                 });

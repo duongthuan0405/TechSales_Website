@@ -37,6 +37,12 @@ Build các module bị ảnh hưởng, consumer và host. Module chưa nằm tro
 
 ## 4. Checklist review boundary
 
+- Class/struct của module và host có dùng constructor truyền thống, dependency là field `private readonly`, không còn primary constructor và tham chiếu tới tham số bị bỏ không? Constructor lớp cha có được gọi đúng qua `: base(...)` và DI có còn resolve đúng không?
+
+- Kết quả danh sách ở repository/port/service, contract liên module và UCOutput/response DTO có dùng `List<T>` (hoặc `Task<List<T>>`), `Items` phân trang có phải `List<T>` và truy vấn EF có dùng `ToListAsync(cancellationToken)` không? Có trả danh sách rỗng thay vì null và cập nhật đồng bộ interface/implementation/consumer khi đổi kiểu không?
+
+- Mọi entity trong `Domain/Entities` và thư mục con của từng module có phải `class`, không có `record`, `record class` hoặc `record struct`, kể cả entity chỉ chứa dữ liệu không?
+
 - Mỗi module đúng một project CA; không tách project theo layer ngoài quyết định được giao?
 - Contract có chủ đích, implementation internal khi có thể, không lộ repository/entity/query type?
 - Không reference vòng, không bypass boundary bằng service locator/reflection hoặc gọi UC nội bộ module khác?

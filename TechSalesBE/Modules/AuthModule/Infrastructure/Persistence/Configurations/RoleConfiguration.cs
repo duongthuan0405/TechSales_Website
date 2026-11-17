@@ -9,6 +9,7 @@ internal sealed class RoleConfiguration : IEntityTypeConfiguration<RoleDbModel>
     public void Configure(EntityTypeBuilder<RoleDbModel> builder)
     {
         builder.ToTable("Role");
+        builder.HasData(AuthSeedData.Roles);
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id).HasColumnName("Id").HasColumnType("uuid").IsRequired();
         builder.Property(e => e.Name).HasColumnName("Name").HasColumnType("character varying(50)").HasMaxLength(50).IsRequired();

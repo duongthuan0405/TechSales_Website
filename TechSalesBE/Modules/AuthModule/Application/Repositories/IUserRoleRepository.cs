@@ -1,8 +1,5 @@
-using AuthModule.Domain.Entities;
-
 namespace AuthModule.Application.Repositories;
-
 internal interface IUserRoleRepository
 {
-    Task AddAsync(UserRole userRole, CancellationToken cancellationToken = default);
+    Task ReplaceAsync(Guid userId, Guid[] roleIds, CancellationToken cancellationToken);
 }

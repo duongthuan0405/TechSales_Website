@@ -1,12 +1,16 @@
+using AuthModule.Domain.Enums;
+
 namespace AuthModule.Application.Services;
 
-public class OtpResult 
+internal class OtpResult 
 {
     public string Otp {get; set;} = string.Empty;
+    public string HashedOtp {get; set;} = string.Empty;
     public DateTimeOffset ExpiredAt {get; set;}
 }
 
-public interface IOtpService
+internal interface IOtpService
 {
-    OtpResult GenerateOtp();
+    OtpResult GenerateOtp(OtpType type, Guid ownerId);
+    bool IsValidOtp(string otp, OtpType type, Guid ownerId, string hashedOtp);
 }

@@ -18,6 +18,8 @@ Một handler chịu trách nhiệm một UC nhưng không sở hữu mọi thu�
 
 ## 2. Quy tắc dùng chung giữa Domain và validator
 
+Các con số giới hạn nghiệp vụ phải được định nghĩa một lần bằng hằng số có tên rõ nghĩa tại `Domain/Constants` của feature/module sở hữu, không hardcode lặp trong entity, rule, validator, handler, service hoặc thông báo. Các nơi kiểm tra cùng quy tắc dùng chung predicate tại Domain/Rules và các hằng số này. Nếu thay đổi giới hạn tác động schema, cập nhật mapping và tạo migration mới; không sửa migration/snapshot lịch sử. Không đưa quy tắc đặc thù của mọi module vào Common.
+
 Khi cùng một invariant cần được kiểm tra ở Domain và UCInput_Validator, tách predicate thành rule thuần dùng chung. Code phải tham chiếu DomainExceptionCode, không hardcode lại giá trị; message có thể hardcode hoặc đặt cùng rule khi hữu ích; không bắt buộc catalog hay resolver. Không tạo interface hoặc hệ thống rule tổng quát khi một static class đã đủ.
 
 ```text

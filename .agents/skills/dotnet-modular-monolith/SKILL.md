@@ -81,6 +81,10 @@ Giao tiếp đồng bộ mặc định dùng consumer-owned port: A định ngh�
 
 ## 4. Clean Architecture bên trong module
 
+Controller WebAPI của mọi module phải kế thừa trực tiếp `Microsoft.AspNetCore.Mvc.ControllerBase`. Không tạo lớp base tùy biến nằm giữa `XXXController` và `ControllerBase`. Các tiện ích HTTP/claims/response dùng chung được viết thành extension method cho `ControllerBase`, đặt tại `CommonModule/Presentation/Extensions` hoặc namespace tương đương của phần dùng chung. Extension không chứa nghiệp vụ, truy vấn database hoặc điều phối use case.
+
+**Bắt buộc trong mọi module:** mọi entity trong `Domain/Entities`, kể cả thư mục con, phải khai báo bằng `class`. Không dùng `record`, `record class` hoặc `record struct` trong mọi trường hợp, kể cả entity chỉ có dữ liệu hoặc không có hành vi. Khi tạo hoặc sửa entity, kiểm tra kiểu khai báo và chuyển entity dạng record trong phạm vi nhiệm vụ sang class; giữ constructor, property và mapping cần thiết, không mặc định duy trì value equality của record. Quy định này dành cho entity; UCInput, UCOutput và DTO vẫn có thể dùng record.
+
 Mỗi UC có đủ bốn lớp trong `Application/UseCases/<Feature>/<XXX>/`:
 
 | Lớp | Hợp đồng |
@@ -101,6 +105,12 @@ Mỗi module sở hữu phần dữ liệu của mình và độc quyền ghi. C
 MediatR Send/Publish trong cùng tiến trình không tự tạo ranh giới module, transaction hoặc đảm bảo giao nhận. Đọc [module-boundaries.md](references/module-boundaries.md) khi có gọi liên module, workflow nhiều module, sự kiện hoặc vấn đề ownership dữ liệu.
 
 ## 6. Quy trình agent thực hiện
+
+**Thống nhất danh sách trả về trong mọi module:** dùng `List<T>` cho kết quả danh sách của repository, port/service, handler, contract liên module và các thuộc tính danh sách trong UCOutput/response DTO. Hàm bất đồng bộ trả `Task<List<T>>`; kết quả phân trang có `Items` kiểu `List<T>`. Không dùng `T[]`, `IEnumerable<T>` hoặc `IReadOnlyList<T>` thay cho kiểu kết quả danh sách nghiệp vụ này. Truy vấn EF Core lấy danh sách bằng `ToListAsync(cancellationToken)`, không dùng `ToArrayAsync()`; ánh xạ trong bộ nhớ tạo `List<T>` hoặc dùng `ToList()`. Không có dữ liệu thì trả danh sách rỗng, không trả null. Quy ước này không thay đổi kiểu dữ liệu nhị phân `byte[]`, chữ ký bắt buộc của thư viện/framework hoặc kiểu truy vấn nội bộ chưa materialize. Khi sửa hợp đồng danh sách, cập nhật interface, implementation và consumer trong phạm vi nhiệm vụ.
+
+**Cú pháp tường minh:** từ khi triển khai hoặc chỉnh sửa code trong mỗi module, ưu tiên câu lệnh dễ đọc và tên biến thể hiện ý nghĩa. Luôn dùng khối `{ }` cho `if/else` và vòng lặp, không gộp điều kiện và thao tác lên một dòng. Kiểm tra nullable bằng `HasValue`/`Value` hoặc so sánh `null` tường minh; không dùng pattern rút gọn như `is { } last`. Khai báo kiểu biến và kiểu khởi tạo rõ ràng khi giúp người đọc hiểu code, tách biểu thức dài thành các biến trung gian; tránh ternary lồng nhau và cú pháp nén trong logic nghiệp vụ. Khi sửa một phương thức, áp dụng cách viết này cho phương thức đó; không tự refactor phần khác ngoài nhiệm vụ.
+
+**Constructor tường minh trong mọi module và host:** không dùng primary constructor cho `class` hoặc `struct`. Khai báo constructor truyền thống bên trong thân kiểu; dependency được lưu trong field `private readonly` có tên rõ ràng, gán qua constructor và sử dụng qua field đó. Nếu cần gọi constructor lớp cha, dùng `: base(...)` trên constructor truyền thống. Khi sửa hoặc chuyển code, cập nhật mọi tham chiếu tới tham số primary constructor sang field tương ứng, giữ nguyên DI, lifetime và hành vi. Quy định này không cấm positional record cho UCInput/UCOutput/DTO ở những nơi skill cho phép record.
 
 1. Đọc instruction và cấu trúc repository, project references, host, registrations, một luồng UC thực tế. Xác định module sở hữu thay đổi.
 2. Mô tả mục tiêu UC, invariant, dữ liệu đọc/ghi, actor/quyền, side effect và contract liên module nếu có.

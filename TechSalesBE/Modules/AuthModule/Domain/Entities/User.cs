@@ -1,103 +1,164 @@
+using AuthModule.Domain.Constants;
 using AuthModule.Domain.Enums;
-using AuthModule.Domain.ErrorMessages;
-
+using AuthModule.Domain.Exceptions;
+using AuthModule.Domain.Rules;
+using CommonModule.Domain.Exceptions;
 namespace AuthModule.Domain.Entities;
-
-internal class User
+internal sealed class User
 {
-    private Guid _id = Guid.Empty;
-    private DateTimeOffset _createdAt = DateTimeOffset.UtcNow;
-    private DateTimeOffset? _updatedAt = null;
-    private string _email = string.Empty;
-    private string _password = string.Empty;
-    private UserStatus _status = UserStatus.PENDING;
-    private int _failedLoginAttempts;
-    private DateTimeOffset? _lastFailedAt;
-    private DateTimeOffset? _lockedUntil;
+    internal Guid Id { get; init; } = Guid.NewGuid();
+    internal string Email { get; set; } = string.Empty;
+    internal string Password { get; set; } = string.Empty;
+    internal UserStatus Status { get; set; } = UserStatus.PENDING;
+    internal int FailedLoginAttempts { get; set; }
+    internal DateTimeOffset? LastLoginFailedAt { get; set; }
+    internal DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
+    internal DateTimeOffset? UpdatedAt { get; set; }
+    internal DateTimeOffset? LockedUntil { get; set; }
+    internal List<Role> Roles { get; set; } = new List<Role>();
+    internal UserProfile Profile { get; set; } = new UserProfile();
 
-    internal Guid Id 
-    { 
-        get => _id; 
-        set => _id = value; 
-    }
-    internal DateTimeOffset CreatedAt 
-    { 
-        get => _createdAt; 
-        set => _createdAt = value; 
-        } 
-    internal DateTimeOffset? UpdatedAt 
-    { 
-        get => _updatedAt; 
-        set => _updatedAt = value; 
-    }
-
-    internal string Email
+    internal static User Create(string email, string passwordHash, bool verified = false)
     {
-        get => _email;
-        set
+        if (!AuthRules.ValidEmail(email))
         {
-            if (string.IsNullOrWhiteSpace(value) || !value.Contains("@"))
-                throw new ArgumentException(DomainErrors.User.EmailInvalid);
-            _email = value;
+            throw new DomainException(DomainExceptionCode.INVALID_EMAIL, "Invalid email address.");
+        }
+
+        if (string.IsNullOrWhiteSpace(passwordHash))
+        {
+            throw new DomainException(DomainExceptionCode.INVALID_PASSWORD, "Invalid password hash.");
+        }
+
+        User user = new User
+        {
+            Email = AuthRules.NormalizeEmail(email),
+            Password = passwordHash
+        };
+
+        if (verified)
+        {
+            user.Status = UserStatus.ACTIVE;
+        }
+
+        return user;
+    }
+
+    internal void ReleaseExpiredLock(DateTimeOffset now)
+    {
+        if (Status != UserStatus.BLOCKED || !LockedUntil.HasValue)
+        {
+            return;
+        }
+
+        DateTimeOffset lockExpiresAt = LockedUntil.Value;
+        if (lockExpiresAt > now)
+        {
+            return;
+        }
+
+        Status = UserStatus.ACTIVE;
+        FailedLoginAttempts = 0;
+        LastLoginFailedAt = null;
+        LockedUntil = null;
+        UpdatedAt = now;
+    }
+
+    internal void RecordFailedLogin(DateTimeOffset now)
+    {
+        if (LastLoginFailedAt.HasValue)
+        {
+            DateTimeOffset lastLoginFailedAt = LastLoginFailedAt.Value;
+            DateTimeOffset failedLoginWindowEndsAt = lastLoginFailedAt.AddMinutes(AuthLimits.FailedLoginWindowMinutes);
+
+            if (failedLoginWindowEndsAt <= now)
+            {
+                FailedLoginAttempts = 0;
+            }
+        }
+        else
+        {
+            FailedLoginAttempts = 0;
+        }
+
+        FailedLoginAttempts++;
+        LastLoginFailedAt = now;
+        UpdatedAt = now;
+
+        if (FailedLoginAttempts >= AuthLimits.MaxFailedLoginAttempts)
+        {
+            DateTimeOffset lockExpiresAt = now.AddMinutes(AuthLimits.AccountLockMinutes);
+            LockAccount(lockExpiresAt, now);
         }
     }
 
-    internal string Password
+    internal void RecordSuccessfulLogin(DateTimeOffset now)
     {
-        get => _password;
-        set
+        if (Status != UserStatus.ACTIVE)
         {
-            if (string.IsNullOrWhiteSpace(value))
-                throw new ArgumentException(DomainErrors.User.PasswordInvalid);
-            _password = value;
+            throw new DomainException(DomainExceptionCode.INVALID_STATE, "Account is not active.");
         }
+
+        FailedLoginAttempts = 0;
+        LastLoginFailedAt = null;
+        LockedUntil = null;
+        UpdatedAt = now;
     }
 
-    internal UserStatus Status
+    internal void VerifyEmail(DateTimeOffset now)
     {
-        get => _status;
-        set => _status = value;
+        if (Status != UserStatus.PENDING)
+        {
+            throw new DomainException(DomainExceptionCode.INVALID_STATE, "Account is not pending verification.");
+        }
+
+        Status = UserStatus.ACTIVE;
+        UpdatedAt = now;
     }
 
-    internal int FailedLoginAttempts
+    internal void ChangePassword(string passwordHash, DateTimeOffset now)
     {
-        get => _failedLoginAttempts;
-        set => _failedLoginAttempts = value < 0 ? 0 : value;
+        if (string.IsNullOrWhiteSpace(passwordHash))
+        {
+            throw new DomainException(DomainExceptionCode.INVALID_PASSWORD, "Invalid password hash.");
+        }
+
+        Password = passwordHash;
+        FailedLoginAttempts = 0;
+        LastLoginFailedAt = null;
+        UpdatedAt = now;
+        // A password reset must not remove a manual administrative lock.
+        ReleaseExpiredLock(now);
     }
 
-    internal DateTimeOffset? LastFailedAt
+    internal void LockAccount(DateTimeOffset? until, DateTimeOffset now)
     {
-        get => _lastFailedAt;
-        set => _lastFailedAt = value;
+        if (Status != UserStatus.ACTIVE && Status != UserStatus.BLOCKED)
+        {
+            throw new DomainException(DomainExceptionCode.INVALID_STATE, "Only verified accounts can be locked.");
+        }
+
+        if (until.HasValue && until.Value <= now)
+        {
+            throw new DomainException(DomainExceptionCode.INVALID_STATE, "Lock expiry must be in the future.");
+        }
+
+        Status = UserStatus.BLOCKED;
+        LockedUntil = until;
+        UpdatedAt = now;
     }
 
-    internal DateTimeOffset? LockedUntil
+    internal void UnlockAccount(DateTimeOffset now)
     {
-        get => _lockedUntil;
-        set => _lockedUntil = value;
-    }
+        if (Status != UserStatus.BLOCKED)
+        {
+            throw new DomainException(DomainExceptionCode.INVALID_STATE, "Account is not locked.");
+        }
 
-    internal User(string email, string password)
-    {
-        this.Email = email;
-        this.Password = password;
-        this.Status = UserStatus.PENDING;
-        this.FailedLoginAttempts = 0;
-    }
-
-    internal User() { }
-
-    internal void LockAccount(DateTimeOffset? until = null)
-    {
-        this.Status = UserStatus.BLOCKED;
-        this.LockedUntil = until;
-        this.UpdatedAt = DateTimeOffset.UtcNow;
-    }
-
-    internal void UnlockAccount()
-    {
-        this.Status = UserStatus.ACTIVE;
-        this.LockedUntil = null;
-        this.UpdatedAt = DateTimeOffset.UtcNow;
+        Status = UserStatus.ACTIVE;
+        FailedLoginAttempts = 0;
+        LastLoginFailedAt = null;
+        LockedUntil = null;
+        UpdatedAt = now;
     }
 }

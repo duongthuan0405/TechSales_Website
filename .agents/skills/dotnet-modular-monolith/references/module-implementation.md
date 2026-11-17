@@ -52,6 +52,8 @@ Validation behavior gọi ValidateAsync và gom lỗi theo field, dừng trướ
 
 ## 3. Nghiệp vụ và persistence
 
+Các con số giới hạn nghiệp vụ phải được định nghĩa một lần bằng hằng số có tên rõ nghĩa tại `Domain/Constants` của module sở hữu, không hardcode lặp trong entity, rule, validator, handler, service hoặc thông báo. Các nơi kiểm tra cùng quy tắc dùng chung predicate tại Domain/Rules và các hằng số này. Nếu thay đổi giới hạn tác động schema, cập nhật mapping và tạo migration mới; không sửa migration/snapshot lịch sử. Không gom giới hạn nghiệp vụ của mọi module vào Common.
+
 Entity/value object giữ invariant và hành vi; domain rule thuần dùng chung với validator khi cùng một điều kiện cần kiểm tra sớm. Domain không I/O và không biết MediatR/FluentValidation/EF/HTTP. Tách chính sách chỉ thuộc UC ở Application thay vì đẩy mọi if vào Domain.
 
 Repository port thuộc Application, implementation Infrastructure. Không trả IQueryable, storage model, HTTP type hoặc SDK type qua port. Khi dùng persistence theo cấu trúc này, tách entity Domain và storage model; repository map hai chiều, cấu hình database tại Infrastructure. Với entity detached, ghi lại qua storage model tracked hoặc cơ chế tường minh, không giả định EF tự lưu Domain object.

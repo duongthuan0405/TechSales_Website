@@ -8,6 +8,10 @@
   <Project Path="Modules/OrderingModule/OrderingModule.csproj" />
   <Project Path="Modules/ShippingModule/ShippingModule.csproj" />
   <Project Path="Modules/PromotionModule/PromotionModule.csproj" />
+  <Folder Name="/Modules/" />
+  <Folder Name="/Tests/">
+    <Project Path="Tests/AuthModule.Tests/AuthModule.Tests.csproj" />
+  </Folder>
   <Project Path="Modules/AfterSaleModule/AfterSaleModule.csproj" />
   <Project Path="Modules/PaymentRefundModule/PaymentRefundModule.csproj" />
   <Project Path="Modules/ReviewNotificationModule/ReviewNotificationModule.csproj" />

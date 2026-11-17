@@ -1,33 +1,16 @@
 namespace AuthModule.Domain.Entities;
-
-internal class Permission
+internal sealed class Permission
 {
-    private Guid _id = Guid.Empty;
-    private string _code = string.Empty;
-    private string? _description = null;
+    public Guid Id { get; init; }
+    public string Code { get; init; }
+    public string Name { get; init; }
+    public string Module { get; init; }
 
-    internal Permission(Guid id, string code, string? description)
+    public Permission(Guid id, string code, string name, string module)
     {
-        _id = id;
-        _code = code;
-        this._description = description;
-    }
-
-    internal Permission() {}
-
-    internal Guid Id 
-    { 
-        get => _id; 
-        set => _id = value; 
-    }
-    internal string Code 
-    { 
-        get => _code; 
-        set => _code = value; 
-    }
-    internal string? Description 
-    { 
-        get => _description; 
-        set => _description = value; 
+        Id = id;
+        Code = code;
+        Name = name;
+        Module = module;
     }
 }
