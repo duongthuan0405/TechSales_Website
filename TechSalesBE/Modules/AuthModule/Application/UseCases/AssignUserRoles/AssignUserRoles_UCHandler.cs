@@ -1,3 +1,4 @@
+using AuthModule.Application.Rules;
 using AuthModule.Application.Constants;
 using AuthModule.Application.Ports;
 using AuthModule.Application.Repositories;
@@ -29,7 +30,13 @@ internal sealed class AssignUserRoles_UCHandler : IRequestHandler<AssignUserRole
         return await _transaction.ExecuteAtomicallyAsync(async () =>
         {
             await _users.LockUsersAsync([input.ActorId, input.UserId], ct);
+            User? actor = await _users.GetByIdAsync(input.ActorId, ct);
+            if (actor == null)
+            {
+                throw new BusinessException(BusinessExceptionCode.NOT_FOUND, "Actor account not found.");
+            }
             var user = await _users.GetByIdAsync(input.UserId, ct) ?? throw new BusinessException(BusinessExceptionCode.NOT_FOUND, "User not found.");
+            AccountManagementRules.EnsureCanAssignRoles(actor, user.Id);
             var selected = await _roles.GetByIdsAsync(input.RoleIds, ct);
             if (selected.Count != input.RoleIds.Length)
             {

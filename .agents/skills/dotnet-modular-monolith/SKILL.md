@@ -122,6 +122,8 @@ MediatR Send/Publish trong cùng tiến trình không tự tạo ranh giới mod
 
 ## 7. Tiêu chí hoàn tất
 
+Quyền gọi API được kiểm tra tại endpoint bằng Authorize/policy/permission; quy tắc actor được tạo/quản lý tài nguyên nào phải được use case bảo vệ qua Application/Rules hoặc Domain. Handler không truy vấn lại cùng API permission. Handler map Entity trực tiếp thành UCOutput, Controller bọc output với kiểu cụ thể; không thêm View/Response DTO lặp lại. Không tự thêm session, blacklist, refresh token, queue hoặc outbox ngoài phạm vi nghiệp vụ đã chốt.
+
 - Một project cho mỗi module, CA phân lớp nội bộ; không phát sinh project theo layer.
 - Một host/process/deployment; không tự chuyển sang microservice.
 - Quyền sở hữu dữ liệu và contract rõ, không dependency vòng hoặc truy cập implementation module khác.

@@ -7,7 +7,6 @@ using AuthModule.Application.UseCases.UpdateRolePermissions;
 using AuthModule.Application.UseCases.AssignUserRoles;
 using AuthModule.Presentation.DTOs;
 using CommonModule.CustomAttributes;
-using CommonModule.BusinessExceptions;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -53,11 +52,6 @@ public sealed class RbacController : ControllerBase
     [HttpPut("users/{userId:guid}/roles")]
     public async Task<IActionResult> AssignUserRoles(Guid userId, AssignRolesRequestDto request, CancellationToken ct)
     {
-        if (userId == this.GetActorId())
-        {
-            throw new BusinessException(BusinessExceptionCode.BAD_REQUEST, "You cannot change your own roles.");
-        }
-
         AssignUserRoles_UCOutput result = await _sender.Send(new AssignUserRoles_UCInput(this.GetActorId(), userId, request.RoleIds), ct);
         ApiSuccessResponse<AssignUserRoles_UCOutput> response = new ApiSuccessResponse<AssignUserRoles_UCOutput>(null, result.Message);
         return Ok(response);

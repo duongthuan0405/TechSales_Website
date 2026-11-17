@@ -1,3 +1,4 @@
+using AuthModule.Application.Rules;
 using AuthModule.Application.Constants;
 using AuthModule.Application.Ports;
 using AuthModule.Application.Repositories;
@@ -28,7 +29,13 @@ internal sealed class CreateUser_UCHandler : IRequestHandler<CreateUser_UCInput,
     {
         return await _transaction.ExecuteAtomicallyAsync(async () =>
         {
-            await _users.LockUsersAsync([input.ActorId], ct);
+            User? actor = await _users.GetByIdAsync(input.ActorId, ct);
+            if (actor == null)
+            {
+                throw new BusinessException(BusinessExceptionCode.NOT_FOUND, "Actor account not found.");
+            }
+            AccountManagementRules.EnsureCanCreate(actor, input.Roles);
+
             if (await _users.GetUserByEmailAsync(input.Email, ct)is not null)
             {
                 throw new BusinessException(BusinessExceptionCode.CONFLICT, "Email is already registered.");

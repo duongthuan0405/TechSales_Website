@@ -25,32 +25,38 @@ You are **TechSales Senior .NET Architect & Core Developer Agent**. Your mission
 9. `AfterSale`: Product returns, exchange requests, repair and warranty tracking, inspection results.
 10. `PaymentRefund`: Online/Cash transactions, payment processing, refund handling.
 11. `ReviewNotification`: Product ratings/reviews, review replies, system notifications.
-12. `EmailSending`: Async email queueing and delivery wrapping external APIs.
+12. `EmailSending`: SMTP email delivery through dedicated verification/reset senders. Queue/outbox is not currently implemented.
 
 ### 2.3 Clean Architecture (4 Layers per Module)
-- **Presentation**: API Controllers, Request/Response DTOs, FluentValidators, OpenAPI documentation.
-- **Application**: Use cases, CQRS Handlers (MediatR), Service Interfaces, DTO Mappers, Domain Event Handlers.
+- **Presentation**: Controllers inherit ControllerBase directly, request DTOs, explicit typed API envelopes, endpoint authorization and OpenAPI documentation.
+- **Application**: Each MediatR use case has UCInput, UCOutput, UCHandler and UCInput_Validator. Handlers map Domain entities directly to UCOutput; no intermediate View or duplicate response DTO. Application owns repository/service ports and use-case policies.
 - **Domain**: Domain Entities, Value Objects, Domain Events, Enums, Core Business Rules & Invariants.
 - **Infrastructure**: EF Core DbContext, Entity Configurations, Repositories, PostgreSQL queries, External Integrations.
+
+All Domain/Entities are classes, never records. Repositories map Domain entities to/from separate DbModels; each table is configured through IEntityTypeConfiguration<TDbModel>. Business list results use List<T>. Use conventional constructors, readonly dependency fields, explicit blocks, and one attribute per bracket pair.
+
+Actual projects live in TechSalesBE/Modules: CommonModule, AuthModule (IdentifyAccess), CatalogModule, InventoryModule, CartModule, OrderingModule, ShippingModule, PromotionModule, AfterSaleModule, PaymentRefundModule, ReviewNotificationModule and MailModule (EmailSending). Each module owns RegisterModule; TechSalesBE.WebAPI composes these registrations and Host/Integration adapters. Common owns shared mechanisms, not a business DbContext.
+
+Auth currently uses JWT without persisted sessions or a token blacklist. Logout passes authentication and returns 200; the client deletes its token. UserOtp stores only hashed verification/password-reset OTPs. Token generation belongs to IAccessTokenService and its infrastructure implementation. API permission checks remain at controllers; role-based account-management business restrictions remain in Application/Rules and are applied by handlers. Four roles are Customer, Staff, Business Admin and Technical Admin. Business Admin cannot create Technical Admin. Do not restore UserSession from historical migrations.
 
 ---
 
 ## 3. Module Boundary & Inter-Module Dependency Rules
 
 1. **Common Module**: Depended on by all other 11 modules. Holds no business domain logic.
-2. **Strict Encapsulation**: Cross-module communication must occur through Application-layer interfaces or Domain Events. Never access another module's `DbContext`, `Repository`, or Infrastructure directly.
+2. **Strict Encapsulation**: Business module projects reference CommonModule, not one another. A consumer-owned Application port is implemented by a WebAPI Integration adapter that calls the provider's public interface. Existing public service interfaces may live in Application/Interfaces; do not relocate them solely to enforce a Contracts folder. Handlers do not depend on provider DTOs, repositories, DbContext or Infrastructure. Events are an optional design choice with explicit delivery semantics, not an existing durable queue.
 3. **Database Schema Isolation**: Each module logically owns its database tables. Physical SQL Foreign Keys across module boundaries MUST NOT be declared unless within the same module scope. Inter-module references are maintained as logical ID fields (e.g., `Order.UserId` references `IdentityAccess.User.Id` logically).
 
 ---
 
 ## 4. Comprehensive PostgreSQL Database Schema & Entity Rules
 
-### 4.1 Global Enums Definition
+### 4.1 Module-owned Enums Definition
 
 ```csharp
 // Identity and Access
 public enum UserStatus { PENDING, ACTIVE, BLOCKED, INACTIVE }
-public enum TokenType { EMAIL_VERIFICATION, RESET_PASSWORD }
+public enum OtpType { EMAIL_VERIFICATION = 1, RESET_PASSWORD = 2 }
 
 // Catalog
 public enum ProductStatus { ACTIVE, DISCONTINUED }
@@ -94,21 +100,22 @@ public enum ConversationStatus { WAITING, ASSIGNED }
 | `HashedPassword` | VarChar(255) | NN | Chuỗi mật khẩu đã được băm. |
 | `Status` | UserStatus | NN | Trạng thái tài khoản (Enum). |
 | `FailedLoginAttempts`| Int | NN, DEFAULT 0 | Số lần đăng nhập sai liên tiếp. |
+| `LastLoginFailedAt` | TimeStampZ | Nullable | Lần đăng nhập thất bại gần nhất; dùng tính cửa sổ đếm lỗi, không dùng UpdatedAt. |
 | `CreatedAt` | TimeStampZ | NN, DEFAULT now()| Thời điểm khởi tạo tài khoản. |
 | `UpdatedAt` | TimeStampZ | Nullable | Thời điểm cập nhật gần nhất. |
 | `LockedUntil` | TimeStampZ | Nullable | Thời điểm hết hạn tạm khóa tài khoản. |
 
-#### Bảng 1.2: `UserToken`
+#### Bảng 1.2: `UserOtp`
 | Cột | Kiểu dữ liệu | Constraint | Ghi chú & Ý nghĩa |
 | :--- | :--- | :--- | :--- |
 | `Id` | UUID | PK | Định danh token. |
 | `UserId` | UUID | FK, NN | Tham chiếu `User.Id`. |
-| `Value` | VarChar(500) | NN | Giá trị token xác thực/reset. |
-| `Type` | TokenType | NN | Mục đích của token (Enum). |
+| `Value` | VarChar(500) | NN | Hash OTP xác nhận email/reset mật khẩu, không lưu JWT hoặc OTP thô. |
+| `Type` | OtpType | NN | Mục đích của OTP (Enum). |
 | `ExpiredAt` | TimeStampZ | NN | Thời điểm token hết hạn. |
 | `UsedAt` | TimeStampZ | Nullable | Thời điểm token được sử dụng. |
 | `CreatedAt` | TimeStampZ | NN, DEFAULT now()| Thời điểm tạo token. |
-*Ràng buộc đặc biệt*: `UNIQUE(UserId, Type)` — Mỗi user chỉ có tối đa 1 token đang chờ xử lý theo từng loại.
+*Ràng buộc đặc biệt*: `UNIQUE(UserId, Type)` — Mỗi user có tối đa một bản ghi theo từng loại, cập nhật/thay mã và trạng thái trên bản ghi đó.
 
 #### Bảng 1.3: `UserProfile`
 | Cột | Kiểu dữ liệu | Constraint | Ghi chú & Ý nghĩa |
@@ -125,7 +132,7 @@ public enum ConversationStatus { WAITING, ASSIGNED }
 | Cột | Kiểu dữ liệu | Constraint | Ghi chú & Ý nghĩa |
 | :--- | :--- | :--- | :--- |
 | `Id` | UUID | PK | Định danh vai trò. |
-| `Name` | VarChar(50) | NN, UNIQUE | Tên vai trò (ví dụ: ADMIN, STAFF, CUSTOMER). |
+| `Name` | VarChar(50) | NN, UNIQUE | Customer, Staff, Business Admin hoặc Technical Admin; dùng hằng số UserRoleName hiện có. |
 | `Description` | VarChar(255) | Nullable | Mô tả chi tiết vai trò. |
 | `CreatedAt` | TimeStampZ | NN, DEFAULT now()| Thời điểm tạo vai trò. |
 

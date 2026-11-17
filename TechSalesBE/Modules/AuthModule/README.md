@@ -39,7 +39,7 @@ Các request dùng camelCase JSON như BE cũ. Response thống nhất `{ succes
 
 Role dùng ID cố định từ BE cũ. Migration `SeedAuthRolesAndPermissions` thêm 4 role, 5 permission thuộc Auth và 11 liên kết RolePermission, không tạo lại bảng.
 
-Phân quyền được thực hiện tại Controller bằng `[Authorize]`, `[HasPermission]` và `IAuthorizationService` với policy quản lý tài khoản đích tại `Presentation/Authorization`. Controller kiểm tra phạm vi role trước khi gửi UCInput qua MediatR, đồng thời chọn phạm vi dữ liệu danh sách Staff theo danh tính đã xác thực. Handler không kiểm tra lặp role/permission và không dùng AuthAccess; handler xử lý nghiệp vụ, trạng thái dữ liệu, transaction và ánh xạ UCOutput. Các entrypoint gọi UC ngoài HTTP phải thực hiện phân quyền tại entrypoint tương ứng.
+Quyền gọi API được kiểm tra tại Controller bằng `[Authorize]` và `[HasPermission]`. Các quy tắc nghiệp vụ theo vai trò như Business Admin chỉ được tạo Staff/Business Admin, Staff chỉ quản lý Customer, không tự đổi role/khóa tài khoản của mình và phạm vi xem danh sách nhân sự được kiểm tra trong use case, tập trung tại `Application/Rules/AccountManagementRules.cs`. Handler lấy actor từ repository bằng ActorId đã được Controller lấy từ claims, sau đó áp dụng rule trước khi thay đổi dữ liệu. Các quy tắc này vẫn có hiệu lực khi use case được gọi qua MediatR ngoài HTTP. Không truy vấn API permission lặp lại trong handler.
 
 Danh mục permission ở `Application/Constants/AuthPermission.cs`. `HasPermission` truy vấn quyền thật từ database. Technical Admin có toàn quyền; không sửa permission của role này. Chỉ Technical Admin được gán role hoặc chỉnh RBAC; không tự thay role/khóa chính mình. Đổi role thu hồi phiên của tài khoản đích; đổi permission có hiệu lực ở request kế tiếp.
 

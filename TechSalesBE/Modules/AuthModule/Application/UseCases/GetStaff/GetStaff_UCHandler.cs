@@ -1,3 +1,5 @@
+using AuthModule.Application.Rules;
+using CommonModule.BusinessExceptions;
 using AuthModule.Application.Constants;
 using AuthModule.Application.Repositories;
 using AuthModule.Application.Services;
@@ -16,7 +18,14 @@ internal sealed class GetStaff_UCHandler : IRequestHandler<GetStaff_UCInput, Get
 
     public async Task<GetStaff_UCOutput> Handle(GetStaff_UCInput input, CancellationToken ct)
     {
-        (List<User> Items, int Count) page = await _users.GetPageAsync(input.RoleNames, input.PageNumber, input.PageSize, ct);
+        User? actor = await _users.GetByIdAsync(input.ActorId, ct);
+        if (actor == null)
+        {
+            throw new BusinessException(BusinessExceptionCode.NOT_FOUND, "Actor account not found.");
+        }
+        List<string> visibleRoles = AccountManagementRules.GetVisibleStaffRoles(actor);
+
+        (List<User> Items, int Count) page = await _users.GetPageAsync(visibleRoles.ToArray(), input.PageNumber, input.PageSize, ct);
         List<GetStaff_UCOutput.UserItem> items = new List<GetStaff_UCOutput.UserItem>();
         foreach (User user in page.Items)
         {

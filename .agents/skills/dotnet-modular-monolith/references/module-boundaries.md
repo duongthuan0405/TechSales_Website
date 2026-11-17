@@ -65,10 +65,15 @@ internal sealed class ModuleBReferenceLookup : IReferenceLookup
 {
     private readonly IModuleBApi _moduleB;
 
-    public ModuleBReferenceLookup(IModuleBApi moduleB) => _moduleB = moduleB;
+    public ModuleBReferenceLookup(IModuleBApi moduleB)
+    {
+        _moduleB = moduleB;
+    }
 
     public Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)
-        => _moduleB.ExistsAsync(id, cancellationToken);
+    {
+        return _moduleB.ExistsAsync(id, cancellationToken);
+    }
 }
 ```
 

@@ -136,6 +136,13 @@ internal sealed class AuthTestApp : IAsyncDisposable
         return await action(scope.ServiceProvider.GetRequiredService<AuthDbContext>());
     }
 
+    internal async Task<TResponse> SendAsync<TResponse>(MediatR.IRequest<TResponse> input)
+    {
+        using IServiceScope scope = _app.Services.CreateScope();
+        MediatR.ISender sender = scope.ServiceProvider.GetRequiredService<MediatR.ISender>();
+        return await sender.Send(input);
+    }
+
     internal async Task<Guid> SeedUserAsync(string email, string role, bool active = true)
     {
         using var scope = _app.Services.CreateScope();

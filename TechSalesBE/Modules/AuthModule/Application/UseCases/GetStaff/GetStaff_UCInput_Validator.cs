@@ -8,8 +8,6 @@ internal sealed class GetStaff_UCInput_Validator : AbstractValidator<GetStaff_UC
     public GetStaff_UCInput_Validator()
     {
         RuleFor(x => x.ActorId).NotEmpty();
-        RuleFor(x => x.RoleNames).NotEmpty();
-        RuleForEach(x => x.RoleNames).NotEmpty();
         RuleFor(x => x.PageNumber).InclusiveBetween(AuthLimits.MinPageNumber, AuthLimits.MaxPageNumber);
         RuleFor(x => x.PageSize).InclusiveBetween(AuthLimits.MinPageSize, AuthLimits.MaxPageSize);
     }

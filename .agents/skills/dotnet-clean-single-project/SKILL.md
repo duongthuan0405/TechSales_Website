@@ -23,7 +23,7 @@ HTTP request
   -> UCHandler: điều phối một use case
   -> Domain behavior và Application ports
   -> Infrastructure adapters nếu cần I/O
-  -> UCOutput -> Response DTO -> HTTP response
+  -> Handler map Entity trực tiếp thành UCOutput -> HTTP response có kiểu cụ thể
 ```
 
 Chiều phụ thuộc mã nguồn:
@@ -132,13 +132,17 @@ Repository không tự commit từng bước của UC. Không bắt buộc một
 
 ### Presentation
 
+Phân biệt quyền gọi API với quy tắc nghiệp vụ dựa trên actor/vai trò. `[Authorize]`/policy/permission ở endpoint kiểm tra quyền truy cập API; hạn chế actor được tạo hoặc quản lý loại tài khoản/tài nguyên nào là quy tắc nghiệp vụ, phải được use case áp dụng qua rule/policy phù hợp tại Application hoặc Domain. Không chuyển quy tắc nghiệp vụ vào Controller/authorization filter rồi bỏ kiểm tra trong use case. Handler không cần truy vấn lại cùng API permission, nhưng phải bảo vệ nghiệp vụ khi được gọi ngoài HTTP.
+
 Controller WebAPI phải kế thừa trực tiếp `Microsoft.AspNetCore.Mvc.ControllerBase`. Không tạo lớp base tùy biến nằm giữa `XXXController` và `ControllerBase`. Các tiện ích HTTP/claims/response dùng chung được viết thành extension method cho `ControllerBase`, đặt tại `Common/Presentation/Extensions` hoặc namespace tương đương của phần dùng chung. Extension không chứa nghiệp vụ, truy vấn database hoặc điều phối use case.
 
-Map Request DTO -> UCInput và UCOutput -> Response DTO; không dùng entity/storage model trực tiếp làm hợp đồng HTTP. Lấy danh tính từ cơ chế xác thực đáng tin cậy, không tin actor ID do client khai báo cho thao tác cần danh tính hiện tại.
+Map Request DTO -> UCInput. Handler map Entity trực tiếp thành UCOutput; không tạo UserView/DTO trung gian hoặc lớp Response DTO lặp lại UCOutput. Các kiểu item/profile cần thiết thuộc cấu trúc UCOutput. Controller tạo tường minh `ApiSuccessResponse<XXX_UCOutput>` theo contract hiện có rồi gọi Ok/Created; không dùng helper `Success(object...)` làm mất kiểu cụ thể. Không trả entity/storage model trực tiếp qua HTTP. Lấy actor ID từ danh tính đã xác thực, không tin ID client gửi.
 
-Policy ở endpoint kiểm tra quyền truy cập; handler vẫn kiểm tra quyền trên tài nguyên và điều kiện nghiệp vụ. Dùng response/error contract thống nhất trong ứng dụng; không áp đặt một envelope cụ thể cho mọi dự án.
+Policy ở endpoint kiểm tra quyền gọi API; handler áp dụng quy tắc sở hữu tài nguyên và nghiệp vụ, không truy vấn lại cùng API permission. Dùng response/error contract thống nhất của ứng dụng; ApiSuccessResponse<T> ở trên là envelope hiện có, không yêu cầu đổi tên contract tương đương của dự án khác.
 
 ## 5. Quy trình triển khai cho agent
+
+Phân biệt hằng số nghiệp vụ tại Domain/Constants với cấu hình vận hành tại options Infrastructure/Presentation; xem [business-logic.md](references/business-logic.md). Không tự bổ sung session, refresh token, blacklist, queue hoặc outbox ngoài yêu cầu nghiệp vụ đã thống nhất. Mỗi attribute Controller đặt trong một cặp `[...]` riêng. Extension Controller chỉ làm tiện ích HTTP/claims, không thay việc tạo response có kiểu cụ thể tại action.
 
 **Thống nhất danh sách trả về:** dùng `List<T>` cho kết quả danh sách của repository, port/service, handler và các thuộc tính danh sách trong UCOutput/response DTO. Hàm bất đồng bộ trả `Task<List<T>>`; kết quả phân trang có `Items` kiểu `List<T>`. Không dùng `T[]`, `IEnumerable<T>` hoặc `IReadOnlyList<T>` thay cho kiểu kết quả danh sách nghiệp vụ này. Truy vấn EF Core lấy danh sách bằng `ToListAsync(cancellationToken)`, không dùng `ToArrayAsync()`; ánh xạ trong bộ nhớ tạo `List<T>` hoặc dùng `ToList()`. Không có dữ liệu thì trả danh sách rỗng, không trả null. Quy ước này không thay đổi kiểu dữ liệu nhị phân `byte[]`, chữ ký bắt buộc của thư viện/framework hoặc kiểu truy vấn nội bộ chưa materialize. Khi sửa hợp đồng danh sách, cập nhật interface, implementation và consumer trong phạm vi nhiệm vụ.
 
