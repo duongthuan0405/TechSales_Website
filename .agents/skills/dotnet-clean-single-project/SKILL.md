@@ -23,7 +23,7 @@ HTTP request
   -> UCHandler: điều phối một use case
   -> Domain behavior và Application ports
   -> Infrastructure adapters nếu cần I/O
-  -> UCOutput -> Response DTO -> HTTP response
+  -> Handler map Entity trực tiếp thành UCOutput -> HTTP response có kiểu cụ thể
 ```
 
 Chiều phụ thuộc mã nguồn:
@@ -92,6 +92,8 @@ Chỉ tạo thư mục có nhu cầu thực tế. Thay `<Feature>` và `<XXX>` b
 
 ### Domain
 
+**Bắt buộc:** mọi entity trong `Domain/Entities`, kể cả thư mục con, phải khai báo bằng `class`. Không dùng `record`, `record class` hoặc `record struct` trong mọi trường hợp, kể cả entity chỉ có dữ liệu hoặc không có hành vi. Khi tạo hoặc sửa entity, kiểm tra kiểu khai báo và chuyển entity dạng record trong phạm vi nhiệm vụ sang class; giữ constructor, property và mapping cần thiết, không mặc định duy trì value equality của record. Quy định này dành cho entity; UCInput, UCOutput và DTO vẫn có thể dùng record.
+
 Vi phạm invariant hoặc quy tắc miền phải ném DomainException thuộc Domain/Exceptions. Handler để lỗi truyền lên middleware, không catch chỉ để ném lại/bọc loại khác. Domain không chứa HTTP status; Presentation mặc định ánh xạ DomainException thành 422. Xem business-logic.md để triển khai và xử lý ngoại lệ phù hợp.
 
 Entity/value object bảo vệ quy tắc luôn phải đúng trong miền thực tế. Handler điều phối khi cần nhiều đối tượng hoặc dữ liệu bên ngoài. Domain không truy vấn database hoặc thực hiện I/O. Dùng method mang ý nghĩa nghiệp vụ khi thay đổi trạng thái; không bắt buộc Builder, base entity hay domain service cho mọi đối tượng.
@@ -130,11 +132,23 @@ Repository không tự commit từng bước của UC. Không bắt buộc một
 
 ### Presentation
 
-Map Request DTO -> UCInput và UCOutput -> Response DTO; không dùng entity/storage model trực tiếp làm hợp đồng HTTP. Lấy danh tính từ cơ chế xác thực đáng tin cậy, không tin actor ID do client khai báo cho thao tác cần danh tính hiện tại.
+Phân biệt quyền gọi API với quy tắc nghiệp vụ dựa trên actor/vai trò. `[Authorize]`/policy/permission ở endpoint kiểm tra quyền truy cập API; hạn chế actor được tạo hoặc quản lý loại tài khoản/tài nguyên nào là quy tắc nghiệp vụ, phải được use case áp dụng qua rule/policy phù hợp tại Application hoặc Domain. Không chuyển quy tắc nghiệp vụ vào Controller/authorization filter rồi bỏ kiểm tra trong use case. Handler không cần truy vấn lại cùng API permission, nhưng phải bảo vệ nghiệp vụ khi được gọi ngoài HTTP.
 
-Policy ở endpoint kiểm tra quyền truy cập; handler vẫn kiểm tra quyền trên tài nguyên và điều kiện nghiệp vụ. Dùng response/error contract thống nhất trong ứng dụng; không áp đặt một envelope cụ thể cho mọi dự án.
+Controller WebAPI phải kế thừa trực tiếp `Microsoft.AspNetCore.Mvc.ControllerBase`. Không tạo lớp base tùy biến nằm giữa `XXXController` và `ControllerBase`. Các tiện ích HTTP/claims/response dùng chung được viết thành extension method cho `ControllerBase`, đặt tại `Common/Presentation/Extensions` hoặc namespace tương đương của phần dùng chung. Extension không chứa nghiệp vụ, truy vấn database hoặc điều phối use case.
+
+Map Request DTO -> UCInput. Handler map Entity trực tiếp thành UCOutput; không tạo UserView/DTO trung gian hoặc lớp Response DTO lặp lại UCOutput. Các kiểu item/profile cần thiết thuộc cấu trúc UCOutput. Controller tạo tường minh `ApiSuccessResponse<XXX_UCOutput>` theo contract hiện có rồi gọi Ok/Created; không dùng helper `Success(object...)` làm mất kiểu cụ thể. Không trả entity/storage model trực tiếp qua HTTP. Lấy actor ID từ danh tính đã xác thực, không tin ID client gửi.
+
+Policy ở endpoint kiểm tra quyền gọi API; handler áp dụng quy tắc sở hữu tài nguyên và nghiệp vụ, không truy vấn lại cùng API permission. Dùng response/error contract thống nhất của ứng dụng; ApiSuccessResponse<T> ở trên là envelope hiện có, không yêu cầu đổi tên contract tương đương của dự án khác.
 
 ## 5. Quy trình triển khai cho agent
+
+Phân biệt hằng số nghiệp vụ tại Domain/Constants với cấu hình vận hành tại options Infrastructure/Presentation; xem [business-logic.md](references/business-logic.md). Không tự bổ sung session, refresh token, blacklist, queue hoặc outbox ngoài yêu cầu nghiệp vụ đã thống nhất. Mỗi attribute Controller đặt trong một cặp `[...]` riêng. Extension Controller chỉ làm tiện ích HTTP/claims, không thay việc tạo response có kiểu cụ thể tại action.
+
+**Thống nhất danh sách trả về:** dùng `List<T>` cho kết quả danh sách của repository, port/service, handler và các thuộc tính danh sách trong UCOutput/response DTO. Hàm bất đồng bộ trả `Task<List<T>>`; kết quả phân trang có `Items` kiểu `List<T>`. Không dùng `T[]`, `IEnumerable<T>` hoặc `IReadOnlyList<T>` thay cho kiểu kết quả danh sách nghiệp vụ này. Truy vấn EF Core lấy danh sách bằng `ToListAsync(cancellationToken)`, không dùng `ToArrayAsync()`; ánh xạ trong bộ nhớ tạo `List<T>` hoặc dùng `ToList()`. Không có dữ liệu thì trả danh sách rỗng, không trả null. Quy ước này không thay đổi kiểu dữ liệu nhị phân `byte[]`, chữ ký bắt buộc của thư viện/framework hoặc kiểu truy vấn nội bộ chưa materialize. Khi sửa hợp đồng danh sách, cập nhật interface, implementation và consumer trong phạm vi nhiệm vụ.
+
+**Cú pháp tường minh:** từ khi triển khai hoặc chỉnh sửa code, ưu tiên câu lệnh dễ đọc và tên biến thể hiện ý nghĩa. Luôn dùng khối `{ }` cho `if/else` và vòng lặp, không gộp điều kiện và thao tác lên một dòng. Kiểm tra nullable bằng `HasValue`/`Value` hoặc so sánh `null` tường minh; không dùng pattern rút gọn như `is { } last`. Khai báo kiểu biến và kiểu khởi tạo rõ ràng khi giúp người đọc hiểu code, tách biểu thức dài thành các biến trung gian; tránh ternary lồng nhau và cú pháp nén trong logic nghiệp vụ. Khi sửa một phương thức, áp dụng cách viết này cho phương thức đó; không tự refactor phần khác ngoài nhiệm vụ.
+
+**Constructor tường minh:** không dùng primary constructor cho `class` hoặc `struct`. Khai báo constructor truyền thống bên trong thân kiểu; dependency được lưu trong field `private readonly` có tên rõ ràng, gán qua constructor và sử dụng qua field đó. Nếu cần gọi constructor lớp cha, dùng `: base(...)` trên constructor truyền thống. Khi sửa hoặc chuyển code, cập nhật mọi tham chiếu tới tham số primary constructor sang field tương ứng, giữ nguyên DI, lifetime và hành vi. Quy định này không cấm positional record cho UCInput/UCOutput/DTO ở những nơi skill cho phép record.
 
 1. Đọc instruction repository, project file, startup, DI và một luồng tương tự. Xác định project đích, API contract và các tích hợp liên quan.
 2. Xác định UC: actor, input/output, quyền, invariant, dữ liệu đọc/ghi và side effect theo yêu cầu thực tế.

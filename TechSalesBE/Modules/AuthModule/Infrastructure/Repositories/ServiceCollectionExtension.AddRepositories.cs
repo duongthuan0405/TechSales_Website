@@ -16,7 +16,7 @@ namespace AuthModule.Infrastructure.Repositories
             services.AddScoped<IRoleRepository, RoleRepository>();
             services.AddScoped<IUserRoleRepository, UserRoleRepository>();
             services.AddScoped<IUserRepository, UserRepository>();
-            services.AddScoped<IUserTokenRepository, UserTokenRepository>();
+            services.AddScoped<IUserOtpRepository, UserOtpRepository>();
             return services;
         }
     }

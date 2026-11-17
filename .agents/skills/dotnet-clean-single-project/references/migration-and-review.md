@@ -37,6 +37,12 @@ Tìm stub, giá trị thành công cố định, quyền bị bỏ qua, transact
 
 ## 4. Review ranh giới
 
+- Class/struct có dùng constructor truyền thống, dependency là field `private readonly`, không còn primary constructor và tham chiếu tới tham số bị bỏ không? Constructor lớp cha có được gọi đúng qua `: base(...)` và DI có còn resolve đúng không?
+
+- Kết quả danh sách ở repository/port/service và UCOutput/response DTO có dùng `List<T>` (hoặc `Task<List<T>>`), `Items` phân trang có phải `List<T>` và truy vấn EF có dùng `ToListAsync(cancellationToken)` không? Có trả danh sách rỗng thay vì null và cập nhật đồng bộ interface/implementation/consumer khi đổi kiểu không?
+
+- Mọi entity trong `Domain/Entities` và thư mục con có phải `class`, không có `record`, `record class` hoặc `record struct`, kể cả entity chỉ chứa dữ liệu không?
+
 - Domain có phụ thuộc I/O, HTTP, ORM, MediatR, FluentValidation hoặc SDK không?
 - Application có import Infrastructure/Presentation hoặc lộ storage/query/HTTP type trong signature không?
 - Mỗi UC có đủ bốn lớp đúng tên và đúng một handler không?

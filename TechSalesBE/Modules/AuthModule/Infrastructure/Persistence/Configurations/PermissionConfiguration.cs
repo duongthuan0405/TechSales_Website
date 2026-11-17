@@ -9,6 +9,7 @@ internal sealed class PermissionConfiguration : IEntityTypeConfiguration<Permiss
     public void Configure(EntityTypeBuilder<PermissionDbModel> builder)
     {
         builder.ToTable("Permission");
+        builder.HasData(AuthSeedData.Permissions);
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id).HasColumnName("Id").HasColumnType("uuid").IsRequired();
         builder.Property(e => e.Code).HasColumnName("Code").HasColumnType("character varying(100)").HasMaxLength(100).IsRequired();

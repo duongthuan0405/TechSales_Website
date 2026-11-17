@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 
 namespace AuthModule.Infrastructure.AuthZ;
@@ -15,8 +15,9 @@ internal class AuthorizationPolicyProvider : DefaultAuthorizationPolicyProvider
         {
             var permission = policyName.Substring("Permission:".Length);
             var policy = new AuthorizationPolicyBuilder();
+            policy.RequireAuthenticatedUser();
             policy.AddRequirements(new HasPermissionRequirement(permission));
-            return Task.FromResult(policy.Build());
+            return Task.FromResult<AuthorizationPolicy?>(policy.Build());
         }
         
         return base.GetPolicyAsync(policyName);

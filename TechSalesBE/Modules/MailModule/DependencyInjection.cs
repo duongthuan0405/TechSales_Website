@@ -30,6 +30,8 @@ public static class DependencyInjection
 
         services.TryAddTransient<IEmailTransport, SmtpEmailTransport>();
         services.TryAddTransient<IEmailService, EmailService>();
+        services.TryAddTransient<IVerifyEmaiEmailSender, VerifyEmailEmailSender>();
+        services.TryAddTransient<IForgotPasswordEmailSender, ForgotPasswordEmailSender>();
         return services;
 
     }

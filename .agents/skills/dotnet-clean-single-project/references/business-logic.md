@@ -18,6 +18,10 @@ Một handler chịu trách nhiệm một UC nhưng không sở hữu mọi thu�
 
 ## 2. Quy tắc dùng chung giữa Domain và validator
 
+Phân loại trước khi tập trung giá trị: giới hạn nghiệp vụ thuộc Domain/Constants; rate limit, SMTP, JWT, timeout hoặc kích thước request là cấu hình/kỹ thuật, đặt tại options hoặc constants của Infrastructure/Presentation phù hợp. Bind options qua IConfiguration trong registration và validate lúc khởi động khi tính năng cần cấu hình đó; không đưa chúng vào Domain chỉ vì có giá trị số. Chính sách điều phối riêng của UC thuộc Application/Rules; Domain không tham chiếu Application.
+
+Các con số giới hạn nghiệp vụ phải được định nghĩa một lần bằng hằng số có tên rõ nghĩa tại `Domain/Constants` của feature/module sở hữu, không hardcode lặp trong entity, rule, validator, handler, service hoặc thông báo. Các nơi kiểm tra cùng quy tắc dùng chung predicate tại Domain/Rules và các hằng số này. Nếu thay đổi giới hạn tác động schema, cập nhật mapping và tạo migration mới; không sửa migration/snapshot lịch sử. Không đưa quy tắc đặc thù của mọi module vào Common.
+
 Khi cùng một invariant cần được kiểm tra ở Domain và UCInput_Validator, tách predicate thành rule thuần dùng chung. Code phải tham chiếu DomainExceptionCode, không hardcode lại giá trị; message có thể hardcode hoặc đặt cùng rule khi hữu ích; không bắt buộc catalog hay resolver. Không tạo interface hoặc hệ thống rule tổng quát khi một static class đã đủ.
 
 ```text
@@ -41,7 +45,10 @@ public static class PositiveValueRule
     public const string ErrorCode = DomainExceptionCode.VALUE_MUST_BE_POSITIVE;
     public const string ErrorMessage = "Giá trị phải lớn hơn 0.";
 
-    public static bool IsSatisfied(int value) => value > 0;
+    public static bool IsSatisfied(int value)
+    {
+        return value > 0;
+    }
 }
 ```
 
@@ -139,7 +146,9 @@ Ví dụ entity:
 public void ChangeValue(int value)
 {
     if (!PositiveValueRule.IsSatisfied(value))
+    {
         throw new DomainException(DomainExceptionCode.VALUE_MUST_BE_POSITIVE, "Giá trị phải lớn hơn 0.");
+    }
 
     Value = value;
 }
@@ -164,7 +173,7 @@ Presentation ánh xạ lỗi đã biết theo ý nghĩa. Quy ước mặc địn
 | Vi phạm nghiệp vụ khác được nhận diện | 422 |
 | Lỗi không nhận diện/ngoài dự kiến | 500 |
 
-Giữ ErrorCode trong field errors khi chuyển lỗi FluentValidation. Cùng rule có thể bị phát hiện ở validator hoặc Domain; status có thể khác theo ngữ cảnh, code vẫn ổn định. Nếu API yêu cầu cùng status cho cùng code ở mọi luồng, cấu hình mapping nhất quán tại Presentation. Mặc định DomainException trả 422; exception kỹ thuật ngoài dự kiến vẫn là 500. Không map mọi ArgumentException thành lỗi client.
+Validation behavior giữ contract hiện có: BusinessException có Code BAD_REQUEST và Errors kiểu Dictionary<string, List<string>> chứa message theo field. WithErrorCode của FluentValidation không tự trở thành code trong response; không mở rộng cấu trúc field errors để chứa code nếu chưa được yêu cầu. Cùng predicate có thể được validator phát hiện với HTTP 400 hoặc Domain bảo vệ với DomainException Code riêng, HTTP 422. Exception kỹ thuật ngoài dự kiến vẫn là 500; không map mọi ArgumentException thành lỗi client.
 
 ## 5. Khi thay đổi nghiệp vụ
 

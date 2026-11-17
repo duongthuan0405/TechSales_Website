@@ -6,7 +6,7 @@ namespace AuthModule.Infrastructure.Persistence;
 public sealed class AuthDbContext : DbContext
 {
     internal DbSet<UserDbModel> Users => Set<UserDbModel>();
-    internal DbSet<UserTokenDbModel> UserTokens => Set<UserTokenDbModel>();
+    internal DbSet<UserOtpDbModel> UserOtps => Set<UserOtpDbModel>();
     internal DbSet<UserProfileDbModel> UserProfiles => Set<UserProfileDbModel>();
     internal DbSet<RoleDbModel> Roles => Set<RoleDbModel>();
     internal DbSet<PermissionDbModel> Permissions => Set<PermissionDbModel>();

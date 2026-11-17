@@ -11,6 +11,8 @@ using PaymentRefundRegistration = PaymentRefundModule.Presentation.ModuleRegistr
 using ReviewNotificationRegistration = ReviewNotificationModule.Presentation.ModuleRegistration.ModuleRegistration;
 using MailRegistration = MailModule.Presentation.ModuleRegistration.ModuleRegistration;
 using CommonModule.Presentation.Middlewares;
+using TechSalesBE.WebAPI.Integration;
+using Microsoft.Extensions.FileProviders;
 
 namespace TechSalesBE.WebAPI
 {
@@ -57,6 +59,7 @@ namespace TechSalesBE.WebAPI
             PaymentRefundRegistration.RegisterModule(builder.Services, builder.Configuration);
             ReviewNotificationRegistration.RegisterModule(builder.Services, builder.Configuration);
             MailRegistration.RegisterModule(builder.Services, builder.Configuration);
+            IntegrationRegistration.RegisterModule(builder.Services);
 
             var app = builder.Build();
             app.UseMiddleware<GlobalExceptionMiddleware>();
@@ -70,7 +73,12 @@ namespace TechSalesBE.WebAPI
 
             //app.UseHttpsRedirection();
 
+            var webRoot = app.Environment.WebRootPath ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+            Directory.CreateDirectory(webRoot);
+            app.UseStaticFiles(new StaticFileOptions { FileProvider = new PhysicalFileProvider(webRoot) });
+            app.UseRouting();
             app.UseAuthentication();
+            app.UseRateLimiter();
             app.UseAuthorization();
             app.MapControllers();
 

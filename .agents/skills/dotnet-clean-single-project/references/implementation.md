@@ -15,7 +15,7 @@ XXX_UCInput_Validator : AbstractValidator<XXX_UCInput>
 
 Endpoint inject ISender, map DTO thành input rồi gọi `await sender.Send(input, cancellationToken)`. Chọn rõ field client được phép nhập, không map toàn bộ payload vào entity/thuộc tính đặc quyền. Danh tính đáng tin cậy không lấy từ payload tự khai báo.
 
-Request/response DTO thuộc Presentation; UCInput/UCOutput thuộc Application; entity/value object thuộc Domain; storage model thuộc Infrastructure. Không dùng chung một kiểu xuyên mọi lớp chỉ để bỏ mapping.
+Request DTO và API envelope thuộc Presentation; UCInput/UCOutput thuộc Application; entity/value object thuộc Domain; DbModel thuộc Infrastructure. Handler map Entity trực tiếp thành UCOutput; Controller bọc output trong envelope có kiểu cụ thể. Không tạo View/Response DTO lặp lại UCOutput và không dùng entity/DbModel làm response.
 
 ## 2. Validation và lỗi
 
@@ -65,7 +65,7 @@ Dùng duy nhất BusinessException kế thừa trực tiếp Exception, không a
 ```csharp
 public class BusinessException : Exception
 {
-    private Dictionary<string, List<string>> _errors = new();
+    private Dictionary<string, List<string>> _errors = new Dictionary<string, List<string>>();
     public string Code { get; }
 
     public Dictionary<string, List<string>> Errors =>
@@ -75,9 +75,13 @@ public class BusinessException : Exception
     {
         bool isExist = _errors.TryGetValue(key, out List<string>? errorLists);
         if (isExist)
+        {
             errorLists?.Add(error);
+        }
         else
+        {
             _errors.Add(key, new List<string> { error });
+        }
     }
 
     public BusinessException(
@@ -89,7 +93,9 @@ public class BusinessException : Exception
 
         Code = code;
         if (errors != null)
+        {
             _errors = errors;
+        }
     }
 }
 ```
@@ -139,7 +145,7 @@ Log lỗi nội bộ với trace ID; không lộ stack trace, credential hoặc 
 
 ## 3. Persistence và mapping
 
-Repository port ở Application phải phục vụ nhu cầu UC; không tạo generic repository nếu chưa có lợi ích cụ thể. Signature dùng domain type hoặc result/projection Application, không trả IQueryable/provider type.
+Repository port ở Application nhận/trả Domain entity và dữ liệu điều khiển cần thiết như ID, count hoặc tuple phân trang `(List<Entity> Items, int TotalCount)`. Không trả Application View, UCOutput, DbModel hoặc IQueryable/provider type. Repository map DbModel ↔ Entity; handler map Entity trực tiếp thành UCOutput. Kết quả kỹ thuật riêng của service như token đã phát hành không phải lớp View trung gian. Không tạo generic repository nếu chưa có lợi ích cụ thể.
 
 Infrastructure map entity và storage model. Nếu dùng EF Core, cấu hình bảng/cột, precision, index, quan hệ và constraint bằng Fluent API tại Infrastructure. Với detached entity, đọc/cập nhật tracked storage model hoặc dùng cách ghi rõ ràng; đừng giả định EF đang theo dõi Domain object.
 

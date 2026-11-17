@@ -1,18 +1,55 @@
-﻿using AuthModule.Application.Services;
+using AuthModule.Application.Services;
+using AuthModule.Infrastructure.Persistence;
+using CommonModule.BusinessExceptions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Npgsql;
 
 namespace AuthModule.Infrastructure.Services;
-
-public class ExecuteAtomically : IExecuteAtomically
+public sealed class ExecuteAtomically : IExecuteAtomically
 {
-    public async Task<T> ExecuteAtomicallyAsync<T>(Func<Task<T>> mainTask)
+    private readonly AuthDbContext _db;
+    private readonly ILogger<ExecuteAtomically> _logger;
+
+    public ExecuteAtomically(AuthDbContext db, ILogger<ExecuteAtomically> logger)
     {
+        _db = db;
+        _logger = logger;
+    }
+
+    public async Task<T> ExecuteAtomicallyAsync<T>(Func<Task<T>> mainTask, CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
         try
         {
-            return await mainTask.Invoke();
+            var result = await mainTask();
+            await _db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return result;
         }
-        catch (Exception ex)
+        catch (DbUpdateException exception)when (exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
         {
+            await RollbackAsync();
+            _db.ChangeTracker.Clear();
+            throw new BusinessException(BusinessExceptionCode.CONFLICT, "The email, role or token already exists. Please retry.");
+        }
+        catch
+        {
+            await RollbackAsync();
+            _db.ChangeTracker.Clear();
             throw;
+        }
+
+        async Task RollbackAsync()
+        {
+            try
+            {
+                await transaction.RollbackAsync(CancellationToken.None);
+            }
+            catch (Exception rollbackError)
+            {
+                _logger.LogWarning(rollbackError, "Auth transaction rollback failed.");
+            }
         }
     }
 }
