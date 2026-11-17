@@ -1,3 +1,4 @@
+using AuthModule.Application.Exceptions;
 using AuthModule.Application.Constants;
 using AuthModule.Domain.Rules;
 using FluentValidation;
@@ -8,6 +9,6 @@ internal sealed class UpdateUser_UCInput_Validator : AbstractValidator<UpdateUse
     {
         RuleFor(x => x.ActorId).NotEmpty();
         RuleFor(x => x.UserId).NotEmpty();
-        RuleFor(x => x.Email).Must(AuthRules.ValidEmail).WithMessage("Invalid email address.");
+        RuleFor(x => x.Email).Must(AuthRules.ValidEmail).WithMessage(BusinessExceptionMessage.EmailInputInvalid);
     }
 }

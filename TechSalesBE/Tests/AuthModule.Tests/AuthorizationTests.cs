@@ -99,7 +99,7 @@ public sealed class AuthorizationTests
     }
 
     [Fact]
-    public async Task Permission_changes_take_effect_for_existing_jwt_and_unknown_ids_roll_back()
+    public async Task Permission_data_is_preserved_but_does_not_override_role_access()
     {
         await using var app = await AuthTestApp.CreateAsync();
         await app.SeedUserAsync("tech@example.com", UserRoleName.TECHNICAL_ADMIN);
@@ -110,7 +110,28 @@ public sealed class AuthorizationTests
         await ExpectAsync(await app.Client.SendAsync(app.Authorized(HttpMethod.Put, $"/api/admin/rbac/roles/{staffRole}/permissions", techToken, new { permissionIds = new[] { Guid.NewGuid() } })), HttpStatusCode.BadRequest);
         await ExpectAsync(await app.Client.SendAsync(app.Authorized(HttpMethod.Get, "/api/admin/users/customers", staffToken)), HttpStatusCode.OK);
         await ExpectAsync(await app.Client.SendAsync(app.Authorized(HttpMethod.Put, $"/api/admin/rbac/roles/{staffRole}/permissions", techToken, new { permissionIds = Array.Empty<Guid>() })), HttpStatusCode.OK);
-        await ExpectAsync(await app.Client.SendAsync(app.Authorized(HttpMethod.Get, "/api/admin/users/customers", staffToken)), HttpStatusCode.Forbidden);
+        Assert.Equal(0, await app.DbAsync(db => db.RolePermissions.CountAsync(item => item.RoleId == staffRole)));
+        await ExpectAsync(await app.Client.SendAsync(app.Authorized(HttpMethod.Get, "/api/admin/users/customers", staffToken)), HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Customer_with_administrative_permissions_is_still_denied_by_role()
+    {
+        await using AuthTestApp app = await AuthTestApp.CreateAsync();
+        await app.SeedUserAsync("tech@example.com", UserRoleName.TECHNICAL_ADMIN);
+        await app.SeedUserAsync("customer@example.com", UserRoleName.CUSTOMER);
+        string techToken = await app.LoginAsync("tech@example.com");
+        string customerToken = await app.LoginAsync("customer@example.com");
+        Guid customerRole = await app.DbAsync(db => db.Roles.Where(role => role.Name == UserRoleName.CUSTOMER)
+            .Select(role => role.Id).SingleAsync());
+        Guid permission = await app.DbAsync(db => db.Permissions.Where(item => item.Code == AuthPermission.CUSTOMERS_READ)
+            .Select(item => item.Id).SingleAsync());
+        await ExpectAsync(await app.Client.SendAsync(app.Authorized(HttpMethod.Put,
+            $"/api/admin/rbac/roles/{customerRole}/permissions", techToken,
+            new { permissionIds = new List<Guid> { permission } })), HttpStatusCode.OK);
+        Assert.Equal(1, await app.DbAsync(db => db.RolePermissions.CountAsync(item => item.RoleId == customerRole)));
+        await ExpectAsync(await app.Client.SendAsync(app.Authorized(HttpMethod.Get,
+            "/api/admin/users/customers", customerToken)), HttpStatusCode.Forbidden);
     }
 
     [Fact]

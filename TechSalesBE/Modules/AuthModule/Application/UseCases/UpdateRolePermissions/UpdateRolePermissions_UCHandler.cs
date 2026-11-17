@@ -1,3 +1,5 @@
+using AuthModule.Application.Exceptions;
+using AuthModule.Application.Messages;
 using AuthModule.Application.Constants;
 using AuthModule.Application.Ports;
 using AuthModule.Application.Repositories;
@@ -30,19 +32,14 @@ internal sealed class UpdateRolePermissions_UCHandler : IRequestHandler<UpdateRo
         {
             await _users.LockUsersAsync([input.ActorId], ct);
             await _roles.LockAsync(input.RoleId, ct);
-            var role = (await _roles.GetByIdsAsync([input.RoleId], ct)).SingleOrDefault() ?? throw new BusinessException(BusinessExceptionCode.NOT_FOUND, "Role not found.");
-            if (role.Name == UserRoleName.TECHNICAL_ADMIN)
-            {
-                throw new BusinessException(BusinessExceptionCode.BAD_REQUEST, "Technical Admin permissions cannot be modified.");
-            }
+            var role = (await _roles.GetByIdsAsync([input.RoleId], ct)).SingleOrDefault() ?? throw new BusinessException(BusinessExceptionCode.NOT_FOUND, BusinessExceptionMessage.RoleNotFound);
+            AuthWorkflowRules.EnsureRolePermissionsEditable(role);
 
-            if (!await _permissions.AllExistAsync(input.PermissionIds, ct))
-            {
-                throw new BusinessException(BusinessExceptionCode.BAD_REQUEST, "Unknown permission.");
-            }
+            bool permissionsExist = await _permissions.AllExistAsync(input.PermissionIds, ct);
+            AuthWorkflowRules.EnsurePermissionsKnown(permissionsExist);
 
             await _permissions.ReplaceRolePermissionsAsync(input.RoleId, input.PermissionIds, ct);
-            return new UpdateRolePermissions_UCOutput("Role permissions updated successfully.");
+            return new UpdateRolePermissions_UCOutput(ResponseMessage.SuccessRolePermissionsUpdated);
         }, ct);
     }
 }

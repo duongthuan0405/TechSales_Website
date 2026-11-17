@@ -37,11 +37,30 @@ All Domain/Entities are classes, never records. Repositories map Domain entities
 
 Actual projects live in TechSalesBE/Modules: CommonModule, AuthModule (IdentifyAccess), CatalogModule, InventoryModule, CartModule, OrderingModule, ShippingModule, PromotionModule, AfterSaleModule, PaymentRefundModule, ReviewNotificationModule and MailModule (EmailSending). Each module owns RegisterModule; TechSalesBE.WebAPI composes these registrations and Host/Integration adapters. Common owns shared mechanisms, not a business DbContext.
 
-Auth currently uses JWT without persisted sessions or a token blacklist. Logout passes authentication and returns 200; the client deletes its token. UserOtp stores only hashed verification/password-reset OTPs. Token generation belongs to IAccessTokenService and its infrastructure implementation. API permission checks remain at controllers; role-based account-management business restrictions remain in Application/Rules and are applied by handlers. Four roles are Customer, Staff, Business Admin and Technical Admin. Business Admin cannot create Technical Admin. Do not restore UserSession from historical migrations.
+All business rules belong to each owning module's Domain/Rules, including entity invariants, state transitions, ownership, default selection and use-case-specific policies. Entities own state and call rules; handlers load data and orchestrate I/O/transactions; validators reuse rule predicates. Do not create Application/Rules or duplicate business conditions in entities/handlers. Domain rules do not reference Application or perform I/O.
+
+Place DomainExceptionCode and DomainExceptionMessage together in each module's Domain/Exceptions. Place BusinessExceptionMessage in Application/Exceptions and ResponseMessage in Application/Messages. Keep messages centralized and write all user-facing responses, validation, authentication errors and email text in Vietnamese. Do not translate role identifiers or public error codes. For legacy business error contracts, explicit Application behaviors map selected Domain codes to the existing Business codes/statuses; Domain never references Application message catalogs.
+
+Auth currently uses JWT without persisted sessions or a token blacklist. Logout passes authentication and returns 200; the client deletes its token. UserOtp stores only hashed verification/password-reset OTPs. Token generation belongs to IAccessTokenService and its infrastructure implementation. All existing API authorization currently uses roles at controllers through Authorize(Roles) or RequireRole policies; keep public and authenticated self-service endpoints as designed. Keep permission tables, constants, services and management APIs for future use, but do not enforce HasPermission at endpoints in this phase. Editing permissions must not grant or revoke API access. Role-based account-management business restrictions remain in Domain/Rules and are applied by handlers. Four roles are Customer, Staff, Business Admin and Technical Admin. Business Admin cannot create Technical Admin. Do not restore UserSession from historical migrations.
 
 ---
 
 ## 3. Module Boundary & Inter-Module Dependency Rules
+
+### Cơ chế phân quyền API hiện tại
+
+| API/chức năng | Quyền truy cập |
+|---|---|
+| Đăng ký, đăng nhập, xác nhận email, quên/đặt lại mật khẩu | AllowAnonymous |
+| Tra cứu tỉnh/phường và phí giao hàng | AllowAnonymous |
+| Hồ sơ cá nhân, đổi mật khẩu, đăng xuất, địa chỉ của mình | Authorize: người dùng đã xác thực |
+| Xem khách hàng, khóa/mở khóa tài khoản | Staff, Business Admin hoặc Technical Admin |
+| Xem nhân sự, tạo/sửa tài khoản, thiết lập phí giao hàng | Business Admin hoặc Technical Admin |
+| Quản trị role/permission, phân công role | Technical Admin |
+
+Các role trong cùng danh sách là OR. Kiểm tra ở Controller/action qua Authorize(Roles) hoặc policy RequireRole; không dùng HasPermission ở endpoint hiện tại. Auth dùng AccountRoleNames làm nguồn tên role, RoleAccess tập trung nhóm role của API; UserRoleName tương thích giá trị hiện có. Shipping đăng ký policy RequireRole qua RegisterModule, không reference AuthModule.
+
+JWT dùng RoleClaimType = "role"; Auth xác minh tài khoản hoạt động và nạp lại role hiện tại từ database mỗi request. Đổi role tác động lần gọi kế tiếp với JWT đang có; không thêm session hoặc blacklist. Permission vẫn được lưu và quản trị nhưng thay permission không thay quyền gọi API. Rule Domain vẫn kiểm tra phạm vi tài khoản đích, ví dụ Staff chỉ quản lý Customer, Business Admin không tạo Technical Admin; được vào API không đồng nghĩa được thực hiện mọi thao tác với mọi đối tượng.
 
 1. **Common Module**: Depended on by all other 11 modules. Holds no business domain logic.
 2. **Strict Encapsulation**: Business module projects reference CommonModule, not one another. A consumer-owned Application port is implemented by a WebAPI Integration adapter that calls the provider's public interface. Existing public service interfaces may live in Application/Interfaces; do not relocate them solely to enforce a Contracts folder. Handlers do not depend on provider DTOs, repositories, DbContext or Infrastructure. Events are an optional design choice with explicit delivery semantics, not an existing durable queue.

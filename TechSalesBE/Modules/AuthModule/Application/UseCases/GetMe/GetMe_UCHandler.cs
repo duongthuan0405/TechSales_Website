@@ -1,3 +1,4 @@
+using AuthModule.Application.Exceptions;
 using AuthModule.Application.Constants;
 using AuthModule.Application.Ports;
 using AuthModule.Application.Repositories;
@@ -19,7 +20,7 @@ internal sealed class GetMe_UCHandler : IRequestHandler<GetMe_UCInput, GetMe_UCO
 
     public async Task<GetMe_UCOutput> Handle(GetMe_UCInput input, CancellationToken ct)
     {
-        User user = await _users.GetByIdAsync(input.ActorId, ct) ?? throw new BusinessException(BusinessExceptionCode.NOT_FOUND, "User not found.");
+        User user = await _users.GetByIdAsync(input.ActorId, ct) ?? throw new BusinessException(BusinessExceptionCode.NOT_FOUND, BusinessExceptionMessage.UserNotFound);
         List<string> roleNames = new List<string>();
         foreach (Role role in user.Roles)
         {

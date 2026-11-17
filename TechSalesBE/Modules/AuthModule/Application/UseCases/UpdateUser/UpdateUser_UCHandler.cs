@@ -1,4 +1,4 @@
-using AuthModule.Application.Rules;
+using AuthModule.Application.Exceptions;
 using AuthModule.Application.Constants;
 using AuthModule.Application.Ports;
 using AuthModule.Application.Repositories;
@@ -31,15 +31,12 @@ internal sealed class UpdateUser_UCHandler : IRequestHandler<UpdateUser_UCInput,
             User? actor = await _users.GetByIdAsync(input.ActorId, ct);
             if (actor == null)
             {
-                throw new BusinessException(BusinessExceptionCode.NOT_FOUND, "Actor account not found.");
+                throw new BusinessException(BusinessExceptionCode.NOT_FOUND, BusinessExceptionMessage.ActorNotFound);
             }
-            var user = await _users.GetByIdAsync(input.UserId, ct) ?? throw new BusinessException(BusinessExceptionCode.NOT_FOUND, "User not found.");
+            var user = await _users.GetByIdAsync(input.UserId, ct) ?? throw new BusinessException(BusinessExceptionCode.NOT_FOUND, BusinessExceptionMessage.UserNotFound);
             AccountManagementRules.EnsureCanManage(actor, user);
             var existing = await _users.GetUserByEmailAsync(input.Email, ct);
-            if (existing is not null && existing.Id != user.Id)
-            {
-                throw new BusinessException(BusinessExceptionCode.CONFLICT, "Email is already registered.");
-            }
+            AuthWorkflowRules.EnsureEmailAvailable(existing, user.Id);
 
             user.Email = AuthRules.NormalizeEmail(input.Email);
             var now = DateTimeOffset.UtcNow;

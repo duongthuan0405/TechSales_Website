@@ -102,10 +102,10 @@ Entity/value object bảo vệ quy tắc luôn phải đúng trong miền thực
 
 Lỗi cấp UC dùng duy nhất một BusinessException concrete kế thừa Exception, không abstract và không tạo các exception con chỉ để phân loại. Constructor nhận `(string code, string message = "", Dictionary<string, List<string>>? errors = null)`; Code kiểu string, chỉ đọc, gán từ constructor và không được rỗng. Dùng constant từ static class BusinessExceptionCode bên ngoài exception, không dùng enum hoặc nested Codes. Giữ nguyên Message, Errors getter sao chép dictionary/từng list, AddError và cách nhận errors ở constructor. Middleware ánh xạ HTTP theo Code. DomainException độc lập, không kế thừa BusinessException. Xem mẫu đầy đủ trong [implementation.md](references/implementation.md).
 
-Cả BusinessException và DomainException dùng string Code. Danh mục code là static class bên ngoài exception: BusinessExceptionCode cho phân loại dùng chung; DomainExceptionCode thuộc từng feature/module sở hữu nghiệp vụ. Không gom domain code của mọi module vào phần dùng chung. Message vẫn hardcode, không bắt buộc catalog/resolver. Xem implementation.md.
+Cả BusinessException và DomainException dùng string Code, danh mục static nằm ngoài exception. Đặt DomainExceptionCode và DomainExceptionMessage cạnh nhau tại Domain/Exceptions của module sở hữu; BusinessExceptionMessage tại Application/Exceptions; thông báo thành công tại Application/Messages/ResponseMessage. BusinessExceptionCode phân loại dùng chung giữ tại Common. Không gom code/message nghiệp vụ của mọi module về Common. Mọi thông báo trả cho người dùng phải bằng tiếng Việt, gồm thành công, lỗi, validation, xác thực, giới hạn tần suất và email. Không hardcode message tại điểm throw/validator/controller. Message có giá trị động dùng hàm/property có tham số/constant được đặt tên rõ ràng; không thêm parameters vào exception hoặc resolver tổng quát khi chưa cần. Xem implementation.md.
 
 
-Về cách tập trung quy tắc nghiệp vụ, đọc [business-logic.md](references/business-logic.md). Domain là nguồn quyết định invariant; handler điều phối UC, validator dùng lại rule thuần khi cần kiểm tra sớm, Presentation ánh xạ lỗi sang HTTP. Không sao chép cùng điều kiện nghiệp vụ ở nhiều lớp hoặc gom mọi quy tắc vào một service toàn cục.
+Mọi quy tắc nghiệp vụ bắt buộc đặt tại `Domain/Rules` của feature/module sở hữu, kể cả invariant, điều kiện chuyển trạng thái, chính sách theo actor/vai trò và quy tắc riêng của UC. Entity giữ trạng thái/hành vi và gọi rule trước khi thay đổi dữ liệu; không tự định nghĩa lại điều kiện nghiệp vụ. Handler chỉ tải dữ liệu, gọi rule/entity, điều phối I/O và transaction; validator dùng lại predicate trong Domain/Rules. Không tạo Application/Rules. Hằng số nghiệp vụ vẫn đặt Domain/Constants. Kiểm tra quyền gọi API, binding, cấu hình và xử lý lỗi kỹ thuật thuộc lớp tương ứng, không đưa vào Domain/Rules. Xem [business-logic.md](references/business-logic.md).
 
 Mỗi use case do **đúng một lớp handler** đảm nhận và bắt buộc có đủ bốn lớp trong cùng thư mục:
 
@@ -132,7 +132,7 @@ Repository không tự commit từng bước của UC. Không bắt buộc một
 
 ### Presentation
 
-Phân biệt quyền gọi API với quy tắc nghiệp vụ dựa trên actor/vai trò. `[Authorize]`/policy/permission ở endpoint kiểm tra quyền truy cập API; hạn chế actor được tạo hoặc quản lý loại tài khoản/tài nguyên nào là quy tắc nghiệp vụ, phải được use case áp dụng qua rule/policy phù hợp tại Application hoặc Domain. Không chuyển quy tắc nghiệp vụ vào Controller/authorization filter rồi bỏ kiểm tra trong use case. Handler không cần truy vấn lại cùng API permission, nhưng phải bảo vệ nghiệp vụ khi được gọi ngoài HTTP.
+Phân biệt quyền gọi API với quy tắc nghiệp vụ dựa trên actor/vai trò. `[Authorize]`/policy/permission ở endpoint kiểm tra quyền truy cập API; hạn chế actor được tạo hoặc quản lý loại tài khoản/tài nguyên nào là quy tắc nghiệp vụ, phải định nghĩa tại Domain/Rules và được use case áp dụng. Không chuyển quy tắc nghiệp vụ vào Controller/authorization filter rồi bỏ kiểm tra trong use case. Handler không cần truy vấn lại cùng API permission, nhưng phải bảo vệ nghiệp vụ khi được gọi ngoài HTTP.
 
 Controller WebAPI phải kế thừa trực tiếp `Microsoft.AspNetCore.Mvc.ControllerBase`. Không tạo lớp base tùy biến nằm giữa `XXXController` và `ControllerBase`. Các tiện ích HTTP/claims/response dùng chung được viết thành extension method cho `ControllerBase`, đặt tại `Common/Presentation/Extensions` hoặc namespace tương đương của phần dùng chung. Extension không chứa nghiệp vụ, truy vấn database hoặc điều phối use case.
 
@@ -141,6 +141,16 @@ Map Request DTO -> UCInput. Handler map Entity trực tiếp thành UCOutput; kh
 Policy ở endpoint kiểm tra quyền gọi API; handler áp dụng quy tắc sở hữu tài nguyên và nghiệp vụ, không truy vấn lại cùng API permission. Dùng response/error contract thống nhất của ứng dụng; ApiSuccessResponse<T> ở trên là envelope hiện có, không yêu cầu đổi tên contract tương đương của dự án khác.
 
 ## 5. Quy trình triển khai cho agent
+
+### Cơ chế phân quyền API hiện tại
+
+- Dùng role-based authorization: endpoint công khai có AllowAnonymous; chức năng cá nhân chỉ cần đăng nhập dùng Authorize; chức năng giới hạn vai trò dùng Authorize(Roles = ...) hoặc policy RequireRole.
+- Kiểm tra quyền gọi API tại Controller/action. Không lặp lại cùng kiểm tra truy cập API trong handler. Quy tắc sở hữu tài nguyên, quan hệ actor/đối tượng và chuyển trạng thái vẫn thuộc Domain/Rules và được UC áp dụng.
+- Tên role và nhóm role là hằng số có tên rõ nghĩa; không hardcode lặp chuỗi role trong attribute. Nhóm role truy cập API thuộc Presentation/Authorization; policy được đăng ký tại registration của ứng dụng/module.
+- Nhiều role trong một Roles hoặc một RequireRole có nghĩa là chỉ cần khớp một role (OR). Nhiều attribute Authorize trên controller/action được kết hợp thành yêu cầu đồng thời (AND); không xếp nhiều attribute một-role để biểu diễn OR. Mỗi attribute đặt trong cặp [...] riêng.
+- Lấy role từ danh tính đã xác thực; cấu hình RoleClaimType khớp JWT. Không tin role/actor do client gửi trong body hoặc header tùy ý. Chưa xác thực trả 401; đã xác thực nhưng không đủ role trả 403, với thông báo tiếng Việt theo contract.
+- Giữ permission entity, bảng, seed, repository, constants, cơ chế HasPermission và API quản trị để dùng lại sau. Hiện không gắn HasPermission hoặc policy kiểm tra permission vào endpoint; thay đổi permission không cấp/thu hồi quyền gọi API trong giai đoạn này.
+- Kiểm tra cả role được phép/bị cấm, thay đổi role trên tài khoản, và trường hợp permission thay đổi nhưng role không đổi. Không thay quyền gọi API bằng kiểm tra nghiệp vụ hoặc ngược lại.
 
 Phân biệt hằng số nghiệp vụ tại Domain/Constants với cấu hình vận hành tại options Infrastructure/Presentation; xem [business-logic.md](references/business-logic.md). Không tự bổ sung session, refresh token, blacklist, queue hoặc outbox ngoài yêu cầu nghiệp vụ đã thống nhất. Mỗi attribute Controller đặt trong một cặp `[...]` riêng. Extension Controller chỉ làm tiện ích HTTP/claims, không thay việc tạo response có kiểu cụ thể tại action.
 

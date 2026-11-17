@@ -56,7 +56,7 @@ public static class DomainExceptionCode
 
 Tên FEATURE và code chỉ minh họa; chọn định danh phù hợp miền thực tế. BusinessExceptionCode dùng chung cho phân loại lỗi phổ biến. Mỗi module giữ DomainExceptionCode riêng trong namespace của nó; không gom code đặc thù vào Common chỉ vì exception nằm ở Common. Common không phụ thuộc module nghiệp vụ. Khi một project có nhiều feature, có thể dùng tên class theo feature để tránh nhầm danh mục.
 
-Nơi throw, validator và mapping tham chiếu constant, không lặp giá trị literal. Code cần duy nhất hoặc có tiền tố ngữ nghĩa khi dùng chung response/mapping; giữ mã công khai ổn định. Không chứa message hoặc HTTP status trong danh mục code. Message vẫn hardcode, HTTP mapping ở Presentation. Khi chuyển enum sang string phải rà consumer và JSON contract, không giữ giả định số enum là HTTP status. Không cần catalog/resolver hoặc exception con.
+Nơi throw, validator và mapping tham chiếu constant, không lặp giá trị literal. Domain/Exceptions chứa hai static class cạnh nhau: DomainExceptionCode và DomainExceptionMessage. BusinessExceptionMessage thuộc Application/Exceptions, ResponseMessage cho thành công thuộc Application/Messages. Code giữ ổn định, tách khỏi nội dung message và HTTP status. Thông báo gửi người dùng bằng tiếng Việt; dùng hàm định dạng cho giá trị động, không hardcode tại điểm dùng. Không cần resolver hoặc exception con.
 
 ### BusinessException: một class concrete, phân loại bằng Code
 
@@ -100,10 +100,10 @@ public class BusinessException : Exception
 }
 ```
 
-Đặt tại Application/Exceptions hoặc vị trí dùng chung tương đương đang có của ứng dụng. Chỉ thay cơ chế phân loại bằng Code: giữ nguyên Message, Errors getter sao chép dictionary/từng list, AddError và cách nhận dictionary ở constructor. Không thêm parameters, catalog, resolver hoặc thay đổi response contract.
+Đặt tại Application/Exceptions hoặc vị trí dùng chung tương đương đang có của ứng dụng. Giữ nguyên Message, Errors getter sao chép dictionary/từng list, AddError và cách nhận dictionary ở constructor. Catalog message là static class ngoài exception; không thêm parameters/resolver vào exception hoặc thay đổi response contract.
 
 ```csharp
-throw new BusinessException(BusinessExceptionCode.NOT_FOUND, "Không tìm thấy tài nguyên.");
+throw new BusinessException(BusinessExceptionCode.NOT_FOUND, BusinessExceptionMessage.ResourceNotFound);
 ```
 
 Middleware đọc Code, không so khớp Message hoặc phân biệt exception con:
@@ -123,7 +123,7 @@ Khi triển khai middleware, switch trên constant như BusinessExceptionCode.NO
 Domain ném DomainException khi invariant/quy tắc miền bị vi phạm, theo [business-logic.md](business-logic.md). Handler không nuốt lỗi hoặc catch chỉ để rethrow/bọc lại. Middleware nhận diện loại này, mặc định trả 422; chỉ map 409 khi có phân loại xung đột rõ ràng. Exception ngoài dự kiến trả 500 với message chung an toàn. Không đặt HTTP status trong Domain hoặc đổi mọi exception .NET thành DomainException.
 
 
-Hai exception dùng string Code từ static class bên ngoài theo phạm vi sở hữu nêu trên. Cho phép hardcode message theo hợp đồng phản hồi hiện hành; không bắt buộc catalog hoặc resolver. Không trả trực tiếp lỗi kỹ thuật ngoài dự kiến cho client.
+Hai exception dùng string Code và message từ static class theo layer sở hữu nêu trên. Domain không tham chiếu BusinessExceptionMessage ở Application. Rule Domain ném DomainException hoặc cung cấp kết quả cho Application phân loại. Khi cần giữ mã Business/HTTP của hợp đồng cũ, Application có thể ánh xạ một danh sách Domain code rõ ràng sang BusinessException và BusinessExceptionMessage; không bắt mọi DomainException để đổi thành một loại lỗi. Message giống nhau được dùng lại qua alias Application → Domain, không sao chép chuỗi hoặc tạo dependency ngược. Không trả trực tiếp lỗi kỹ thuật ngoài dự kiến cho client.
 
 | Kiểm tra | Vị trí |
 |---|---|

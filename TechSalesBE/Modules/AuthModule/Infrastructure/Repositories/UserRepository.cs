@@ -43,11 +43,11 @@ internal sealed class UserRepository : IUserRepository
         }
     }
 
-    public Task<Guid> AddAsync(User user, CancellationToken cancellationToken = default)
+    public async Task<Guid> AddAsync(User user, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        _db.Users.Add(new UserDbModel { Id = user.Id, Email = user.Email, HashedPassword = user.Password, Status = user.Status, CreatedAt = user.CreatedAt, UpdatedAt = user.UpdatedAt, FailedLoginAttempts = user.FailedLoginAttempts, LastLoginFailedAt = user.LastLoginFailedAt, LockedUntil = user.LockedUntil, Profile = new UserProfileDbModel { UserId = user.Id, FullName = user.Profile.FullName, PhoneNumber = user.Profile.PhoneNumber, CreatedAt = user.CreatedAt }, UserRoles = user.Roles.Select(r => new UserRoleDbModel { UserId = user.Id, RoleId = r.Id }).ToList() });
-        return Task.FromResult(user.Id);
+        await _db.Users.AddAsync(new UserDbModel { Id = user.Id, Email = user.Email, HashedPassword = user.Password, Status = user.Status, CreatedAt = user.CreatedAt, UpdatedAt = user.UpdatedAt, FailedLoginAttempts = user.FailedLoginAttempts, LastLoginFailedAt = user.LastLoginFailedAt, LockedUntil = user.LockedUntil, Profile = new UserProfileDbModel { UserId = user.Id, FullName = user.Profile.FullName, PhoneNumber = user.Profile.PhoneNumber, CreatedAt = user.CreatedAt }, UserRoles = user.Roles.Select(r => new UserRoleDbModel { UserId = user.Id, RoleId = r.Id }).ToList() });
+        return user.Id;
     }
 
     public async Task UpdateAsync(User user, CancellationToken cancellationToken = default)

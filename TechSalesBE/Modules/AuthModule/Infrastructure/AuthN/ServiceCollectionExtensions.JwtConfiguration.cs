@@ -1,3 +1,4 @@
+using AuthModule.Application.Exceptions;
 using System.Security.Claims;
 using AuthModule.Application.Repositories;
 using AuthModule.Application.Services;
@@ -35,7 +36,7 @@ internal static partial class ServiceCollectionExtensions
                     ClaimsPrincipal? principal = context.Principal;
                     if (principal == null)
                     {
-                        context.Fail("Invalid identity.");
+                        context.Fail(BusinessExceptionMessage.IdentityInvalid);
                         return;
                     }
 
@@ -43,7 +44,7 @@ internal static partial class ServiceCollectionExtensions
                     Guid userId;
                     if (!Guid.TryParse(subject, out userId))
                     {
-                        context.Fail("Invalid identity.");
+                        context.Fail(BusinessExceptionMessage.IdentityInvalid);
                         return;
                     }
 
@@ -53,7 +54,7 @@ internal static partial class ServiceCollectionExtensions
                     User? user = await users.GetByIdAsync(userId, cancellationToken);
                     if (user == null || user.Status != UserStatus.ACTIVE)
                     {
-                        context.Fail("Account is not active.");
+                        context.Fail(BusinessExceptionMessage.AccountInactive);
                         return;
                     }
 
@@ -73,13 +74,13 @@ internal static partial class ServiceCollectionExtensions
                     context.HandleResponse();
                     context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                     context.Response.Headers.WWWAuthenticate = "Bearer";
-                    await context.Response.WriteAsJsonAsync(new ApiErrorResponse("Authentication is required.")
+                    await context.Response.WriteAsJsonAsync(new ApiErrorResponse(BusinessExceptionMessage.AuthenticationRequired)
                         { Code = BusinessExceptionCode.UNAUTHORIZED }, context.HttpContext.RequestAborted);
                 },
                 OnForbidden = async context =>
                 {
                     context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                    await context.Response.WriteAsJsonAsync(new ApiErrorResponse("You do not have permission to perform this action.")
+                    await context.Response.WriteAsJsonAsync(new ApiErrorResponse(BusinessExceptionMessage.AccessDenied)
                         { Code = BusinessExceptionCode.FORBIDDEN }, context.HttpContext.RequestAborted);
                 }
             };

@@ -1,3 +1,5 @@
+using AuthModule.Application.Messages;
+using AuthModule.Domain.Rules;
 using AuthModule.Application.Constants;
 using AuthModule.Application.Ports;
 using AuthModule.Application.Repositories;
@@ -32,10 +34,7 @@ internal sealed class Register_UCHandler : IRequestHandler<Register_UCInput, Reg
         return await _transaction.ExecuteAtomicallyAsync(async () =>
         {
             var user = await _users.GetUserByEmailAsync(input.Email, ct, forUpdate: true);
-            if (user is not null && user.Status != UserStatus.PENDING)
-            {
-                throw new BusinessException(BusinessExceptionCode.CONFLICT, "Email is already registered.");
-            }
+            AuthWorkflowRules.EnsureCanRegister(user);
 
             if (user is null)
             {
@@ -52,7 +51,7 @@ internal sealed class Register_UCHandler : IRequestHandler<Register_UCInput, Reg
 
             var code = await _tokens.CreateOtpAsync(user.Id, OtpType.EMAIL_VERIFICATION, ct);
             await _mail.SendVerificationAsync(user.Email, code, ct);
-            return new Register_UCOutput("Registration received. Check your email to verify your account.");
+            return new Register_UCOutput(ResponseMessage.SuccessRegistered);
         }, ct);
     }
 }

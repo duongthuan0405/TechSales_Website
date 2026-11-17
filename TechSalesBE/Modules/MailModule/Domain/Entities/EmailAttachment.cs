@@ -1,5 +1,4 @@
-using MailModule.Domain.Exceptions;
-using CommonModule.Domain.Exceptions;
+using MailModule.Domain.Rules;
 
 namespace MailModule.Domain.Entities;
 public sealed class EmailAttachment
@@ -12,10 +11,7 @@ public sealed class EmailAttachment
         get => _fileName;
         init
         {
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                throw new DomainException(DomainExceptionCode.EMAIL_ATTACHMENT_FILE_NAME_REQUIRED, "An attachment file name is required.");
-            }
+            EmailAttachmentRules.EnsureValidFileName(value);
 
             _fileName = value;
         }
@@ -26,10 +22,7 @@ public sealed class EmailAttachment
         get => (byte[])_content.Clone();
         init
         {
-            if (value is null)
-            {
-                throw new DomainException(DomainExceptionCode.EMAIL_ATTACHMENT_CONTENT_REQUIRED, "Attachment content is required.");
-            }
+            EmailAttachmentRules.EnsureContentPresent(value);
 
             _content = (byte[])value.Clone();
         }
@@ -40,10 +33,7 @@ public sealed class EmailAttachment
         get => _contentType;
         init
         {
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                throw new DomainException(DomainExceptionCode.EMAIL_ATTACHMENT_CONTENT_TYPE_REQUIRED, "An attachment MIME type is required.");
-            }
+            EmailAttachmentRules.EnsureValidContentType(value);
 
             _contentType = value;
         }

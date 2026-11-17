@@ -1,3 +1,5 @@
+using AuthModule.Application.Exceptions;
+using AuthModule.Application.Messages;
 using AuthModule.Application.Constants;
 using AuthModule.Application.Ports;
 using AuthModule.Application.Repositories;
@@ -25,11 +27,11 @@ internal sealed class VerifyEmail_UCHandler : IRequestHandler<VerifyEmail_UCInpu
     {
         return await _transaction.ExecuteAtomicallyAsync(async () =>
         {
-            var user = await _users.GetUserByEmailAsync(input.Email, ct, forUpdate: true) ?? throw new BusinessException(BusinessExceptionCode.BAD_REQUEST, "Verification code is invalid or expired.");
+            var user = await _users.GetUserByEmailAsync(input.Email, ct, forUpdate: true) ?? throw new BusinessException(BusinessExceptionCode.BAD_REQUEST, BusinessExceptionMessage.OtpInvalid);
             await _tokens.ConsumeOtpAsync(user.Id, OtpType.EMAIL_VERIFICATION, input.Token, ct);
             user.VerifyEmail(DateTimeOffset.UtcNow);
             await _users.UpdateAsync(user, ct);
-            return new VerifyEmail_UCOutput("Email verified successfully.");
+            return new VerifyEmail_UCOutput(ResponseMessage.SuccessEmailVerified);
         }, ct);
     }
 }

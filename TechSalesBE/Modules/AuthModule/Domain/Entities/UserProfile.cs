@@ -1,6 +1,4 @@
-using AuthModule.Domain.Exceptions;
 using AuthModule.Domain.Rules;
-using CommonModule.Domain.Exceptions;
 namespace AuthModule.Domain.Entities;
 internal sealed class UserProfile
 {
@@ -13,25 +11,7 @@ internal sealed class UserProfile
         string name = fullName ?? FullName;
         string number = phone ?? PhoneNumber;
 
-        if (!AuthRules.ValidFullName(name))
-        {
-            throw new DomainException(DomainExceptionCode.INVALID_PROFILE, "Invalid full name.");
-        }
-
-        if (!AuthRules.ValidPhone(number))
-        {
-            throw new DomainException(DomainExceptionCode.INVALID_PROFILE, "Invalid phone number.");
-        }
-
-        if (!AuthRules.ValidAvatarUrl(avatarUrl))
-        {
-            throw new DomainException(DomainExceptionCode.INVALID_PROFILE, "Invalid avatar URL.");
-        }
-
-        if (!AuthRules.ValidDateOfBirth(birthDate, today))
-        {
-            throw new DomainException(DomainExceptionCode.INVALID_PROFILE, "Invalid date of birth.");
-        }
+        UserProfileRules.EnsureValid(name, number, avatarUrl, birthDate, today);
 
         FullName = name.Trim();
         PhoneNumber = number;

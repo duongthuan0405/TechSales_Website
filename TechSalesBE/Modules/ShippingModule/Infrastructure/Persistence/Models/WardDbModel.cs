@@ -6,6 +6,6 @@ internal sealed class WardDbModel
     public string? Name { get; set; }
     public string ProvinceCode { get; set; } = string.Empty;
 
-    public ProviceDbModel Province { get; set; } = null!;
+    public ProvinceDbModel Province { get; set; } = null!;
     public ICollection<ShippingAddressDbModel> ShippingAddresses { get; set; } = new HashSet<ShippingAddressDbModel>();
 }

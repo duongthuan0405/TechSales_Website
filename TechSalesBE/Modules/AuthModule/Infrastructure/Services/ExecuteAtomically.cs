@@ -1,3 +1,4 @@
+using AuthModule.Application.Exceptions;
 using AuthModule.Application.Services;
 using AuthModule.Infrastructure.Persistence;
 using CommonModule.BusinessExceptions;
@@ -31,7 +32,7 @@ public sealed class ExecuteAtomically : IExecuteAtomically
         {
             await RollbackAsync();
             _db.ChangeTracker.Clear();
-            throw new BusinessException(BusinessExceptionCode.CONFLICT, "The email, role or token already exists. Please retry.");
+            throw new BusinessException(BusinessExceptionCode.CONFLICT, BusinessExceptionMessage.DataConflict);
         }
         catch
         {

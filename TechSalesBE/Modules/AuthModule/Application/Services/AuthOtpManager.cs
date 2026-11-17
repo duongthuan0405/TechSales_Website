@@ -1,7 +1,7 @@
 using AuthModule.Application.Repositories;
 using AuthModule.Domain.Entities;
 using AuthModule.Domain.Enums;
-using CommonModule.BusinessExceptions;
+using AuthModule.Domain.Rules;
 
 namespace AuthModule.Application.Services;
 internal interface IAuthOtpManager
@@ -29,24 +29,12 @@ internal sealed class AuthOtpManager : IAuthOtpManager
 
     public async Task ConsumeOtpAsync(Guid userId, OtpType type, string value, CancellationToken ct)
     {
-        const string invalidOtpMessage = "Verification code is invalid or expired.";
-        UserOtp? token = await _tokens.GetByUserIdAndTypeAsync(userId, type, ct);
-        if (token == null)
-        {
-            throw new BusinessException(BusinessExceptionCode.BAD_REQUEST, invalidOtpMessage);
-        }
-
+        UserOtp? storedToken = await _tokens.GetByUserIdAndTypeAsync(userId, type, ct);
         DateTimeOffset now = DateTimeOffset.UtcNow;
-        if (token.UsedAt.HasValue || token.ExpiredAt <= now)
-        {
-            throw new BusinessException(BusinessExceptionCode.BAD_REQUEST, invalidOtpMessage);
-        }
+        UserOtp token = OtpRules.RequireUsable(storedToken, now);
 
         bool isValidOtp = _otp.IsValidOtp(value, type, userId, token.Otp);
-        if (!isValidOtp)
-        {
-            throw new BusinessException(BusinessExceptionCode.BAD_REQUEST, invalidOtpMessage);
-        }
+        OtpRules.EnsureMatches(isValidOtp);
 
         token.UsedAt = now;
         await _tokens.UpsertAsync(token, ct);

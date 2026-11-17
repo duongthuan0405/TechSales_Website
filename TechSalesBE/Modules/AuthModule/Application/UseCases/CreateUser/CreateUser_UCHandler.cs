@@ -1,4 +1,4 @@
-using AuthModule.Application.Rules;
+using AuthModule.Application.Exceptions;
 using AuthModule.Application.Constants;
 using AuthModule.Application.Ports;
 using AuthModule.Application.Repositories;
@@ -32,19 +32,17 @@ internal sealed class CreateUser_UCHandler : IRequestHandler<CreateUser_UCInput,
             User? actor = await _users.GetByIdAsync(input.ActorId, ct);
             if (actor == null)
             {
-                throw new BusinessException(BusinessExceptionCode.NOT_FOUND, "Actor account not found.");
+                throw new BusinessException(BusinessExceptionCode.NOT_FOUND, BusinessExceptionMessage.ActorNotFound);
             }
             AccountManagementRules.EnsureCanCreate(actor, input.Roles);
 
-            if (await _users.GetUserByEmailAsync(input.Email, ct)is not null)
-            {
-                throw new BusinessException(BusinessExceptionCode.CONFLICT, "Email is already registered.");
-            }
+            User? existingUser = await _users.GetUserByEmailAsync(input.Email, ct);
+            AuthWorkflowRules.EnsureEmailAvailable(existingUser, null);
 
             var user = User.Create(input.Email, _hasher.HashPassword(input.Password), verified: true);
             foreach (var name in input.Roles)
             {
-                user.Roles.Add(await _roles.GetByNameAsync(name, ct) ?? throw new BusinessException(BusinessExceptionCode.BAD_REQUEST, "Unknown role."));
+                user.Roles.Add(await _roles.GetByNameAsync(name, ct) ?? throw new BusinessException(BusinessExceptionCode.BAD_REQUEST, BusinessExceptionMessage.RoleUnknown));
             }
 
             await _users.AddAsync(user, ct);

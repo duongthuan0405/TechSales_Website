@@ -1,3 +1,6 @@
+using AuthModule.Application.Exceptions;
+using AuthModule.Application.Messages;
+using AuthModule.Domain.Rules;
 using AuthModule.Application.Constants;
 using AuthModule.Application.Ports;
 using AuthModule.Application.Repositories;
@@ -28,23 +31,19 @@ internal sealed class ChangePassword_UCHandler : IRequestHandler<ChangePassword_
         return await _transaction.ExecuteAtomicallyAsync(async () =>
         {
             await _users.LockUsersAsync([input.ActorId], ct);
-            User user = await _users.GetByIdAsync(input.ActorId, ct) ?? throw new BusinessException(BusinessExceptionCode.NOT_FOUND, "User not found.");
-            if (!_hasher.VerifyPassword(input.CurrentPassword, user.Password))
-            {
-                throw new BusinessException(BusinessExceptionCode.BAD_REQUEST, "Current password is incorrect.");
-            }
+            User user = await _users.GetByIdAsync(input.ActorId, ct) ?? throw new BusinessException(BusinessExceptionCode.NOT_FOUND, BusinessExceptionMessage.UserNotFound);
+            bool currentPasswordMatches = _hasher.VerifyPassword(input.CurrentPassword, user.Password);
+            AuthWorkflowRules.EnsureCurrentPasswordMatches(currentPasswordMatches);
 
-            if (_hasher.VerifyPassword(input.NewPassword, user.Password))
-            {
-                throw new BusinessException(BusinessExceptionCode.BAD_REQUEST, "New password must differ from the current password.");
-            }
+            bool newPasswordMatches = _hasher.VerifyPassword(input.NewPassword, user.Password);
+            AuthWorkflowRules.EnsurePasswordChanged(newPasswordMatches);
 
             var now = DateTimeOffset.UtcNow;
             user.ChangePassword(_hasher.HashPassword(input.NewPassword), now);
             await _users.UpdateAsync(user, ct);
 
             await _tokens.InvalidateAsync(user.Id, OtpType.RESET_PASSWORD, now, ct);
-            return new ChangePassword_UCOutput("Password changed successfully. Please sign in again.");
+            return new ChangePassword_UCOutput(ResponseMessage.SuccessPasswordChanged);
         }, ct);
     }
 }

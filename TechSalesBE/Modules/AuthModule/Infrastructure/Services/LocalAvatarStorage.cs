@@ -1,3 +1,4 @@
+using AuthModule.Application.Exceptions;
 using AuthModule.Domain.Constants;
 using AuthModule.Application.Ports;
 using CommonModule.BusinessExceptions;
@@ -17,7 +18,7 @@ internal sealed class LocalAvatarStorage : IAvatarStorage
     {
         if (length is <= 0 or > AuthLimits.AvatarMaxSizeBytes)
         {
-            throw new BusinessException(BusinessExceptionCode.BAD_REQUEST, $"Avatar must be at most {AuthLimits.AvatarMaxSizeMegabytes} MB.");
+            throw new BusinessException(BusinessExceptionCode.BAD_REQUEST, BusinessExceptionMessage.AvatarTooLarge);
         }
 
         using var buffer = new MemoryStream();
@@ -27,7 +28,7 @@ internal sealed class LocalAvatarStorage : IAvatarStorage
         {
             if (buffer.Length + read > AuthLimits.AvatarMaxSizeBytes)
             {
-                throw new BusinessException(BusinessExceptionCode.BAD_REQUEST, $"Avatar must be at most {AuthLimits.AvatarMaxSizeMegabytes} MB.");
+                throw new BusinessException(BusinessExceptionCode.BAD_REQUEST, BusinessExceptionMessage.AvatarTooLarge);
             }
 
             await buffer.WriteAsync(chunk.AsMemory(0, read), cancellationToken);
@@ -39,7 +40,7 @@ internal sealed class LocalAvatarStorage : IAvatarStorage
             "image/png" when data.Length >= 8 && data.AsSpan(0, 8).SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }) => ".png",
             "image/jpeg" when data.Length >= 3 && data[0] == 255 && data[1] == 216 && data[2] == 255 => ".jpg",
             "image/webp" when data.Length >= 12 && data.AsSpan(0, 4).SequenceEqual("RIFF"u8) && data.AsSpan(8, 4).SequenceEqual("WEBP"u8) => ".webp",
-            _ => throw new BusinessException(BusinessExceptionCode.BAD_REQUEST, "Only PNG, JPEG and WebP avatars are supported.")};
+            _ => throw new BusinessException(BusinessExceptionCode.BAD_REQUEST, BusinessExceptionMessage.AvatarTypeUnsupported)};
         var directory = Path.Combine(_environment.WebRootPath ?? Path.Combine(_environment.ContentRootPath, "wwwroot"), "avatars");
         Directory.CreateDirectory(directory);
         var name = Guid.NewGuid().ToString("N") + extension;

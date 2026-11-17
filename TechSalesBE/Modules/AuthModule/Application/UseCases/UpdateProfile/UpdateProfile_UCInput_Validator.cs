@@ -1,3 +1,4 @@
+using AuthModule.Application.Exceptions;
 using AuthModule.Domain.Constants;
 using AuthModule.Domain.Rules;
 using FluentValidation;
@@ -10,7 +11,7 @@ internal sealed class UpdateProfile_UCInput_Validator : AbstractValidator<Update
         RuleFor(x => x.FullName)
             .Must(AuthRules.ValidFullName)
             .When(input => input.FullName != null)
-            .WithMessage("Invalid full name.");
+            .WithMessage(BusinessExceptionMessage.FullNameInvalid);
 
         RuleFor(x => x.Phone)
             .Must(AuthRules.ValidPhone)
@@ -19,11 +20,11 @@ internal sealed class UpdateProfile_UCInput_Validator : AbstractValidator<Update
 
         RuleFor(x => x.AvatarUrl)
             .Must(AuthRules.ValidAvatarUrl)
-            .WithMessage("Invalid avatar URL.");
+            .WithMessage(BusinessExceptionMessage.AvatarInvalid);
 
         RuleFor(x => x.DateOfBirth)
             .Must(dateOfBirth => AuthRules.ValidDateOfBirth(dateOfBirth, DateOnly.FromDateTime(DateTime.UtcNow)))
-            .WithMessage("Date of birth cannot be in the future.");
+            .WithMessage(BusinessExceptionMessage.BirthDateInFuture);
         RuleFor(x => x.AvatarLength).InclusiveBetween(0, AuthLimits.AvatarMaxSizeBytes);
     }
 }

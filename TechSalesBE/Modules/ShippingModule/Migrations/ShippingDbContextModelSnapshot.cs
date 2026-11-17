@@ -23,7 +23,7 @@ namespace ShippingModule.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("ShippingModule.Infrastructure.Persistence.Models.ProviceDbModel", b =>
+            modelBuilder.Entity("ShippingModule.Infrastructure.Persistence.Models.ProvinceDbModel", b =>
                 {
                     b.Property<string>("Code")
                         .HasMaxLength(7)
@@ -37,7 +37,7 @@ namespace ShippingModule.Migrations
 
                     b.HasKey("Code");
 
-                    b.ToTable("Provice", "shipping");
+                    b.ToTable("Province", "shipping");
                 });
 
             modelBuilder.Entity("ShippingModule.Infrastructure.Persistence.Models.ShippingAddressDbModel", b =>
@@ -106,6 +106,178 @@ namespace ShippingModule.Migrations
                     b.HasKey("ProviceCode");
 
                     b.ToTable("ShippingFee", "shipping");
+
+                    b.HasData(
+                        new
+                        {
+                            ProviceCode = "11",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "12",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "13",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "14",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "15",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "16",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "17",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "18",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "19",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "20",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "21",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "22",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "23",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "24",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "25",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "26",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "27",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "28",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "29",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "30",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "31",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "32",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "33",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "34",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "35",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "36",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "37",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "38",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "39",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "40",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "41",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "42",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "43",
+                            Fee = 10000L
+                        },
+                        new
+                        {
+                            ProviceCode = "44",
+                            Fee = 10000L
+                        });
                 });
 
             modelBuilder.Entity("ShippingModule.Infrastructure.Persistence.Models.WardDbModel", b =>
@@ -146,7 +318,7 @@ namespace ShippingModule.Migrations
 
             modelBuilder.Entity("ShippingModule.Infrastructure.Persistence.Models.WardDbModel", b =>
                 {
-                    b.HasOne("ShippingModule.Infrastructure.Persistence.Models.ProviceDbModel", "Province")
+                    b.HasOne("ShippingModule.Infrastructure.Persistence.Models.ProvinceDbModel", "Province")
                         .WithMany("Wards")
                         .HasForeignKey("ProvinceCode")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -155,7 +327,7 @@ namespace ShippingModule.Migrations
                     b.Navigation("Province");
                 });
 
-            modelBuilder.Entity("ShippingModule.Infrastructure.Persistence.Models.ProviceDbModel", b =>
+            modelBuilder.Entity("ShippingModule.Infrastructure.Persistence.Models.ProvinceDbModel", b =>
                 {
                     b.Navigation("Wards");
                 });

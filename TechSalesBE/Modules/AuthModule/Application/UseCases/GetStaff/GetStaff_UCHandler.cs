@@ -1,10 +1,11 @@
-using AuthModule.Application.Rules;
+using AuthModule.Application.Exceptions;
 using CommonModule.BusinessExceptions;
 using AuthModule.Application.Constants;
 using AuthModule.Application.Repositories;
 using AuthModule.Application.Services;
 using AuthModule.Domain.Entities;
 using MediatR;
+using AuthModule.Domain.Rules;
 
 namespace AuthModule.Application.UseCases.GetStaff;
 internal sealed class GetStaff_UCHandler : IRequestHandler<GetStaff_UCInput, GetStaff_UCOutput>
@@ -21,7 +22,7 @@ internal sealed class GetStaff_UCHandler : IRequestHandler<GetStaff_UCInput, Get
         User? actor = await _users.GetByIdAsync(input.ActorId, ct);
         if (actor == null)
         {
-            throw new BusinessException(BusinessExceptionCode.NOT_FOUND, "Actor account not found.");
+            throw new BusinessException(BusinessExceptionCode.NOT_FOUND, BusinessExceptionMessage.ActorNotFound);
         }
         List<string> visibleRoles = AccountManagementRules.GetVisibleStaffRoles(actor);
 

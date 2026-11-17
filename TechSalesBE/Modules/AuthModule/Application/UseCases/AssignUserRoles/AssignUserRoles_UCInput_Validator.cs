@@ -1,3 +1,4 @@
+using AuthModule.Application.Exceptions;
 using AuthModule.Domain.Constants;
 using AuthModule.Application.Constants;
 using AuthModule.Domain.Rules;
@@ -9,7 +10,7 @@ internal sealed class AssignUserRoles_UCInput_Validator : AbstractValidator<Assi
     {
         RuleFor(x => x.ActorId).NotEmpty();
         RuleFor(x => x.UserId).NotEmpty();
-        RuleFor(x => x.RoleIds).NotNull().Must(x => x is { Length: > 0 and <= AuthLimits.MaxRolesPerUser } && x.Distinct().Count() == x.Length).WithMessage("Choose distinct roles.");
+        RuleFor(x => x.RoleIds).NotNull().Must(x => x is { Length: > 0 and <= AuthLimits.MaxRolesPerUser } && x.Distinct().Count() == x.Length).WithMessage(BusinessExceptionMessage.RolesMustBeDistinct);
         RuleForEach(x => x.RoleIds).NotEmpty();
     }
 }

@@ -1,3 +1,5 @@
+using AuthModule.Application.Exceptions;
+using AuthModule.Domain.Rules;
 using AuthModule.Application.Repositories;
 using AuthModule.Application.Services;
 using AuthModule.Domain.Entities;
@@ -35,12 +37,12 @@ internal sealed class Login_UCHandler : IRequestHandler<Login_UCInput, Login_UCO
 
             DateTimeOffset now = DateTimeOffset.UtcNow;
             user.ReleaseExpiredLock(now);
-            if (user.Status == UserStatus.BLOCKED)
+            if (AuthWorkflowRules.IsBlocked(user))
             {
                 return (null, true);
             }
 
-            if (user.Status != UserStatus.ACTIVE)
+            if (!AuthWorkflowRules.CanLogin(user))
             {
                 return (null, false);
             }
@@ -50,7 +52,7 @@ internal sealed class Login_UCHandler : IRequestHandler<Login_UCInput, Login_UCO
                 user.RecordFailedLogin(now);
                 await _users.UpdateAsync(user, ct);
 
-                return (null, user.Status == UserStatus.BLOCKED);
+                return (null, AuthWorkflowRules.IsBlocked(user));
             }
 
             user.RecordSuccessfulLogin(now);
@@ -71,11 +73,11 @@ internal sealed class Login_UCHandler : IRequestHandler<Login_UCInput, Login_UCO
         }
 
         string errorCode = BusinessExceptionCode.UNAUTHORIZED;
-        string message = "Email or password is incorrect, or the account is not verified.";
+        string message = BusinessExceptionMessage.LoginFailed;
         if (result.Blocked)
         {
             errorCode = BusinessExceptionCode.FORBIDDEN;
-            message = "Account is locked.";
+            message = BusinessExceptionMessage.AccountLocked;
         }
 
         throw new BusinessException(errorCode, message);

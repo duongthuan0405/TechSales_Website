@@ -1,3 +1,5 @@
+using AuthModule.Application.Exceptions;
+using AuthModule.Application.Messages;
 using AuthModule.Application.Constants;
 using AuthModule.Application.Ports;
 using AuthModule.Application.Repositories;
@@ -26,7 +28,7 @@ internal sealed class UpdateProfile_UCHandler : IRequestHandler<UpdateProfile_UC
         return await _transaction.ExecuteAtomicallyAsync(async () =>
         {
             await _users.LockUsersAsync([input.ActorId], ct);
-            User user = await _users.GetByIdAsync(input.ActorId, ct) ?? throw new BusinessException(BusinessExceptionCode.NOT_FOUND, "User not found.");
+            User user = await _users.GetByIdAsync(input.ActorId, ct) ?? throw new BusinessException(BusinessExceptionCode.NOT_FOUND, BusinessExceptionMessage.UserNotFound);
             var today = DateOnly.FromDateTime(DateTime.UtcNow);
             // Validate all profile fields before writing a file.
             user.Profile.Update(input.FullName, input.Phone, input.AvatarUrl, input.DateOfBirth, today);
@@ -37,7 +39,7 @@ internal sealed class UpdateProfile_UCHandler : IRequestHandler<UpdateProfile_UC
 
             user.UpdatedAt = DateTimeOffset.UtcNow;
             await _users.UpdateAsync(user, ct);
-            return new UpdateProfile_UCOutput("Profile updated successfully.");
+            return new UpdateProfile_UCOutput(ResponseMessage.SuccessProfileUpdated);
         }, ct);
     }
 }

@@ -52,17 +52,17 @@ Validation behavior gọi ValidateAsync và gom lỗi theo field, dừng trướ
 
 ## 3. Nghiệp vụ và persistence
 
-Rate limit, SMTP, JWT, timeout và giới hạn kỹ thuật thuộc options/constants Infrastructure hoặc Presentation, không mặc định thuộc Domain/Constants. Module bind cấu hình và validate options khi khởi động theo tính năng được bật. Các giá trị nghiệp vụ thật sự mới tập trung tại Domain; chính sách điều phối dùng chung giữa UC đặt Application/Rules.
+Rate limit, SMTP, JWT, timeout và giới hạn kỹ thuật thuộc options/constants Infrastructure hoặc Presentation, không mặc định thuộc Domain/Constants. Module bind cấu hình và validate options khi khởi động theo tính năng được bật. Hằng số nghiệp vụ thuộc Domain/Constants; mọi quy tắc/chính sách nghiệp vụ, kể cả riêng UC, thuộc Domain/Rules.
 
 Seed tĩnh đặt trong lớp dữ liệu riêng, dùng ID/thời gian cố định và HasData trong IEntityTypeConfiguration<TDbModel>; DbContext quét configurations. Thay đổi seed được đưa vào migration, không giả định HasData tự chạy mỗi lần khởi động. Bootstrap tài khoản là cơ chế runtime riêng, chỉ bật khi được yêu cầu và cấu hình; không tạo tài khoản mặc định ngoài yêu cầu.
 
 Ưu tiên LINQ cho query thường. Khi thực sự cần khóa dòng PostgreSQL, dùng SQL tham số hóa như FromSqlInterpolated, cùng transaction và thứ tự khóa ổn định. Không ghép input vào SQL, không khóa actor/tất cả dữ liệu mặc định. Projection là kỹ thuật nội bộ repository, không tạo lớp View trung gian cho handler.
 
-Phân biệt quyền gọi API với quy tắc nghiệp vụ dựa trên actor/vai trò. `[Authorize]`/policy/permission ở endpoint kiểm tra quyền truy cập API; hạn chế actor được tạo hoặc quản lý loại tài khoản/tài nguyên nào là quy tắc nghiệp vụ, phải được use case áp dụng qua rule/policy phù hợp tại Application hoặc Domain. Không chuyển quy tắc nghiệp vụ vào Controller/authorization filter rồi bỏ kiểm tra trong use case. Handler không cần truy vấn lại cùng API permission, nhưng phải bảo vệ nghiệp vụ khi được gọi ngoài HTTP.
+Phân biệt quyền gọi API với quy tắc nghiệp vụ dựa trên actor/vai trò. `[Authorize]`/policy/permission ở endpoint kiểm tra quyền truy cập API; hạn chế actor được tạo hoặc quản lý loại tài khoản/tài nguyên nào là quy tắc nghiệp vụ, phải được định nghĩa tại Domain/Rules và được use case áp dụng. Không chuyển quy tắc nghiệp vụ vào Controller/authorization filter rồi bỏ kiểm tra trong use case. Handler không cần truy vấn lại cùng API permission, nhưng phải bảo vệ nghiệp vụ khi được gọi ngoài HTTP.
 
 Các con số giới hạn nghiệp vụ phải được định nghĩa một lần bằng hằng số có tên rõ nghĩa tại `Domain/Constants` của module sở hữu, không hardcode lặp trong entity, rule, validator, handler, service hoặc thông báo. Các nơi kiểm tra cùng quy tắc dùng chung predicate tại Domain/Rules và các hằng số này. Nếu thay đổi giới hạn tác động schema, cập nhật mapping và tạo migration mới; không sửa migration/snapshot lịch sử. Không gom giới hạn nghiệp vụ của mọi module vào Common.
 
-Entity/value object giữ invariant và hành vi; domain rule thuần dùng chung với validator khi cùng một điều kiện cần kiểm tra sớm. Domain không I/O và không biết MediatR/FluentValidation/EF/HTTP. Tách chính sách chỉ thuộc UC ở Application thay vì đẩy mọi if vào Domain.
+Entity/value object giữ trạng thái và hành vi; invariant và quyết định nghiệp vụ định nghĩa tại Domain/Rules, được entity gọi trước khi thay đổi trạng thái. Validator dùng lại predicate và handler gọi rule với dữ liệu đã tải. Không tạo Application/Rules hoặc sao chép điều kiện nghiệp vụ trong handler/entity. Domain không I/O, không tham chiếu Application và không biết MediatR/FluentValidation/EF/HTTP. Các if điều phối I/O, kiểm tra null kết quả truy vấn, mapping và kỹ thuật không tự động là quy tắc nghiệp vụ.
 
 Repository port thuộc Application, implementation Infrastructure; đầu vào/đầu ra nghiệp vụ là Domain entity, có thể kèm ID/count/metadata phân trang. Không trả Application View, UCOutput, IQueryable, storage model, HTTP type hoặc SDK type qua repository. Tách entity Domain và DbModel; repository map hai chiều, cấu hình mỗi bảng trong IEntityTypeConfiguration<TDbModel>, DbContext dùng ApplyConfigurationsFromAssembly. Với entity detached, ghi lại qua storage model tracked hoặc cơ chế tường minh, không giả định EF tự lưu Domain object. Navigation chỉ nối dữ liệu cùng module; liên module lưu ID logic.
 
@@ -107,10 +107,12 @@ public static class DomainExceptionCode
 // Trong hành vi Domain:
 throw new DomainException(
     DomainExceptionCode.INVALID_STATE,
-    "Không thể thực hiện thao tác ở trạng thái hiện tại.");
+    DomainExceptionMessage.InvalidState);
 ```
 
-Tên code/câu chữ chỉ minh họa. Dùng namespace thực tế, không suy ra mọi module cần rule trên. Message có thể hardcode; chưa bắt buộc catalog/resolver. Handler không nuốt/bọc DomainException chỉ để đổi loại; cleanup/rollback khi cần vẫn giữ lỗi gốc.
+Tên code/câu chữ chỉ minh họa. Mỗi module đặt DomainExceptionCode và DomainExceptionMessage cạnh nhau tại Domain/Exceptions; BusinessExceptionMessage tại Application/Exceptions; ResponseMessage tại Application/Messages. Common chỉ chứa thông báo cơ chế chung. Không hardcode message tại throw/validator/controller. Mọi thông báo trả người dùng, gồm lỗi/thành công/validation/JSON/AuthN/email, dùng tiếng Việt; tham số động dùng hàm hoặc property có tên rõ ràng. Không đổi contract exception hoặc tạo resolver tổng quát.
+
+Domain không tham chiếu catalog Application. Rule Domain ném DomainException hoặc cung cấp kết quả để Application phân loại. Với hợp đồng cũ cần giữ Business code/HTTP status, behavior Application có thể ánh xạ các Domain code được liệt kê rõ sang BusinessException và BusinessExceptionMessage. Không ánh xạ đại trà mọi DomainException; cleanup/rollback giữ lỗi gốc. Application có thể alias message Domain để tránh lặp nội dung.
 
 Middleware chung tại Presentation/host nhận BusinessException, map code 400/401/403/404/409; DomainException mặc định 422. Mapping Domain khác nếu cần ở composition/Presentation biết module, không ở shared exception. Lỗi bất ngờ hoặc Business code không nhận diện dùng 500 an toàn theo contract; không lộ stack trace/exception kỹ thuật. Không chọn status bằng Message. Giữ code string trong response khi API yêu cầu.
 

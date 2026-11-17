@@ -5,6 +5,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="ShippingModule.Tests" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\CommonModule\CommonModule.csproj" />
   </ItemGroup>
   <ItemGroup>
