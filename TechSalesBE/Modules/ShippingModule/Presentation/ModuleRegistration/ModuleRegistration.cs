@@ -1,6 +1,5 @@
 using CommonModule.Presentation.Configuration;
 using ShippingModule.Application.Behaviors;
-using ShippingModule.Presentation.Authorization;
 using CommonModule.Application.Behaviors;
 using FluentValidation;
 using MediatR;
@@ -21,14 +20,7 @@ public static class ModuleRegistration
     {
         services.AddVietnameseResponses();
         services.AddShippingPersistence(configuration);
-        services.AddAuthorization(options =>
-        {
-            options.AddPolicy(ShippingAuthorization.ManageFeesPolicy, policy =>
-            {
-                policy.RequireAuthenticatedUser();
-                policy.RequireRole(ShippingAuthorization.BusinessAdminRole, ShippingAuthorization.TechnicalAdminRole);
-            });
-        });
+        services.AddAuthorization();
         services.AddScoped<ILocationRepository, LocationRepository>();
         services.AddScoped<IShippingFeeRepository, ShippingFeeRepository>();
         services.AddScoped<IShippingAddressRepository, ShippingAddressRepository>();

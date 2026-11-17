@@ -102,9 +102,9 @@ Mọi quy tắc nghiệp vụ phải được định nghĩa tại Domain/Rules 
 
 ### Phân quyền API theo role
 
-Hiện dùng role-based authorization tại Controller/action: AllowAnonymous cho API công khai, Authorize cho chức năng chỉ cần đăng nhập, Authorize(Roles = ...) hoặc policy RequireRole cho API giới hạn vai trò. Tên/nhóm role dùng hằng số, nhóm truy cập thuộc Presentation/Authorization; policy do RegisterModule đăng ký. Module không reference module nghiệp vụ khác chỉ để lấy tên role; dùng hợp đồng danh tính công khai phù hợp với cấu trúc hiện có.
+Bắt buộc dùng `[Authorize(Roles = RoleAccess.Administrators)]` hoặc hằng số role tương ứng trực tiếp tại Controller/action. Không dùng Authorize(Policy), policy RequireRole hoặc wrapper thay cho Roles; không đăng ký policy nhóm role trong RegisterModule. AllowAnonymous dành cho API công khai, Authorize không có Roles dành cho chức năng chỉ cần đăng nhập. Tên/nhóm role dùng hằng số tại Presentation/Authorization; nhóm là chuỗi tên role cách nhau bằng dấu phẩy. Module không reference module nghiệp vụ khác chỉ để lấy tên role.
 
-Nhiều role trong cùng Roles/RequireRole là OR; nhiều attribute Authorize được kết hợp thành AND. Không xếp nhiều attribute một-role để diễn đạt OR. Mỗi attribute nằm trong một cặp [...] riêng. Đọc role từ danh tính đã xác thực, cấu hình RoleClaimType khớp JWT; không tin role do client tự gửi. Chưa xác thực trả 401, thiếu role trả 403 theo response tiếng Việt hiện có.
+Nhiều role trong cùng Roles là OR; nhiều attribute Authorize được kết hợp thành AND. Không xếp nhiều attribute một-role để diễn đạt OR. Mỗi attribute nằm trong một cặp [...] riêng. Đọc role từ danh tính đã xác thực, cấu hình RoleClaimType khớp JWT; không tin role do client tự gửi. Chưa xác thực trả 401, thiếu role trả 403 theo response tiếng Việt hiện có.
 
 Giữ nguyên permission entity, bảng, seed, repository, constants, handler/policy provider và API quản trị để dùng lại sau, nhưng không gắn HasPermission hoặc policy kiểm tra permission lên endpoint trong giai đoạn này. Chỉnh permission không thay đổi quyền truy cập API. Handler không lặp kiểm tra quyền gọi API; các quy tắc sở hữu, actor/đối tượng và trạng thái vẫn định nghĩa tại Domain/Rules và được UC áp dụng. Kiểm thử role được phép/bị cấm, role hiện tại và việc thay permission không vượt qua giới hạn role.
 

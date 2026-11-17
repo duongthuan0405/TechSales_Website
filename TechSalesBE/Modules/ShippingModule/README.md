@@ -56,4 +56,4 @@ ShippingFee được seed 10.000 đồng cho các mã 11–44 qua migration Seed
 
 Kết quả tra cứu có `data.provinceCode` và `data.fee`. API PUT nhận body `{"fee": 15000}`; fee bắt buộc có trong JSON, không âm, bằng 0 là miễn phí. Province phải tồn tại. Thiếu cấu hình thì tạo mới và hỗ trợ giao hàng trở lại; đã có thì cập nhật. Luồng ghi dùng IExecuteAtomically, đồng bộ việc tạo/cập nhật cùng tỉnh bằng transaction lock tại Infrastructure.
 
-Quyền sửa phí được kiểm tra tại Controller bằng policy `shipping.fees.manage`, chỉ chấp nhận role Business Admin hoặc Technical Admin. Các tên role là claim công khai do cơ chế Auth cung cấp; Shipping không reference AuthModule. Staff/Customer không được sửa; API đọc vẫn công khai. Không thay đổi luồng đặt hàng của Ordering trong phần này.
+Quyền sửa phí được khai báo trực tiếp tại Controller bằng `[Authorize(Roles = RoleAccess.Administrators)]`, chỉ chấp nhận Business Admin hoặc Technical Admin; không dùng policy nhóm role. Các tên role là claim công khai do cơ chế Auth cung cấp; Shipping không reference AuthModule. Staff/Customer không được sửa; API đọc vẫn công khai. Không thay đổi luồng đặt hàng của Ordering trong phần này.

@@ -12,7 +12,7 @@ namespace ShippingModule.Presentation.Controllers;
 
 [ApiController]
 [Route("api/shipping/provinces")]
-[Authorize(Policy = ShippingAuthorization.ManageFeesPolicy)]
+[Authorize(Roles = RoleAccess.Administrators)]
 public sealed class ShippingFeeManagementController : ControllerBase
 {
     private readonly ISender _sender;

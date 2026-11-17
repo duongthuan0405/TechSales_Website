@@ -144,10 +144,10 @@ Policy ở endpoint kiểm tra quyền gọi API; handler áp dụng quy tắc s
 
 ### Cơ chế phân quyền API hiện tại
 
-- Dùng role-based authorization: endpoint công khai có AllowAnonymous; chức năng cá nhân chỉ cần đăng nhập dùng Authorize; chức năng giới hạn vai trò dùng Authorize(Roles = ...) hoặc policy RequireRole.
+- Bắt buộc dùng `[Authorize(Roles = RoleAccess.Administrators)]` hoặc hằng số role tương ứng trực tiếp tại Controller/action. Không dùng Authorize(Policy), policy RequireRole hoặc wrapper thay cho Roles. Endpoint công khai dùng AllowAnonymous; chức năng chỉ cần đăng nhập dùng Authorize không có Roles.
 - Kiểm tra quyền gọi API tại Controller/action. Không lặp lại cùng kiểm tra truy cập API trong handler. Quy tắc sở hữu tài nguyên, quan hệ actor/đối tượng và chuyển trạng thái vẫn thuộc Domain/Rules và được UC áp dụng.
-- Tên role và nhóm role là hằng số có tên rõ nghĩa; không hardcode lặp chuỗi role trong attribute. Nhóm role truy cập API thuộc Presentation/Authorization; policy được đăng ký tại registration của ứng dụng/module.
-- Nhiều role trong một Roles hoặc một RequireRole có nghĩa là chỉ cần khớp một role (OR). Nhiều attribute Authorize trên controller/action được kết hợp thành yêu cầu đồng thời (AND); không xếp nhiều attribute một-role để biểu diễn OR. Mỗi attribute đặt trong cặp [...] riêng.
+- Tên role và nhóm role là hằng số có tên rõ nghĩa, không hardcode lặp trong attribute. Nhóm role thuộc Presentation/Authorization, là chuỗi tên role cách nhau bằng dấu phẩy; không tạo policy hoặc đăng ký RequireRole trong RegisterModule để biểu diễn nhóm role.
+- Nhiều role trong cùng Roles có nghĩa là chỉ cần khớp một role (OR). Nhiều attribute Authorize trên controller/action kết hợp thành yêu cầu đồng thời (AND); không xếp nhiều attribute một-role để biểu diễn OR. Mỗi attribute đặt trong cặp [...] riêng.
 - Lấy role từ danh tính đã xác thực; cấu hình RoleClaimType khớp JWT. Không tin role/actor do client gửi trong body hoặc header tùy ý. Chưa xác thực trả 401; đã xác thực nhưng không đủ role trả 403, với thông báo tiếng Việt theo contract.
 - Giữ permission entity, bảng, seed, repository, constants, cơ chế HasPermission và API quản trị để dùng lại sau. Hiện không gắn HasPermission hoặc policy kiểm tra permission vào endpoint; thay đổi permission không cấp/thu hồi quyền gọi API trong giai đoạn này.
 - Kiểm tra cả role được phép/bị cấm, thay đổi role trên tài khoản, và trường hợp permission thay đổi nhưng role không đổi. Không thay quyền gọi API bằng kiểm tra nghiệp vụ hoặc ngược lại.
