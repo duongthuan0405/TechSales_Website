@@ -1,3 +1,4 @@
+using AuthModule.Application.Messages;
 using CommonModule.Presentation.ApiResponseModels;
 using CommonModule.Presentation.Extensions;
 using AuthModule.Application.UseCases.GetMe;
@@ -22,7 +23,7 @@ public sealed class UserController : ControllerBase
     public async Task<IActionResult> GetMe(CancellationToken ct)
     {
         GetMe_UCOutput result = await _sender.Send(new GetMe_UCInput(this.GetActorId()), ct);
-        ApiSuccessResponse<GetMe_UCOutput> response = new ApiSuccessResponse<GetMe_UCOutput>(result, "Account retrieved successfully.");
+        ApiSuccessResponse<GetMe_UCOutput> response = new ApiSuccessResponse<GetMe_UCOutput>(result, ResponseMessage.SuccessAccount);
         return Ok(response);
     }
 }

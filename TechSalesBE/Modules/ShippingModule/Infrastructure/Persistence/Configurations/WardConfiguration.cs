@@ -1,3 +1,4 @@
+using ShippingModule.Domain.Constants;
 using ShippingModule.Infrastructure.Persistence.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -10,9 +11,9 @@ internal sealed class WardConfiguration : IEntityTypeConfiguration<WardDbModel>
     {
         builder.ToTable("Ward");
         builder.HasKey(e => e.Code);
-        builder.Property(e => e.Code).HasColumnName("Code").HasColumnType("character(7)").HasMaxLength(7).IsRequired().ValueGeneratedNever();
+        builder.Property(e => e.Code).HasColumnName("Code").HasColumnType($"character({ShippingLimits.AdministrativeCodeMaxLength})").HasMaxLength(ShippingLimits.AdministrativeCodeMaxLength).IsRequired().ValueGeneratedNever();
         builder.Property(e => e.Name).HasColumnName("Name").HasColumnType("character varying(100)").HasMaxLength(100).IsRequired(false);
-        builder.Property(e => e.ProvinceCode).HasColumnName("ProvinceCode").HasColumnType("character(7)").HasMaxLength(7).IsRequired();
+        builder.Property(e => e.ProvinceCode).HasColumnName("ProvinceCode").HasColumnType($"character({ShippingLimits.AdministrativeCodeMaxLength})").HasMaxLength(ShippingLimits.AdministrativeCodeMaxLength).IsRequired();
         builder.HasOne(e => e.Province).WithMany(e => e.Wards).HasForeignKey(e => e.ProvinceCode).OnDelete(DeleteBehavior.Restrict);
     }
 }

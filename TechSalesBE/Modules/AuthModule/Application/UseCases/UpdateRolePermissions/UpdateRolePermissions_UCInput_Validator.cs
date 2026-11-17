@@ -1,3 +1,4 @@
+using AuthModule.Application.Exceptions;
 using AuthModule.Domain.Constants;
 using AuthModule.Application.Constants;
 using AuthModule.Domain.Rules;
@@ -9,7 +10,7 @@ internal sealed class UpdateRolePermissions_UCInput_Validator : AbstractValidato
     {
         RuleFor(x => x.ActorId).NotEmpty();
         RuleFor(x => x.RoleId).NotEmpty();
-        RuleFor(x => x.PermissionIds).NotNull().Must(x => x is { Length: <= AuthLimits.MaxPermissionsPerRole } && x.Distinct().Count() == x.Length).WithMessage("Permission IDs must be distinct.");
+        RuleFor(x => x.PermissionIds).NotNull().Must(x => x is { Length: <= AuthLimits.MaxPermissionsPerRole } && x.Distinct().Count() == x.Length).WithMessage(BusinessExceptionMessage.PermissionIdsMustBeDistinct);
         RuleForEach(x => x.PermissionIds).NotEmpty();
     }
 }

@@ -11,6 +11,8 @@
   <Folder Name="/Modules/" />
   <Folder Name="/Tests/">
     <Project Path="Tests/AuthModule.Tests/AuthModule.Tests.csproj" />
+    <Project Path="Tests/ShippingModule.Tests/ShippingModule.Tests.csproj" />
+    <Project Path="Tests/MailModule.Tests/MailModule.Tests.csproj" />
   </Folder>
   <Project Path="Modules/AfterSaleModule/AfterSaleModule.csproj" />
   <Project Path="Modules/PaymentRefundModule/PaymentRefundModule.csproj" />

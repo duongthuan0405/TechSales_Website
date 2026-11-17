@@ -1,3 +1,5 @@
+using AuthModule.Application.Messages;
+using AuthModule.Domain.Rules;
 using AuthModule.Application.Constants;
 using AuthModule.Application.Ports;
 using AuthModule.Application.Repositories;
@@ -28,13 +30,13 @@ internal sealed class ForgotPassword_UCHandler : IRequestHandler<ForgotPassword_
         return await _transaction.ExecuteAtomicallyAsync(async () =>
         {
             var user = await _users.GetUserByEmailAsync(input.Email, ct, forUpdate: true);
-            if (user is not null && user.Status is UserStatus.ACTIVE or UserStatus.BLOCKED)
+            if (AuthWorkflowRules.CanResetPassword(user))
             {
                 var code = await _tokens.CreateOtpAsync(user.Id, OtpType.RESET_PASSWORD, ct);
                 await _mail.SendPasswordResetAsync(user.Email, code, ct);
             }
 
-            return new ForgotPassword_UCOutput("If the account exists, a password reset code has been sent.");
+            return new ForgotPassword_UCOutput(ResponseMessage.SuccessResetRequested);
         }, ct);
     }
 }

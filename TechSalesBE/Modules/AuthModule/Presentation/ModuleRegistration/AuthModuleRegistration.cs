@@ -1,5 +1,11 @@
-using System.Threading.RateLimiting;
+using CommonModule.BusinessExceptions;
+using CommonModule.Presentation.Configuration;
 using AuthModule.Application.Behaviors;
+using AuthModule.Application.Exceptions;
+using System.Threading.RateLimiting;
+using CommonModule.Application.Behaviors;
+using MediatR;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using AuthModule.Application.Services;
 using AuthModule.Extensions;
 using AuthModule.Infrastructure.AuthN;
@@ -21,6 +27,7 @@ public static class ModuleRegistration
 {
     public static IServiceCollection RegisterModule(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddVietnameseResponses();
         services.AddAuthPersistence(configuration);
         services.AddServices();
         services.AddScoped<IAuthOtpManager,AuthOtpManager>();
@@ -29,8 +36,9 @@ public static class ModuleRegistration
         services.AddMediatR(options =>
         {
             options.RegisterServicesFromAssembly(typeof(ModuleRegistration).Assembly);
-            options.AddOpenBehavior(typeof(ValidationBehavior<,>));
         });
+        services.TryAddEnumerable(ServiceDescriptor.Transient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>)));
+        services.TryAddEnumerable(ServiceDescriptor.Transient(typeof(IPipelineBehavior<,>), typeof(BusinessRuleExceptionBehavior<,>)));
         services.AddValidatorsFromAssembly(typeof(ModuleRegistration).Assembly, includeInternalTypes: true);
         services.AddHttpContextAccessor();
         services.AddAuthN(configuration);
@@ -72,9 +80,9 @@ public static class ModuleRegistration
 
             options.OnRejected = async (context, cancellationToken) =>
             {
-                ApiErrorResponse response = new ApiErrorResponse("Too many attempts. Please retry later.")
+                ApiErrorResponse response = new ApiErrorResponse(BusinessExceptionMessage.RateLimitExceeded)
                 {
-                    Code = "TOO_MANY_REQUESTS"
+                    Code = BusinessExceptionCode.TOO_MANY_REQUESTS
                 };
                 await context.HttpContext.Response.WriteAsJsonAsync(response, cancellationToken);
             };

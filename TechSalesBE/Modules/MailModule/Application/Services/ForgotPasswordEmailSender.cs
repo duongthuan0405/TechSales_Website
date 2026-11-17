@@ -1,3 +1,4 @@
+using MailModule.Application.Messages;
 using System.Net;
 using MailModule.Application.Interfaces;
 using MailModule.Domain.Entities;
@@ -17,11 +18,11 @@ public class ForgotPasswordEmailSender : IForgotPasswordEmailSender
     }
 
     private readonly string frontendPage = "reset-password";
-    private readonly string subject = "Reset your TechSales password";
+    private readonly string subject = EmailMessageContent.ResetSubject;
 
     public async Task Execute(string toEmail, string token, int expiredInMinutes, CancellationToken cancellationToken = default)
     {
-        string text = $"Your password reset code is: {token}\nThis code expires in {expiredInMinutes} minutes. Do not share it with anyone.";
+        string text = EmailMessageContent.ResetText(token, expiredInMinutes);
         string buttonHtml = string.Empty;
         string? frontendUrl = _configuration["AUTH:FrontendUrl"];
         if (!string.IsNullOrWhiteSpace(frontendUrl))
@@ -40,13 +41,13 @@ public class ForgotPasswordEmailSender : IForgotPasswordEmailSender
 
             string resetPasswordUrl = $"{frontendUrl.TrimEnd('/')}/{frontendPage}?email={Uri.EscapeDataString(toEmail)}&token={Uri.EscapeDataString(token)}";
             string encodedResetPasswordUrl = WebUtility.HtmlEncode(resetPasswordUrl);
-            text += $"\nReset your password: {resetPasswordUrl}";
+            text += $"\n{EmailMessageContent.ResetButton}: {resetPasswordUrl}";
 
             buttonHtml = $"""
                 <p style="margin:28px 0;text-align:center;">
-                    <a href="{encodedResetPasswordUrl}" role="button" style="display:inline-block;background-color:#2563eb;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-size:16px;font-weight:bold;">Reset password</a>
+                    <a href="{encodedResetPasswordUrl}" role="button" style="display:inline-block;background-color:#2563eb;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:8px;font-size:16px;font-weight:bold;">{EmailMessageContent.ResetButton}</a>
                 </p>
-                <p style="margin:0 0 8px;color:#64748b;font-size:13px;line-height:1.6;">If the button does not work, open this link:</p>
+                <p style="margin:0 0 8px;color:#64748b;font-size:13px;line-height:1.6;">{EmailMessageContent.LinkFallback}</p>
                 <p style="margin:0 0 24px;font-size:13px;line-height:1.6;word-break:break-all;">
                     <a href="{encodedResetPasswordUrl}" style="color:#2563eb;">{encodedResetPasswordUrl}</a>
                 </p>
@@ -57,7 +58,7 @@ public class ForgotPasswordEmailSender : IForgotPasswordEmailSender
         string encodedSubject = WebUtility.HtmlEncode(subject);
         string html = $"""
             <!DOCTYPE html>
-            <html lang="en">
+            <html lang="vi">
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -71,14 +72,14 @@ public class ForgotPasswordEmailSender : IForgotPasswordEmailSender
                                 <tr>
                                     <td style="padding:32px;">
                                         <p style="margin:0 0 24px;color:#2563eb;font-size:22px;font-weight:bold;">TechSales</p>
-                                        <h1 style="margin:0 0 16px;font-size:24px;">Reset your password</h1>
-                                        <p style="margin:0 0 24px;font-size:15px;line-height:1.7;">We received a request to reset your TechSales password. Use the code below or the reset button to choose a new password.</p>
+                                        <h1 style="margin:0 0 16px;font-size:24px;">{EmailMessageContent.ResetTitle}</h1>
+                                        <p style="margin:0 0 24px;font-size:15px;line-height:1.7;">{EmailMessageContent.ResetIntro}</p>
                                         <div style="padding:20px;background-color:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;text-align:center;">
                                             <span style="font-family:Consolas,monospace;font-size:32px;font-weight:bold;letter-spacing:6px;">{encodedToken}</span>
                                         </div>
-                                        <p style="margin:16px 0;color:#475569;font-size:14px;line-height:1.7;">This code expires in <strong>{expiredInMinutes} minutes</strong>. Do not share it with anyone.</p>
+                                        <p style="margin:16px 0;color:#475569;font-size:14px;line-height:1.7;">{EmailMessageContent.ExpirationHtml(expiredInMinutes)}</p>
                                         {buttonHtml}
-                                        <p style="margin:24px 0 0;padding-top:20px;border-top:1px solid #e2e8f0;color:#64748b;font-size:13px;line-height:1.7;">If you did not request a password reset, you can ignore this email. Your password will remain unchanged.</p>
+                                        <p style="margin:24px 0 0;padding-top:20px;border-top:1px solid #e2e8f0;color:#64748b;font-size:13px;line-height:1.7;">{EmailMessageContent.ResetUnrequested}</p>
                                     </td>
                                 </tr>
                             </table>

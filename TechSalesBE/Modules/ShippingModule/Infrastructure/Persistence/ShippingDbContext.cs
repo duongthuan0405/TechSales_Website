@@ -5,7 +5,7 @@ namespace ShippingModule.Infrastructure.Persistence;
 
 public sealed class ShippingDbContext : DbContext
 {
-    internal DbSet<ProviceDbModel> Provices => Set<ProviceDbModel>();
+    internal DbSet<ProvinceDbModel> Provices => Set<ProvinceDbModel>();
     internal DbSet<WardDbModel> Wards => Set<WardDbModel>();
     internal DbSet<ShippingAddressDbModel> ShippingAddresss => Set<ShippingAddressDbModel>();
     internal DbSet<ShippingFeeDbModel> ShippingFees => Set<ShippingFeeDbModel>();

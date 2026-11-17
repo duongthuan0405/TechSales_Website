@@ -1,8 +1,5 @@
-using AuthModule.Domain.Constants;
 using AuthModule.Domain.Enums;
-using AuthModule.Domain.Exceptions;
 using AuthModule.Domain.Rules;
-using CommonModule.Domain.Exceptions;
 namespace AuthModule.Domain.Entities;
 internal sealed class User
 {
@@ -20,15 +17,7 @@ internal sealed class User
 
     internal static User Create(string email, string passwordHash, bool verified = false)
     {
-        if (!AuthRules.ValidEmail(email))
-        {
-            throw new DomainException(DomainExceptionCode.INVALID_EMAIL, "Invalid email address.");
-        }
-
-        if (string.IsNullOrWhiteSpace(passwordHash))
-        {
-            throw new DomainException(DomainExceptionCode.INVALID_PASSWORD, "Invalid password hash.");
-        }
+        UserRules.EnsureValidCreation(email, passwordHash);
 
         User user = new User
         {
@@ -46,13 +35,7 @@ internal sealed class User
 
     internal void ReleaseExpiredLock(DateTimeOffset now)
     {
-        if (Status != UserStatus.BLOCKED || !LockedUntil.HasValue)
-        {
-            return;
-        }
-
-        DateTimeOffset lockExpiresAt = LockedUntil.Value;
-        if (lockExpiresAt > now)
+        if (!UserRules.CanReleaseExpiredLock(Status, LockedUntil, now))
         {
             return;
         }
@@ -66,17 +49,7 @@ internal sealed class User
 
     internal void RecordFailedLogin(DateTimeOffset now)
     {
-        if (LastLoginFailedAt.HasValue)
-        {
-            DateTimeOffset lastLoginFailedAt = LastLoginFailedAt.Value;
-            DateTimeOffset failedLoginWindowEndsAt = lastLoginFailedAt.AddMinutes(AuthLimits.FailedLoginWindowMinutes);
-
-            if (failedLoginWindowEndsAt <= now)
-            {
-                FailedLoginAttempts = 0;
-            }
-        }
-        else
+        if (UserRules.ShouldResetFailedAttempts(LastLoginFailedAt, now))
         {
             FailedLoginAttempts = 0;
         }
@@ -85,19 +58,16 @@ internal sealed class User
         LastLoginFailedAt = now;
         UpdatedAt = now;
 
-        if (FailedLoginAttempts >= AuthLimits.MaxFailedLoginAttempts)
+        if (UserRules.ShouldLockAfterFailedAttempts(FailedLoginAttempts))
         {
-            DateTimeOffset lockExpiresAt = now.AddMinutes(AuthLimits.AccountLockMinutes);
+            DateTimeOffset lockExpiresAt = UserRules.GetFailedLoginLockExpiry(now);
             LockAccount(lockExpiresAt, now);
         }
     }
 
     internal void RecordSuccessfulLogin(DateTimeOffset now)
     {
-        if (Status != UserStatus.ACTIVE)
-        {
-            throw new DomainException(DomainExceptionCode.INVALID_STATE, "Account is not active.");
-        }
+        UserRules.EnsureActive(Status);
 
         FailedLoginAttempts = 0;
         LastLoginFailedAt = null;
@@ -107,10 +77,7 @@ internal sealed class User
 
     internal void VerifyEmail(DateTimeOffset now)
     {
-        if (Status != UserStatus.PENDING)
-        {
-            throw new DomainException(DomainExceptionCode.INVALID_STATE, "Account is not pending verification.");
-        }
+        UserRules.EnsurePending(Status);
 
         Status = UserStatus.ACTIVE;
         UpdatedAt = now;
@@ -118,10 +85,7 @@ internal sealed class User
 
     internal void ChangePassword(string passwordHash, DateTimeOffset now)
     {
-        if (string.IsNullOrWhiteSpace(passwordHash))
-        {
-            throw new DomainException(DomainExceptionCode.INVALID_PASSWORD, "Invalid password hash.");
-        }
+        UserRules.EnsureValidPasswordHash(passwordHash);
 
         Password = passwordHash;
         FailedLoginAttempts = 0;
@@ -133,15 +97,7 @@ internal sealed class User
 
     internal void LockAccount(DateTimeOffset? until, DateTimeOffset now)
     {
-        if (Status != UserStatus.ACTIVE && Status != UserStatus.BLOCKED)
-        {
-            throw new DomainException(DomainExceptionCode.INVALID_STATE, "Only verified accounts can be locked.");
-        }
-
-        if (until.HasValue && until.Value <= now)
-        {
-            throw new DomainException(DomainExceptionCode.INVALID_STATE, "Lock expiry must be in the future.");
-        }
+        UserRules.EnsureCanLock(Status, until, now);
 
         Status = UserStatus.BLOCKED;
         LockedUntil = until;
@@ -150,10 +106,7 @@ internal sealed class User
 
     internal void UnlockAccount(DateTimeOffset now)
     {
-        if (Status != UserStatus.BLOCKED)
-        {
-            throw new DomainException(DomainExceptionCode.INVALID_STATE, "Account is not locked.");
-        }
+        UserRules.EnsureBlocked(Status);
 
         Status = UserStatus.ACTIVE;
         FailedLoginAttempts = 0;

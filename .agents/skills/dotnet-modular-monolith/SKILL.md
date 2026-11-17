@@ -96,9 +96,19 @@ Mỗi UC có đủ bốn lớp trong `Application/UseCases/<Feature>/<XXX>/`:
 
 Controller map DTO -> UCInput, gọi ISender.Send rồi map UCOutput -> response. UC là nội bộ module trừ khi được chủ đích thiết kế làm contract; facade module là lựa chọn mặc định cho giao tiếp đồng bộ bên ngoài. Handler điều phối, Domain bảo vệ invariant, Infrastructure thực hiện I/O.
 
-Domain không biết HTTP, ORM, SDK, MediatR hoặc FluentValidation. Khi Domain và validator cần cùng một điều kiện nghiệp vụ, dùng lại rule thuần thuộc Domain thay vì sao chép biểu thức. Không ép mọi điều kiện input vào Domain. Đọc [module-implementation.md](references/module-implementation.md) khi thêm UC, persistence, exception hoặc registration.
+Mọi quy tắc nghiệp vụ phải được định nghĩa tại Domain/Rules của module sở hữu, bao gồm invariant, chuyển trạng thái, điều kiện theo actor/vai trò và chính sách riêng của UC. Entity giữ trạng thái/hành vi, gọi rule trước khi thay đổi dữ liệu; handler điều phối I/O và gọi rule/entity, validator dùng lại predicate. Không đặt quy tắc nghiệp vụ trong Application/Rules hoặc tự lặp điều kiện trong entity/handler. Domain không biết HTTP, ORM, SDK, MediatR hoặc FluentValidation; rule nhận dữ liệu đã tải, không tự truy vấn repository. Binding, cấu hình vận hành và quyền gọi API ở lớp tương ứng. Đọc [module-implementation.md](references/module-implementation.md) khi thêm UC, persistence, exception hoặc registration.
 
 ## 5. Giao tiếp và dữ liệu
+
+### Phân quyền API theo role
+
+Hiện dùng role-based authorization tại Controller/action: AllowAnonymous cho API công khai, Authorize cho chức năng chỉ cần đăng nhập, Authorize(Roles = ...) hoặc policy RequireRole cho API giới hạn vai trò. Tên/nhóm role dùng hằng số, nhóm truy cập thuộc Presentation/Authorization; policy do RegisterModule đăng ký. Module không reference module nghiệp vụ khác chỉ để lấy tên role; dùng hợp đồng danh tính công khai phù hợp với cấu trúc hiện có.
+
+Nhiều role trong cùng Roles/RequireRole là OR; nhiều attribute Authorize được kết hợp thành AND. Không xếp nhiều attribute một-role để diễn đạt OR. Mỗi attribute nằm trong một cặp [...] riêng. Đọc role từ danh tính đã xác thực, cấu hình RoleClaimType khớp JWT; không tin role do client tự gửi. Chưa xác thực trả 401, thiếu role trả 403 theo response tiếng Việt hiện có.
+
+Giữ nguyên permission entity, bảng, seed, repository, constants, handler/policy provider và API quản trị để dùng lại sau, nhưng không gắn HasPermission hoặc policy kiểm tra permission lên endpoint trong giai đoạn này. Chỉnh permission không thay đổi quyền truy cập API. Handler không lặp kiểm tra quyền gọi API; các quy tắc sở hữu, actor/đối tượng và trạng thái vẫn định nghĩa tại Domain/Rules và được UC áp dụng. Kiểm thử role được phép/bị cấm, role hiện tại và việc thay permission không vượt qua giới hạn role.
+
+Code/message được tổ chức theo module: Domain/Exceptions/DomainExceptionCode.cs và DomainExceptionMessage.cs; Application/Exceptions/BusinessExceptionMessage.cs; Application/Messages/ResponseMessage.cs cho thành công. Tất cả thông báo gửi người dùng dùng tiếng Việt, không hardcode tại nơi gọi. Message động dùng hàm/property dựa trên hằng số có tên; Domain không tham chiếu catalog Application. Giữ nguyên code công khai và response contract khi đổi nội dung message.
 
 Mỗi module sở hữu phần dữ liệu của mình và độc quyền ghi. Có thể chung database vật lý nhưng tách mapping/migration và boundary truy cập; không sửa trực tiếp bảng của module khác. Giao tiếp đồng bộ qua facade/contract khi cần kết quả ngay; sự kiện khi muốn phản ứng sau thay đổi và chấp nhận mô hình nhất quán phù hợp.
 
@@ -122,7 +132,7 @@ MediatR Send/Publish trong cùng tiến trình không tự tạo ranh giới mod
 
 ## 7. Tiêu chí hoàn tất
 
-Quyền gọi API được kiểm tra tại endpoint bằng Authorize/policy/permission; quy tắc actor được tạo/quản lý tài nguyên nào phải được use case bảo vệ qua Application/Rules hoặc Domain. Handler không truy vấn lại cùng API permission. Handler map Entity trực tiếp thành UCOutput, Controller bọc output với kiểu cụ thể; không thêm View/Response DTO lặp lại. Không tự thêm session, blacklist, refresh token, queue hoặc outbox ngoài phạm vi nghiệp vụ đã chốt.
+Quyền gọi API được kiểm tra tại endpoint bằng Authorize/policy/permission; quy tắc actor được tạo/quản lý tài nguyên nào phải được định nghĩa tại Domain/Rules và được use case áp dụng. Handler không truy vấn lại cùng API permission. Handler map Entity trực tiếp thành UCOutput, Controller bọc output với kiểu cụ thể; không thêm View/Response DTO lặp lại. Không tự thêm session, blacklist, refresh token, queue hoặc outbox ngoài phạm vi nghiệp vụ đã chốt.
 
 - Một project cho mỗi module, CA phân lớp nội bộ; không phát sinh project theo layer.
 - Một host/process/deployment; không tự chuyển sang microservice.

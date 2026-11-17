@@ -1,3 +1,4 @@
+using AuthModule.Application.Messages;
 using CommonModule.Presentation.Extensions;
 using AuthModule.Application.UseCases.Register;
 using AuthModule.Application.UseCases.Login;
@@ -41,7 +42,7 @@ public sealed class AuthController : ControllerBase
     public async Task<IActionResult> Login(LoginRequestDto request, CancellationToken ct)
     {
         Login_UCOutput result = await _sender.Send(new Login_UCInput(request.Email, request.Password), ct);
-        ApiSuccessResponse<Login_UCOutput> response = new ApiSuccessResponse<Login_UCOutput>(result, "Signed in successfully.");
+        ApiSuccessResponse<Login_UCOutput> response = new ApiSuccessResponse<Login_UCOutput>(result, ResponseMessage.SuccessLogin);
         return Ok(response);
     }
 

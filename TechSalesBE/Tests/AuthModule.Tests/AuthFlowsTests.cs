@@ -111,7 +111,7 @@ public sealed class AuthFlowsTests
     {
         await using var app = await AuthTestApp.CreateAsync();
         var response = await ExpectAsync(await app.Client.PostAsJsonAsync("/api/auth/forgot-password", new { email = "absent@example.com" }), HttpStatusCode.OK);
-        Assert.Contains("If the account exists", response.GetProperty("message").GetString());
+        Assert.Contains("Nếu tài khoản tồn tại", response.GetProperty("message").GetString());
         Assert.Empty(app.Mail.Reset);
     }
     [Fact]

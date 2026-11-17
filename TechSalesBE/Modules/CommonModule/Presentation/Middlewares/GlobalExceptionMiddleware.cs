@@ -1,3 +1,4 @@
+using CommonModule.Application.Exceptions;
 using CommonModule.BusinessExceptions;
 using CommonModule.Domain.Exceptions;
 using CommonModule.Presentation.ApiResponseModels;
@@ -36,9 +37,9 @@ public sealed class GlobalExceptionMiddleware : IMiddleware
             }
 
             var statusCode = StatusCodes.Status500InternalServerError;
-            var response = new ApiErrorResponse("An unexpected error occurred. Please try again.")
+            var response = new ApiErrorResponse(BusinessExceptionMessage.UnexpectedError)
             {
-                Code = "INTERNAL_SERVER_ERROR"
+                Code = BusinessExceptionCode.INTERNAL_SERVER_ERROR
             };
 
             if (exception is BusinessException businessException)

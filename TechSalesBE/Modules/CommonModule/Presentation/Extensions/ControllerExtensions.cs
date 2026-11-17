@@ -1,3 +1,4 @@
+using CommonModule.Application.Exceptions;
 using System.Security.Claims;
 using CommonModule.BusinessExceptions;
 using Microsoft.AspNetCore.Mvc;
@@ -14,7 +15,7 @@ public static class ControllerExtensions
 
         if (!isValidId)
         {
-            throw new BusinessException(BusinessExceptionCode.UNAUTHORIZED, "Invalid identity.");
+            throw new BusinessException(BusinessExceptionCode.UNAUTHORIZED, BusinessExceptionMessage.IdentityInvalid);
         }
 
         return actorId;

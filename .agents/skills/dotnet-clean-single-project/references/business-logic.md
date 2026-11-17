@@ -6,27 +6,32 @@ Mỗi quy tắc nghiệp vụ có một nơi định nghĩa chính thức. Các 
 
 | Loại logic | Nơi sở hữu |
 |---|---|
-| Invariant của entity/value object | Domain entity/value object |
+| Invariant của entity/value object | Domain/Rules; entity/value object gọi để bảo vệ trạng thái |
 | Điều kiện thuần cần dùng ở nhiều nơi | Domain/Rules, nếu là quy tắc miền |
-| Quy tắc phối hợp nhiều đối tượng miền | Domain policy/service khi cần |
-| Điều phối, đọc dữ liệu, quyền tài nguyên, transaction | XXX_UCHandler |
-| Điều kiện input chỉ thuộc một UC | XXX_UCInput_Validator tại Application |
+| Quy tắc phối hợp nhiều đối tượng miền, chính sách riêng UC | Domain/Rules |
+| Điều phối, đọc dữ liệu, transaction | XXX_UCHandler |
+| Quy tắc sở hữu/quản lý tài nguyên | Domain/Rules; handler cung cấp actor và dữ liệu |
+| Binding/định dạng input, gọi predicate nghiệp vụ | XXX_UCInput_Validator tại Application; predicate nghiệp vụ thuộc Domain/Rules |
 | JSON, binding, định dạng transport | Presentation |
 | I/O, constraint lưu trữ, concurrency implementation | Infrastructure |
 
 Một handler chịu trách nhiệm một UC nhưng không sở hữu mọi thuật toán của UC. Handler lấy dữ liệu qua port, gọi hành vi Domain, ghi kết quả và điều phối side effect. Không đưa truy vấn database hay phụ thuộc framework vào Domain để làm nó tự điều phối toàn bộ luồng.
 
-## 2. Quy tắc dùng chung giữa Domain và validator
+## 2. Rule con, rule tổ hợp và nơi sử dụng
 
-Phân loại trước khi tập trung giá trị: giới hạn nghiệp vụ thuộc Domain/Constants; rate limit, SMTP, JWT, timeout hoặc kích thước request là cấu hình/kỹ thuật, đặt tại options hoặc constants của Infrastructure/Presentation phù hợp. Bind options qua IConfiguration trong registration và validate lúc khởi động khi tính năng cần cấu hình đó; không đưa chúng vào Domain chỉ vì có giá trị số. Chính sách điều phối riêng của UC thuộc Application/Rules; Domain không tham chiếu Application.
+Một rule có thể tổ hợp nhiều rule con bằng lời gọi method, toán tử logic hoặc rẽ nhánh. Không bắt buộc một rule tương ứng một class/interface riêng. Rule không sở hữu message và không bắt buộc có ErrorCode, ErrorMessage, IsSatisfied hoặc EnsureSatisfied. Có thể chọn predicate trả bool, kết quả có cấu trúc, đối tượng được chọn hoặc guard ném exception theo nhu cầu hiện có. Không tự áp đặt một hình thức duy nhất hoặc thêm hệ thống Result/rule engine.
+
+Kiểm tra kết quả của rule ở entity/handler/validator không phải lặp nghiệp vụ; viết lại biểu thức điều kiện mà rule đã sở hữu mới là lặp nghiệp vụ. Nếu rule trả kết quả thất bại, nơi gọi phải xử lý trước khi thay đổi trạng thái.
+
+Mọi điều kiện và quyết định nghiệp vụ được định nghĩa tại Domain/Rules, kể cả chính sách chỉ dùng cho một UC. Entity giữ state và gọi rule; handler cung cấp dữ liệu và điều phối, không tự viết lại điều kiện. Rule không gọi repository, framework hoặc I/O. Domain không tham chiếu Application; constant mà rule cần phải thuộc Domain/Constants. Giới hạn kỹ thuật, rate limit, SMTP, JWT, timeout và kích thước request thuộc options/constants Infrastructure/Presentation; không đưa vào Domain chỉ vì có giá trị số.
 
 Các con số giới hạn nghiệp vụ phải được định nghĩa một lần bằng hằng số có tên rõ nghĩa tại `Domain/Constants` của feature/module sở hữu, không hardcode lặp trong entity, rule, validator, handler, service hoặc thông báo. Các nơi kiểm tra cùng quy tắc dùng chung predicate tại Domain/Rules và các hằng số này. Nếu thay đổi giới hạn tác động schema, cập nhật mapping và tạo migration mới; không sửa migration/snapshot lịch sử. Không đưa quy tắc đặc thù của mọi module vào Common.
 
-Khi cùng một invariant cần được kiểm tra ở Domain và UCInput_Validator, tách predicate thành rule thuần dùng chung. Code phải tham chiếu DomainExceptionCode, không hardcode lại giá trị; message có thể hardcode hoặc đặt cùng rule khi hữu ích; không bắt buộc catalog hay resolver. Không tạo interface hoặc hệ thống rule tổng quát khi một static class đã đủ.
+Khi cùng một invariant cần được kiểm tra ở Domain và UCInput_Validator, dùng lại predicate/rule tổ hợp. Rule không khai báo message, kể cả alias hoặc property chỉ chuyển tiếp message. Nơi báo lỗi tham chiếu DomainExceptionCode và catalog message theo layer sở hữu. Guard hiện có có thể tham chiếu catalog Domain khi ném lỗi, nhưng không biến message/exception thành yêu cầu bắt buộc của mọi rule. Mọi nội dung người dùng đọc bằng tiếng Việt. Không tạo interface/resolver tổng quát khi static class đủ dùng.
 
 ```text
 Domain/
-  Rules/PositiveValueRule.cs
+  Rules/ValueRules.cs
   Entities/...
 Application/
   UseCases/<Feature>/<XXX>/
@@ -36,31 +41,41 @@ Application/
     XXX_UCInput_Validator.cs
 ```
 
-Ví dụ chỉ dùng khi yêu cầu thực tế quy định giá trị phải dương, không mặc định mọi giá trị số đều phải dương:
+Ví dụ rule tổ hợp kiểm tra khoảng giá trị, chỉ dùng khi nghiệp vụ thực tế có yêu cầu này:
 
 ```csharp
-// Domain/Rules/PositiveValueRule.cs
-public static class PositiveValueRule
+// Domain/Rules/ValueRules.cs
+public static class ValueRules
 {
-    public const string ErrorCode = DomainExceptionCode.VALUE_MUST_BE_POSITIVE;
-    public const string ErrorMessage = "Giá trị phải lớn hơn 0.";
-
-    public static bool IsSatisfied(int value)
+    public static bool IsAtLeast(int value, int minimum)
     {
-        return value > 0;
+        return value >= minimum;
+    }
+
+    public static bool IsAtMost(int value, int maximum)
+    {
+        return value <= maximum;
+    }
+
+    public static bool IsWithinRange(int value, int minimum, int maximum)
+    {
+        bool meetsMinimum = IsAtLeast(value, minimum);
+        bool meetsMaximum = IsAtMost(value, maximum);
+        return meetsMinimum && meetsMaximum;
     }
 }
 ```
 
-Entity/value object gọi rule ở mọi điểm tạo hoặc thay đổi liên quan, và chặn đường ghi trực tiếp có thể bỏ qua invariant:
+Rule trên không chứa code, message hoặc exception. Các giới hạn được truyền vào; nếu là giới hạn nghiệp vụ cố định thì đặt tại Domain/Constants. Entity/value object gọi rule trước khi thay đổi trạng thái. Ví dụ nơi gọi chọn báo lỗi bằng exception:
 
 ```csharp
 // Trong entity/value object; DomainException thuộc Domain.
 public void ChangeValue(int value)
 {
-    if (!PositiveValueRule.IsSatisfied(value))
+    bool isValid = ValueRules.IsWithinRange(value, ValueLimits.Minimum, ValueLimits.Maximum);
+    if (!isValid)
     {
-        throw new DomainException(PositiveValueRule.ErrorCode, PositiveValueRule.ErrorMessage);
+        throw new DomainException(DomainExceptionCode.VALUE_OUT_OF_RANGE, DomainExceptionMessage.ValueOutOfRange);
     }
 
     Value = value;
@@ -75,17 +90,18 @@ public sealed class XXX_UCInput_Validator
 {
     public XXX_UCInput_Validator()
     {
-        RuleFor(x => x.Value)
-            .Must(PositiveValueRule.IsSatisfied)
-            .WithErrorCode(PositiveValueRule.ErrorCode)
-            .WithMessage(PositiveValueRule.ErrorMessage);
+        RuleFor(input => input.Value)
+            .Must(value => ValueRules.IsWithinRange(value, ValueLimits.Minimum, ValueLimits.Maximum))
+            .WithMessage(BusinessExceptionMessage.ValueOutOfRange);
     }
 }
 ```
 
-Các đoạn trên minh họa cấu trúc, giả định input/entity có Value phù hợp và DomainException nhận code/message theo mục 4. ErrorCode trên rule là alias tham chiếu DomainExceptionCode, không phải nơi định nghĩa lại giá trị code. Validator phải chạy qua MediatR validation behavior.
+Các đoạn trên minh họa cách tái sử dụng một rule tổ hợp, giả định ValueLimits và catalog có các thành viên phù hợp. Cách báo lỗi do ngữ cảnh chọn, không phải cấu trúc bắt buộc của rule. Validator chạy qua MediatR validation behavior. Không đổi các rule hiện có sang guard hoặc thêm message chỉ để giống ví dụ.
 
 Rule thuần không phụ thuộc FluentValidation, MediatR, HTTP, database hoặc SDK; không I/O hay side effect. Chỉ Application validator biết FluentValidation. Domain vẫn bảo vệ invariant khi được gọi từ job hoặc luồng khác; handler không cần kiểm tra lại lần thứ ba cùng điều kiện thuần.
+
+Nếu chính sách hiện có phối hợp thay đổi nhiều entity, mô tả rõ tác dụng của method; không coi đó là predicate chỉ kiểm tra. Lựa chọn giữa rule nhỏ, rule tổ hợp và chính sách phối hợp tùy nhu cầu thực tế.
 
 ## 3. Quy tắc phức tạp và phụ thuộc trạng thái
 
@@ -98,20 +114,20 @@ Quyền truy cập endpoint thuộc Presentation; quyền trên tài nguyên và
 ## 4. Mã lỗi và ánh xạ HTTP
 
 
-Domain ném DomainException khi vi phạm invariant/quy tắc miền, không quyết định HTTP status. Cho phép message hardcode; code tập trung tại DomainExceptionCode, không bắt buộc catalog, resolver, parameters hoặc exception con.
+Nếu chọn exception để báo lỗi Domain, dùng DomainException; rule không bắt buộc ném lỗi hoặc mang message. Domain không quyết định HTTP status. Code tập trung tại DomainExceptionCode, message tiếng Việt tập trung tại DomainExceptionMessage, cùng thư mục Domain/Exceptions. BusinessExceptionMessage thuộc Application/Exceptions. Không thêm resolver, parameters hoặc exception con để phân loại.
 
 ### Quy ước DomainException
 
 Dùng một DomainException chung, chỉ mang string Code và Message, không chứa danh mục code của mọi module. Trong một project đặt tại Domain/Exceptions; codebase nhiều module có thể chia sẻ type tại phần Domain của Common. Static class DomainExceptionCode nằm ngoài exception, trong feature/module sở hữu quy tắc. Common không tham chiếu ngược module. Không dùng enum, nested Codes hoặc registry toàn cục để kiểm tra code. Khi đổi contract phải rà constructor, consumer và serializer.
 
-Khi thao tác Domain vi phạm invariant hoặc quy tắc miền, phải ném DomainException. Không trả false/null hoặc Result thất bại thay cho báo lỗi ở các hành vi cần bảo vệ invariant. Predicate như IsSatisfied vẫn trả bool; entity/domain behavior gọi predicate và ném lỗi khi thực hiện thao tác không hợp lệ. Lỗi lập trình/hạ tầng không tự động là DomainException.
+Rule có thể trả bool, null có ý nghĩa, kết quả có cấu trúc hoặc dùng guard theo ngữ cảnh. Không bắt buộc rule tự ném exception. Bên gọi xử lý kết quả để chặn thao tác không hợp lệ; nếu chọn cơ chế exception cho lỗi Domain thì dùng DomainException. Lỗi lập trình/hạ tầng không tự động là DomainException. Không để hợp đồng trả kết quả thất bại khiến trạng thái sai được ghi hoặc bị hiểu nhầm là thành công.
 
 Ví dụ constant ngoài exception, tại Domain của feature/module:
 
 ```csharp
 public static class DomainExceptionCode
 {
-    public const string VALUE_MUST_BE_POSITIVE = "FEATURE.VALUE_MUST_BE_POSITIVE";
+    public const string VALUE_OUT_OF_RANGE = "FEATURE.VALUE_OUT_OF_RANGE";
 }
 ```
 
@@ -145,9 +161,10 @@ Ví dụ entity:
 ```csharp
 public void ChangeValue(int value)
 {
-    if (!PositiveValueRule.IsSatisfied(value))
+    bool isValid = ValueRules.IsWithinRange(value, ValueLimits.Minimum, ValueLimits.Maximum);
+    if (!isValid)
     {
-        throw new DomainException(DomainExceptionCode.VALUE_MUST_BE_POSITIVE, "Giá trị phải lớn hơn 0.");
+        throw new DomainException(DomainExceptionCode.VALUE_OUT_OF_RANGE, DomainExceptionMessage.ValueOutOfRange);
     }
 
     Value = value;
@@ -160,7 +177,7 @@ Middleware Presentation bắt DomainException trước nhánh lỗi bất ngờ 
 
 DomainException.Message là thông báo chủ đích an toàn cho client và có thể được trả theo response contract hiện hành. Không đưa dữ liệu nhạy cảm, nội dung exception kỹ thuật hoặc stack trace vào message. Lỗi ngoài dự kiến trả 500 với thông báo chung, log nội bộ. Validator vẫn trả 400 qua pipeline; Domain vẫn bảo vệ invariant ở các đường gọi khác.
 
-Kiểm tra: thao tác hợp lệ cập nhật đúng; invariant sai ném DomainException và không làm đối tượng rơi vào trạng thái sai; handler không nuốt lỗi; middleware trả status/message an toàn. Test gọi handler trực tiếp không chứng minh validation pipeline đã chạy.
+Kiểm tra: thao tác hợp lệ cập nhật đúng; rule con và rule tổ hợp xử lý đúng giá trị biên; kết quả thất bại được bên gọi xử lý và không làm đối tượng rơi vào trạng thái sai; lỗi phản hồi đúng hợp đồng đã chọn. Test gọi handler trực tiếp không chứng minh validation pipeline đã chạy.
 
 Presentation ánh xạ lỗi đã biết theo ý nghĩa. Quy ước mặc định nếu ứng dụng chưa có contract khác:
 

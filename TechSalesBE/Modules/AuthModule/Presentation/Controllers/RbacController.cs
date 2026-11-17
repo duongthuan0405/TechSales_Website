@@ -1,3 +1,4 @@
+using AuthModule.Application.Messages;
 using CommonModule.Presentation.ApiResponseModels;
 using CommonModule.Presentation.Extensions;
 using AuthModule.Application.Constants;
@@ -6,7 +7,6 @@ using AuthModule.Application.UseCases.GetPermissions;
 using AuthModule.Application.UseCases.UpdateRolePermissions;
 using AuthModule.Application.UseCases.AssignUserRoles;
 using AuthModule.Presentation.DTOs;
-using CommonModule.CustomAttributes;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,7 +14,6 @@ using Microsoft.AspNetCore.Mvc;
 namespace AuthModule.Presentation.Controllers;
 [ApiController]
 [Authorize(Roles = UserRoleName.TECHNICAL_ADMIN)]
-[HasPermission(AuthPermission.RBAC_MANAGE)]
 [Route("api/admin/rbac")]
 public sealed class RbacController : ControllerBase
 {
@@ -29,7 +28,7 @@ public sealed class RbacController : ControllerBase
     public async Task<IActionResult> GetRoles(CancellationToken ct)
     {
         GetRoles_UCOutput result = await _sender.Send(new GetRoles_UCInput(this.GetActorId()), ct);
-        ApiSuccessResponse<List<GetRoles_UCOutput.RoleItem>> response = new ApiSuccessResponse<List<GetRoles_UCOutput.RoleItem>>(result.Roles, "Roles retrieved successfully.");
+        ApiSuccessResponse<List<GetRoles_UCOutput.RoleItem>> response = new ApiSuccessResponse<List<GetRoles_UCOutput.RoleItem>>(result.Roles, ResponseMessage.SuccessRoles);
         return Ok(response);
     }
 
@@ -37,7 +36,7 @@ public sealed class RbacController : ControllerBase
     public async Task<IActionResult> GetPermissions(CancellationToken ct)
     {
         GetPermissions_UCOutput result = await _sender.Send(new GetPermissions_UCInput(this.GetActorId()), ct);
-        ApiSuccessResponse<List<GetPermissions_UCOutput.PermissionItem>> response = new ApiSuccessResponse<List<GetPermissions_UCOutput.PermissionItem>>(result.Permissions, "Permissions retrieved successfully.");
+        ApiSuccessResponse<List<GetPermissions_UCOutput.PermissionItem>> response = new ApiSuccessResponse<List<GetPermissions_UCOutput.PermissionItem>>(result.Permissions, ResponseMessage.SuccessPermissions);
         return Ok(response);
     }
 

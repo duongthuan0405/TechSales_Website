@@ -1,3 +1,4 @@
+using AuthModule.Domain.Exceptions;
 using AuthModule.Domain.Constants;
 using System.Net.Mail;
 using System.Text;
@@ -5,8 +6,8 @@ using System.Text.RegularExpressions;
 namespace AuthModule.Domain.Rules;
 internal static class AuthRules
 {
-    public static string PasswordRequirementMessage => $"Password must have at least {AuthLimits.PasswordMinLength} characters and at most {AuthLimits.PasswordMaxUtf8Bytes} UTF-8 bytes.";
-    public static string PhoneRequirementMessage => $"Phone must have {AuthLimits.PhoneMinDigits} to {AuthLimits.PhoneMaxDigits} digits.";
+    public static string PasswordRequirementMessage => DomainExceptionMessage.PasswordRequirement;
+    public static string PhoneRequirementMessage => DomainExceptionMessage.PhoneRequirement;
     public static string OtpPattern => $@"^[0-9]{{{AuthLimits.OtpLength}}}$";
     public static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
     public static bool ValidEmail(string? email) => !string.IsNullOrWhiteSpace(email)
