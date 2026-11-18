@@ -14,7 +14,6 @@
     <Folder Include="Contracts\" />
     <Folder Include="Domain\Entities\" />
     <Folder Include="Domain\Enums\" />
-    <Folder Include="Domain\Rules\" />
     <Folder Include="Domain\Exceptions\" />
     <Folder Include="Application\Ports\" />
     <Folder Include="Application\Repositories\" />
