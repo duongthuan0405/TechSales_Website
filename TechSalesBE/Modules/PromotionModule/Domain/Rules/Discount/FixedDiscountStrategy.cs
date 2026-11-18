@@ -23,9 +23,9 @@ namespace PromotionModule.Domain.Rules.Discount
             float newOrderAmount = totalOrderAmount - voucherValue;
             if(newOrderAmount < 0)
             {
-                return Task.FromResult((float)newOrderAmount);
+                return Task.FromResult(0f);
             }
-            return Task.FromResult(totalOrderAmount);
+            return Task.FromResult(newOrderAmount);
         }
     }
 }
