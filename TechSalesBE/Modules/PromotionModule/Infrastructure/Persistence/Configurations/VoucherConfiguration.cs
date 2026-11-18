@@ -1,3 +1,4 @@
+using PromotionModule.Domain.Constants;
 using PromotionModule.Domain.Enums;
 using PromotionModule.Infrastructure.Persistence.Models;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +13,7 @@ internal sealed class VoucherConfiguration : IEntityTypeConfiguration<VoucherDbM
         builder.ToTable("Voucher");
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id).HasColumnName("Id").HasColumnType("uuid").IsRequired();
-        builder.Property(e => e.Code).HasColumnName("Code").HasColumnType("character varying(50)").HasMaxLength(50).IsRequired();
+        builder.Property(e => e.Code).HasColumnName("Code").HasColumnType($"character varying({PromotionLimits.VoucherCodeMaxLength})").HasMaxLength(PromotionLimits.VoucherCodeMaxLength).IsRequired();
         builder.HasIndex(e => e.Code).IsUnique();
         builder.Property(e => e.Type).HasColumnName("Type").HasColumnType("character varying(50)").HasConversion<string>().HasMaxLength(50).IsRequired();
         builder.Property(e => e.Value).HasColumnName("Value").HasColumnType("bigint").IsRequired(false);
