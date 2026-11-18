@@ -2,9 +2,9 @@ using FluentValidation;
 
 namespace PromotionModule.Application.UseCases.GetVoucher;
 
-internal sealed class GetVoucher_UCInput_Validator : AbstractValidator<GetVoucher_UCInput>
+internal sealed class GetVoucherForCustomer_UCInput_Validator : AbstractValidator<GetVoucherForCustomer_UCInput>
 {
-    public GetVoucher_UCInput_Validator()
+    public GetVoucherForCustomer_UCInput_Validator()
     {
         RuleFor(input => input.Id).NotEmpty();
     }

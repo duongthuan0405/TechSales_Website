@@ -2,6 +2,7 @@ using CommonModule.Domain.Exceptions;
 using PromotionModule.Domain.Enums;
 using PromotionModule.Domain.Exceptions;
 using PromotionModule.Domain.Rules;
+using PromotionModule.Domain.Rules.Discount;
 
 namespace PromotionModule.Domain.Entities;
 
@@ -83,5 +84,12 @@ internal sealed class Voucher
     {
         IsActive = false;
         UpdatedAt = now;
+    }
+
+    public async Task<float> DiscountAsync(int totalOrderAmount)
+    {
+        OrderInfo order = new OrderInfo(totalOrderAmount);
+        VoucherInfo voucher = new VoucherInfo((float)(this.Value ?? 0), (float)(this.MinOrderAmount ?? 0));
+        return await DiscountStrategyResolver.Resolve(this.Type).CalculateAsync(order, voucher);
     }
 }

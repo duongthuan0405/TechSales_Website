@@ -38,12 +38,12 @@ public sealed class VoucherManagementController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    [ProducesResponseType(typeof(ApiSuccessResponse<GetVoucher_UCOutput>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiSuccessResponse<GetVoucherForCustomer_UCOutput>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetVoucher(Guid id, CancellationToken cancellationToken)
     {
-        GetVoucher_UCInput input = new GetVoucher_UCInput(id);
-        GetVoucher_UCOutput output = await _sender.Send(input, cancellationToken);
-        ApiSuccessResponse<GetVoucher_UCOutput> response = new ApiSuccessResponse<GetVoucher_UCOutput>(output, ResponseMessage.Retrieved);
+        GetVoucherForCustomer_UCInput input = new GetVoucherForCustomer_UCInput(id);
+        GetVoucherForCustomer_UCOutput output = await _sender.Send(input, cancellationToken);
+        ApiSuccessResponse<GetVoucherForCustomer_UCOutput> response = new ApiSuccessResponse<GetVoucherForCustomer_UCOutput>(output, ResponseMessage.Retrieved);
         return Ok(response);
     }
 

@@ -100,4 +100,21 @@ internal sealed class VoucherRepository : IVoucherRepository
         return new Voucher(row.Id, row.Code, row.Type, row.Value, row.MaxUsage, row.UsedCount ?? 0,
             row.MinOrderAmount, row.StartDate, row.EndDate, row.IsActive, row.CreatedAt, row.UpdatedAt);
     }
+
+    public async Task<(List<Voucher> Items, int TotalCount)> GetPageWithCanBeUsedAsync(int pageNumber, int pageSize, CancellationToken cancellationToken)
+    {
+
+        IQueryable<VoucherDbModel> query = _db.Vouchers.AsNoTracking().Where(v => v.IsActive && v.EndDate > DateTimeOffset.UtcNow).OrderByDescending(item => item.CreatedAt)
+            .ThenBy(item => item.Id).Skip((pageNumber - 1) * pageSize).Take(pageSize);
+        
+        List<VoucherDbModel> rows =  await query.ToListAsync(cancellationToken);
+        int count = await query.CountAsync();
+        List<Voucher> items = new List<Voucher>();
+        foreach (VoucherDbModel row in rows)
+        {
+            items.Add(Map(row));
+        }
+
+        return (items, count);
+    }
 }
