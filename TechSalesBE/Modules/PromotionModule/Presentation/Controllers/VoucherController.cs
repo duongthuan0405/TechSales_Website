@@ -17,6 +17,7 @@ namespace PromotionModule.Presentation.Controllers;
 
 [ApiController]
 [Route("api/vouchers")]
+[AllowAnonymous]
 public sealed class VoucherController : ControllerBase
 {
     private readonly ISender _sender;

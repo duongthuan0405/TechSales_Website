@@ -1,14 +1,16 @@
+using AuthModule.Application.Constants;
 using AuthModule.Application.Messages;
+using AuthModule.Application.UseCases.AssignUserRoles;
+using AuthModule.Application.UseCases.GetPermissions;
+using AuthModule.Application.UseCases.GetRoles;
+using AuthModule.Application.UseCases.UnlockUser;
+using AuthModule.Application.UseCases.UpdateRolePermissions;
+using AuthModule.Presentation.DTOs;
 using CommonModule.Presentation.ApiResponseModels;
 using CommonModule.Presentation.Extensions;
-using AuthModule.Application.Constants;
-using AuthModule.Application.UseCases.GetRoles;
-using AuthModule.Application.UseCases.GetPermissions;
-using AuthModule.Application.UseCases.UpdateRolePermissions;
-using AuthModule.Application.UseCases.AssignUserRoles;
-using AuthModule.Presentation.DTOs;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AuthModule.Presentation.Controllers;
@@ -25,6 +27,7 @@ public sealed class RbacController : ControllerBase
     }
 
     [HttpGet("roles")]
+    [ProducesResponseType(typeof(ApiSuccessResponse<List<GetRoles_UCOutput.RoleItem>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetRoles(CancellationToken ct)
     {
         GetRoles_UCOutput result = await _sender.Send(new GetRoles_UCInput(this.GetActorId()), ct);
@@ -33,6 +36,7 @@ public sealed class RbacController : ControllerBase
     }
 
     [HttpGet("permissions")]
+    [ProducesResponseType(typeof(ApiSuccessResponse<List<GetPermissions_UCOutput.PermissionItem>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetPermissions(CancellationToken ct)
     {
         GetPermissions_UCOutput result = await _sender.Send(new GetPermissions_UCInput(this.GetActorId()), ct);
@@ -41,6 +45,7 @@ public sealed class RbacController : ControllerBase
     }
 
     [HttpPut("roles/{id:guid}/permissions")]
+    [ProducesResponseType(typeof(ApiSuccessResponse<UpdateRolePermissions_UCOutput>), StatusCodes.Status200OK)]
     public async Task<IActionResult> UpdateRolePermissions(Guid id, UpdatePermissionsRequestDto request, CancellationToken ct)
     {
         UpdateRolePermissions_UCOutput result = await _sender.Send(new UpdateRolePermissions_UCInput(this.GetActorId(), id, request.PermissionIds), ct);
@@ -49,6 +54,7 @@ public sealed class RbacController : ControllerBase
     }
 
     [HttpPut("users/{userId:guid}/roles")]
+    [ProducesResponseType(typeof(ApiSuccessResponse<UnlockUser_UCOutput>), StatusCodes.Status200OK)]
     public async Task<IActionResult> AssignUserRoles(Guid userId, AssignRolesRequestDto request, CancellationToken ct)
     {
         AssignUserRoles_UCOutput result = await _sender.Send(new AssignUserRoles_UCInput(this.GetActorId(), userId, request.RoleIds), ct);

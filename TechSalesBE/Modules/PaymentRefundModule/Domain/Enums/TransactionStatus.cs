@@ -1,6 +1,6 @@
 namespace PaymentRefundModule.Domain.Enums;
 
-internal enum TransactionStatus
+public enum TransactionStatus
 {
     PENDING,
     SUCCESS,

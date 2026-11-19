@@ -1,6 +1,6 @@
 namespace PaymentRefundModule.Domain.Enums;
 
-internal enum PaymentType
+public enum PaymentType
 {
     ORDER,
     REPAIR

@@ -1,0 +1,106 @@
+using PaymentRefundModule.Application.Repositories;
+using Microsoft.EntityFrameworkCore;
+using PaymentRefundModule.Domain.Enums;
+using PaymentRefundModule.Domain.Entities;
+using PaymentRefundModule.Infrastructure.Persistence;
+using PaymentRefundModule.Infrastructure.Persistence.Models;
+
+namespace PaymentRefundModule.Infrastructure.Repositories;
+
+internal sealed class PaymentRepository : IPaymentRepository
+{
+    private readonly PaymentRefundDbContext _db;
+
+    public PaymentRepository(PaymentRefundDbContext db)
+    {
+        _db = db;
+    }
+
+    public async Task<Payment?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        PaymentDbModel? row = await _db.Payments.AsNoTracking().SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
+        if (row == null)
+        {
+            return null;
+        }
+
+        return MapToEntity(row);
+    }
+
+    public async Task<List<Payment>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        List<PaymentDbModel> rows = await _db.Payments.AsNoTracking()
+            .OrderByDescending(item => item.CreatedAt).ThenBy(item => item.Id).ToListAsync(cancellationToken);
+        return rows.Select(MapToEntity).ToList();
+    }
+
+    public async Task<(List<Payment> Items, int TotalCount)> GetPageAsync(int pageNumber, int pageSize,
+        PaymentType? type, TransactionStatus? status, Guid? refId, CancellationToken cancellationToken = default)
+    {
+        IQueryable<PaymentDbModel> query = _db.Payments.AsNoTracking();
+        if (type.HasValue)
+        {
+            query = query.Where(item => item.Type == type.Value);
+        }
+        if (status.HasValue)
+        {
+            query = query.Where(item => item.Status == status.Value);
+        }
+        if (refId.HasValue)
+        {
+            query = query.Where(item => (item.Type == PaymentType.ORDER && item.OrderId == refId.Value)
+                || (item.Type == PaymentType.REPAIR && item.RepairRequestId == refId.Value));
+        }
+
+        int totalCount = await query.CountAsync(cancellationToken);
+        List<PaymentDbModel> rows = await query.OrderByDescending(item => item.CreatedAt).ThenBy(item => item.Id)
+            .Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
+        return (rows.Select(MapToEntity).ToList(), totalCount);
+    }
+
+    public async Task<List<Payment>> GetByRefIdAsync(Guid refId, PaymentType type, CancellationToken cancellationToken = default)
+    {
+        IQueryable<PaymentDbModel> query = _db.Payments.AsNoTracking().Where(item => item.Type == type);
+        if (type == PaymentType.ORDER)
+        {
+            query = query.Where(item => item.OrderId == refId);
+        }
+        else
+        {
+            query = query.Where(item => item.RepairRequestId == refId);
+        }
+
+        List<PaymentDbModel> rows = await query.OrderByDescending(item => item.CreatedAt)
+            .ThenBy(item => item.Id).ToListAsync(cancellationToken);
+        return rows.Select(MapToEntity).ToList();
+    }
+
+    private static Payment MapToEntity(PaymentDbModel row)
+    {
+        if (!row.Type.HasValue)
+        {
+            throw new InvalidOperationException("Payment.Type is missing in persistence data.");
+        }
+
+        return new Payment(row.Id, row.Type.Value, row.OrderId, row.RepairRequestId,
+            row.TransactionMethodId, row.Status, row.Amount, row.TransactionRef, row.FailureReason,
+            row.CompletedAt, row.CreatedAt, row.UpdatedAt);
+    }
+
+    public async Task AddAsync(Payment payment, CancellationToken cancellationToken = default)
+    {
+        PaymentDbModel row = new PaymentDbModel
+        {
+            Id = payment.Id,
+            Type = payment.Type,
+            OrderId = payment.OrderId,
+            RepairRequestId = payment.RepairRequestId,
+            TransactionMethodId = payment.TransactionMethodId,
+            Status = payment.Status,
+            Amount = payment.Amount,
+            CreatedAt = payment.CreatedAt,
+            UpdatedAt = payment.UpdatedAt
+        };
+        await _db.Payments.AddAsync(row, cancellationToken);
+    }
+}

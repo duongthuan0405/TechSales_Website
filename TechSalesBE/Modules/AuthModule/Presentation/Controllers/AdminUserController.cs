@@ -13,6 +13,7 @@ using CommonModule.Presentation.ApiResponseModels;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 
 namespace AuthModule.Presentation.Controllers;
 [ApiController]
@@ -29,6 +30,7 @@ public sealed class AdminUserController : ControllerBase
 
     [HttpGet("customers")]
     [Authorize(Roles = RoleAccess.CustomerManagement)]
+    [ProducesResponseType(typeof(ApiSuccessResponse<GetCustomers_UCOutput>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetCustomers([FromQuery] int pageNumber = AuthLimits.DefaultPageNumber, [FromQuery] int pageSize = AuthLimits.DefaultPageSize, CancellationToken ct = default)
     {
         GetCustomers_UCOutput result = await _sender.Send(new GetCustomers_UCInput(this.GetActorId(), pageNumber, pageSize), ct);
@@ -38,6 +40,7 @@ public sealed class AdminUserController : ControllerBase
 
     [HttpGet("staff")]
     [Authorize(Roles = RoleAccess.Administrators)]
+    [ProducesResponseType(typeof(ApiSuccessResponse<GetStaff_UCOutput>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetStaff([FromQuery] int pageNumber = AuthLimits.DefaultPageNumber, [FromQuery] int pageSize = AuthLimits.DefaultPageSize, CancellationToken ct = default)
     {
         GetStaff_UCOutput result = await _sender.Send(new GetStaff_UCInput(this.GetActorId(), pageNumber, pageSize), ct);
@@ -47,6 +50,7 @@ public sealed class AdminUserController : ControllerBase
 
     [HttpPost]
     [Authorize(Roles = RoleAccess.Administrators)]
+    [ProducesResponseType(typeof(ApiSuccessResponse<CreateUser_UCOutput>), StatusCodes.Status201Created)]
     public async Task<IActionResult> Create(CreateUserRequestDto request, CancellationToken ct)
     {
 
@@ -57,6 +61,7 @@ public sealed class AdminUserController : ControllerBase
 
     [HttpPut("{id:guid}")]
     [Authorize(Roles = RoleAccess.Administrators)]
+    [ProducesResponseType(typeof(ApiSuccessResponse<UpdateUser_UCOutput>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Update(Guid id, UpdateUserRequestDto request, CancellationToken ct)
     {
 
@@ -67,6 +72,7 @@ public sealed class AdminUserController : ControllerBase
 
     [HttpPost("{id:guid}/lock")]
     [Authorize(Roles = RoleAccess.CustomerManagement)]
+    [ProducesResponseType(typeof(ApiSuccessResponse<LockUser_UCOutput>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Lock(Guid id, LockUserRequestDto request, CancellationToken ct)
     {
 
@@ -77,6 +83,7 @@ public sealed class AdminUserController : ControllerBase
 
     [HttpPost("{id:guid}/unlock")]
     [Authorize(Roles = RoleAccess.CustomerManagement)]
+    [ProducesResponseType(typeof(ApiSuccessResponse<UnlockUser_UCOutput>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Unlock(Guid id, CancellationToken ct)
     {
 
