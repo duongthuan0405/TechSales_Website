@@ -10,13 +10,34 @@ internal sealed class Payment
     public Guid? OrderId { get; }
     public Guid? RepairRequestId { get; }
     public Guid TransactionMethodId { get; }
-    public TransactionStatus Status { get; }
+    public TransactionStatus Status { get; private set; }
     public long Amount { get; }
     public string? TransactionRef { get; }
     public string? FailureReason { get; }
-    public DateTimeOffset? CompletedAt { get; }
+    public DateTimeOffset? CompletedAt { get; private set; }
     public DateTimeOffset CreatedAt { get; }
-    public DateTimeOffset UpdatedAt { get; }
+    public DateTimeOffset UpdatedAt { get; private set; }
+
+    public bool ConfirmCash(TransactionMethodType methodType)
+    {
+        PaymentRules.EnsureCashConfirmationAllowed(methodType, Status);
+        if (Status == TransactionStatus.SUCCESS)
+        {
+            return false;
+        }
+
+        Status = TransactionStatus.SUCCESS;
+        CompletedAt = DateTimeOffset.UtcNow;
+        UpdatedAt = CompletedAt.Value;
+        return true;
+    }
+
+    public void CancelForReplacement(TransactionMethodType methodType)
+    {
+        PaymentRules.EnsureReplacementAllowed(Status, methodType);
+        Status = TransactionStatus.CANCELLED;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
 
     internal Payment(Guid id, PaymentType type, Guid? orderId, Guid? repairRequestId,
         Guid transactionMethodId, TransactionStatus status, long amount, string? transactionRef,

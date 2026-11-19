@@ -2,6 +2,11 @@ namespace PaymentRefundModule.Application.Exceptions;
 
 internal static class BusinessExceptionMessage
 {
+    public const string PaymentGatewayNotConfigured = "Cổng thanh toán chưa được tích hợp. Chưa thể tạo liên kết thanh toán.";
+    public const string PaymentAlreadyPaid = "Đối tượng này đã được thanh toán thành công.";
+    public const string PendingPaymentExists = "Đã có giao dịch đang chờ thanh toán. Vui lòng sử dụng hoặc thay thế giao dịch hiện tại.";
+    public const string OnlineReplacementUnavailable = "Chưa thể thay thế giao dịch ONLINE đang chờ vì phiên thanh toán tại cổng chưa được vô hiệu hóa.";
+    public const string MultiplePendingPayments = "Có nhiều giao dịch đang chờ cho cùng đối tượng. Vui lòng kiểm tra dữ liệu trước khi tiếp tục.";
     public const string PaymentStatusInvalid = "Trạng thái thanh toán không hợp lệ.";
     public static string PaymentPaginationInvalid => $"Số trang phải lớn hơn 0, kích thước trang từ 1 đến {Constants.PaginationLimits.MaximumPageSize} và vị trí trang không vượt giới hạn cho phép.";
     public const string PaymentNotFound = "Không tìm thấy giao dịch thanh toán.";

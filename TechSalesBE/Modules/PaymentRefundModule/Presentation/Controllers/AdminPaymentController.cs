@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using PaymentRefundModule.Application.Constants;
 using PaymentRefundModule.Application.UseCases.GetPaymentsForStaff;
+using PaymentRefundModule.Application.UseCases.ConfirmCashPayment;
 using PaymentRefundModule.Domain.Enums;
 using PaymentRefundModule.Presentation.Authorization;
 
@@ -20,6 +21,14 @@ public sealed class AdminPaymentController : ControllerBase
     public AdminPaymentController(ISender sender)
     {
         _sender = sender;
+    }
+
+    [HttpPost("{id:guid}/confirm-cash")]
+    [ProducesResponseType(typeof(ApiSuccessResponse<ConfirmCashPayment_UCOutput>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ConfirmCashPayment(Guid id, CancellationToken cancellationToken)
+    {
+        ConfirmCashPayment_UCOutput output = await _sender.Send(new ConfirmCashPayment_UCInput(id), cancellationToken);
+        return Ok(new ApiSuccessResponse<ConfirmCashPayment_UCOutput>(output));
     }
 
     [HttpGet]

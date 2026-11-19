@@ -1,0 +1,8 @@
+namespace PaymentRefundModule.Domain.Exceptions;
+
+internal static class DomainExceptionMessage
+{
+    public const string OnlineMethodRequired = "Thao tác này chỉ áp dụng cho giao dịch dùng phương thức ONLINE.";
+    public const string CashMethodRequired = "Thao tác này chỉ áp dụng cho giao dịch dùng phương thức CASH.";
+    public const string PaymentNotPending = "Thao tác này yêu cầu giao dịch đang ở trạng thái chờ thanh toán.";
+}

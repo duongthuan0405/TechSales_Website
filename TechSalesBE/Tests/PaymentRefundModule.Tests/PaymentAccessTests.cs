@@ -131,6 +131,7 @@ public sealed class PaymentAccessTests
         Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/payments/{Repository.Payment.Id}?canViewAll=true")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/payments/by-ref/{Repository.Payment.OrderId}?type=ORDER&canViewAll=true")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/admin/payments")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsync($"/api/admin/payments/{Repository.Payment.Id}/confirm-cash", null)).StatusCode);
         string list = await client.GetStringAsync("/api/payments");
         Assert.DoesNotContain(Repository.Payment.Id.ToString(), list);
     }
@@ -151,6 +152,7 @@ public sealed class PaymentAccessTests
         using TestServer server = CreateServer();
         using HttpClient client = server.CreateClient();
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/admin/payments")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsync($"/api/admin/payments/{Repository.Payment.Id}/confirm-cash", null)).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync($"/api/payments/{Repository.Payment.Id}")).StatusCode);
     }
 
@@ -237,7 +239,10 @@ public sealed class PaymentAccessTests
         {
             _items = items;
         }
+        public Task LockReferenceAsync(PaymentType type, Guid refId, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task AddAsync(Payment payment, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<Payment?> GetByIdForUpdateAsync(Guid id, CancellationToken cancellationToken = default) => GetByIdAsync(id, cancellationToken);
+        public Task UpdateAsync(Payment payment, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task<Payment?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult<Payment?>(id == Payment.Id ? Payment : null);
         public Task<List<Payment>> GetAllAsync(CancellationToken cancellationToken = default) => Task.FromResult(_items);
         public Task<List<Payment>> GetByRefIdAsync(Guid refId, PaymentType type, CancellationToken cancellationToken = default) => GetAllAsync(cancellationToken);

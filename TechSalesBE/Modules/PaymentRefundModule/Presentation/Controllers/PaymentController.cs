@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using PaymentRefundModule.Application.UseCases.CreatePayment;
+using PaymentRefundModule.Application.UseCases.CheckoutPayment;
+using PaymentRefundModule.Application.UseCases.ReplacePayment;
 using PaymentRefundModule.Application.UseCases.GetPaymentById;
 using PaymentRefundModule.Application.UseCases.GetPayments;
 using PaymentRefundModule.Application.UseCases.GetPaymentByRefId;
@@ -70,6 +72,25 @@ public sealed class PaymentController : ControllerBase
         CreatePayment_UCOutput output = await _sender.Send(input, cancellationToken);
         ApiSuccessResponse<CreatePayment_UCOutput> response = new ApiSuccessResponse<CreatePayment_UCOutput>(output);
         return StatusCode(StatusCodes.Status201Created, response);
+    }
+
+    [HttpPost("{id:guid}/checkout")]
+    [ProducesResponseType(typeof(ApiSuccessResponse<CheckoutPayment_UCOutput>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> CheckoutPayment(Guid id, CancellationToken cancellationToken)
+    {
+        CheckoutPayment_UCInput input = new CheckoutPayment_UCInput(this.GetActorId(), id);
+        CheckoutPayment_UCOutput output = await _sender.Send(input, cancellationToken);
+        return Ok(new ApiSuccessResponse<CheckoutPayment_UCOutput>(output));
+    }
+
+    [HttpPost("replace")]
+    [ProducesResponseType(typeof(ApiSuccessResponse<ReplacePayment_UCOutput>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ReplacePayment([FromBody] ReplacePaymentRequestDto request, CancellationToken cancellationToken)
+    {
+        ReplacePayment_UCInput input = new ReplacePayment_UCInput(
+            this.GetActorId(), request.Type, request.RefId, request.TransactionMethodId);
+        ReplacePayment_UCOutput output = await _sender.Send(input, cancellationToken);
+        return Ok(new ApiSuccessResponse<ReplacePayment_UCOutput>(output));
     }
 
     private bool CanViewAllPayments()

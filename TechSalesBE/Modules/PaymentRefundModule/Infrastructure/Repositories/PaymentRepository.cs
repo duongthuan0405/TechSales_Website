@@ -16,6 +16,44 @@ internal sealed class PaymentRepository : IPaymentRepository
         _db = db;
     }
 
+    public async Task LockReferenceAsync(PaymentType type, Guid refId, CancellationToken cancellationToken = default)
+    {
+        if (_db.Database.CurrentTransaction == null)
+        {
+            throw new InvalidOperationException("Payment reference locking requires an active transaction.");
+        }
+
+        string lockKey = $"payment:{type}:{refId:D}";
+        await _db.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT pg_advisory_xact_lock(hashtextextended({lockKey}, 0))", cancellationToken);
+    }
+
+    public async Task<Payment?> GetByIdForUpdateAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        if (_db.Database.CurrentTransaction == null)
+        {
+            throw new InvalidOperationException("Payment row locking requires an active transaction.");
+        }
+
+        PaymentDbModel? row = await _db.Payments
+            .FromSqlInterpolated($"SELECT * FROM payment_refund.\"Payment\" WHERE \"Id\" = {id} FOR UPDATE")
+            .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
+        if (row == null)
+        {
+            return null;
+        }
+
+        return MapToEntity(row);
+    }
+
+    public async Task UpdateAsync(Payment payment, CancellationToken cancellationToken = default)
+    {
+        PaymentDbModel row = await _db.Payments.SingleAsync(item => item.Id == payment.Id, cancellationToken);
+        row.Status = payment.Status;
+        row.CompletedAt = payment.CompletedAt;
+        row.UpdatedAt = payment.UpdatedAt;
+    }
+
     public async Task<Payment?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         PaymentDbModel? row = await _db.Payments.AsNoTracking().SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
