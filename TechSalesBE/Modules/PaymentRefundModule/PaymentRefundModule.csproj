@@ -5,21 +5,20 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="PaymentRefundModule.Tests" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\CommonModule\CommonModule.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Contracts\" />
-    <Folder Include="Domain\Entities\" />
     <Folder Include="Domain\Enums\" />
     <Folder Include="Domain\Rules\" />
     <Folder Include="Domain\Exceptions\" />
-    <Folder Include="Application\UseCases\" />
     <Folder Include="Application\Ports\" />
     <Folder Include="Application\Repositories\" />
-    <Folder Include="Infrastructure\Persistence\" />
     <Folder Include="Infrastructure\Repositories\" />
     <Folder Include="Infrastructure\Adapters\" />
-    <Folder Include="Presentation\Controllers\" />
     <Folder Include="Presentation\DTOs\" />
     <Folder Include="Presentation\ModuleRegistration\" />
   </ItemGroup>

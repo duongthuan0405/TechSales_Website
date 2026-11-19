@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using TechSalesManagement.Application.Exceptions;
 
 namespace TechSalesManagement.Application.Services.Strategies.PaymentStrategies;

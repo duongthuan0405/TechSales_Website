@@ -1,10 +1,12 @@
+using AuthModule.Application.UseCases.UnlockUser;
+using AuthModule.Application.UseCases.UpdateProfile;
+using AuthModule.Domain.Constants;
+using AuthModule.Presentation.DTOs;
 using CommonModule.Presentation.ApiResponseModels;
 using CommonModule.Presentation.Extensions;
-using AuthModule.Domain.Constants;
-using AuthModule.Application.UseCases.UpdateProfile;
 using MediatR;
-using AuthModule.Presentation.DTOs;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AuthModule.Presentation.Controllers;
@@ -23,6 +25,7 @@ public sealed class UserProfileController : ControllerBase
     [HttpPut]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(AuthLimits.ProfileRequestMaxSizeBytes)]
+    [ProducesResponseType(typeof(ApiSuccessResponse<UpdateProfile_UCOutput>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Update([FromForm] UpdateProfileRequestDto request, CancellationToken ct)
     {
         await using var avatar = request.AvatarFile?.OpenReadStream();

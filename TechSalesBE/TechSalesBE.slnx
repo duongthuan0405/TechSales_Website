@@ -14,6 +14,7 @@
     <Project Path="Tests/ShippingModule.Tests/ShippingModule.Tests.csproj" />
     <Project Path="Tests/PromotionModule.Tests/PromotionModule.Tests.csproj" />
     <Project Path="Tests/MailModule.Tests/MailModule.Tests.csproj" />
+    <Project Path="Tests/PaymentRefundModule.Tests/PaymentRefundModule.Tests.csproj" />
   </Folder>
   <Project Path="Modules/AfterSaleModule/AfterSaleModule.csproj" />
   <Project Path="Modules/PaymentRefundModule/PaymentRefundModule.csproj" />
