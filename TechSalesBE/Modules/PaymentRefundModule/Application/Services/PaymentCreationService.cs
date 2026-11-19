@@ -97,7 +97,7 @@ internal sealed class PaymentCreationService
                 replacedId = previous.Id;
             }
 
-            Payment payment = new Payment(type, refId, method.Id, amount);
+            Payment payment = new Payment(type, refId, method.Id, amount, method);
             await _payments.AddAsync(payment, cancellationToken);
             return (payment.Id, replacedId);
         }, cancellationToken);

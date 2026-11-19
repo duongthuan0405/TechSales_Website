@@ -1,15 +1,19 @@
 using PaymentRefundModule.Application.Repositories;
 using PaymentRefundModule.Application.Services;
-using PaymentRefundModule.Application.Services.Strategies;
-using PaymentRefundModule.Infrastructure.Services.Strategies;
+using PaymentRefundModule.Application.Services.Payments;
+using PaymentRefundModule.Infrastructure.Payments;
+using PaymentRefundModule.Infrastructure.Payments.Momo;
 using PaymentRefundModule.Infrastructure.Services;
 using PaymentRefundModule.Infrastructure.Repositories;
 using PaymentRefundModule.Infrastructure.Persistence;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using FluentValidation;
+using PaymentRefundModule.Infrastructure.Payments.Options;
 using PaymentRefundModule.Presentation.Contracts.CreatePayment;
 using PaymentRefundModule.Presentation.Contracts.ReplacePayment;
+using PaymentRefundModule.Application.UseCases.ReceiveMomoIpn;
 
 namespace PaymentRefundModule.Presentation.ModuleRegistration;
 
@@ -20,11 +24,21 @@ public static class ModuleRegistration
         this IServiceCollection services, IConfiguration configuration)
     {
         services.AddPaymentRefundPersistence(configuration);
+        services.AddOptions<MomoOptions>()
+            .Bind(configuration.GetSection(MomoOptions.SectionName));
+        services.AddOptions<HookBackOptions>()
+            .Bind(configuration.GetSection(HookBackOptions.SectionName));
         services.AddScoped<ITransactionMethodRepository, TransactionMethodRepository>();
         services.AddScoped<IPaymentRepository, PaymentRepository>();
         services.AddScoped<PaymentOwnershipService>();
         services.AddScoped<PaymentCreationService>();
-        services.AddScoped<IPaymentGatewayStrategy, MomoPaymentStrategy>();
+        services.AddHttpClient<MomoPaymentStrategy>((serviceProvider, client) =>
+        {
+            MomoOptions options = serviceProvider.GetRequiredService<IOptions<MomoOptions>>().Value;
+            client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/", UriKind.Absolute);
+        });
+        services.AddScoped<IPaymentGatewayStrategy>(serviceProvider =>
+            serviceProvider.GetRequiredService<MomoPaymentStrategy>());
         services.AddScoped<IPaymentGatewayFactory, PaymentGatewayFactory>();
         services.AddScoped<IPaymentCreateContract, PaymentCreateContract>();
         services.AddScoped<IPaymentReplaceContract, PaymentReplaceContract>();

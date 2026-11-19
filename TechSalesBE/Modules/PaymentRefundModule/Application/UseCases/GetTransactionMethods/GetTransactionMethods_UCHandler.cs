@@ -25,7 +25,7 @@ internal sealed class GetTransactionMethods_UCHandler : IRequestHandler<GetTrans
 
            var list = transactionMethods.Select(t =>
            {
-               return new GetTransactionMethods_UCOutput.TransactionMethodInfo(t.Id.ToString(), t.Name, t.Type.ToString());
+               return new GetTransactionMethods_UCOutput.TransactionMethodInfo(t.Id.ToString(), t.Name, t.Type.ToString(), t.Code);
            }).ToList();
            return new GetTransactionMethods_UCOutput(list); 
         });

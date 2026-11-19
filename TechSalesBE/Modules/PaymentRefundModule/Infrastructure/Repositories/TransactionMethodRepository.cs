@@ -53,6 +53,6 @@ internal sealed class TransactionMethodRepository : ITransactionMethodRepository
             throw new InvalidOperationException("TransactionMethod.Type is missing in persistence data.");
         }
 
-        return new TransactionMethod(row.Id, row.Name ?? string.Empty, row.Type.Value);
+        return new TransactionMethod(row.Id, row.Name ?? string.Empty, row.Type.Value, row.Code);
     }
 }

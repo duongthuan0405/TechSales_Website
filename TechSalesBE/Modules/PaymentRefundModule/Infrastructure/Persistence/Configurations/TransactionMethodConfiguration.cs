@@ -14,6 +14,8 @@ internal sealed class TransactionMethodConfiguration : IEntityTypeConfiguration<
         builder.Property(e => e.Id).HasColumnName("Id").HasColumnType("uuid").IsRequired();
         builder.Property(e => e.Name).HasColumnName("Name").HasColumnType("character varying(100)").HasMaxLength(100).IsRequired(false);
         builder.HasIndex(e => e.Name).IsUnique();
+        builder.Property(e => e.Code).HasColumnName("Code").HasMaxLength(50);
+        builder.HasIndex(e => e.Code).IsUnique();
         builder.Property(e => e.Type).HasColumnName("Type").HasColumnType("character varying(50)").HasConversion<string>().HasMaxLength(50).IsRequired(false);
     }
 }

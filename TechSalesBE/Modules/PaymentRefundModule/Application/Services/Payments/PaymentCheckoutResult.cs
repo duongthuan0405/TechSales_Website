@@ -1,3 +1,3 @@
-namespace PaymentRefundModule.Application.Services.Strategies;
+namespace PaymentRefundModule.Application.Services.Payments;
 
 internal sealed record PaymentCheckoutResult(string PaymentUrl);

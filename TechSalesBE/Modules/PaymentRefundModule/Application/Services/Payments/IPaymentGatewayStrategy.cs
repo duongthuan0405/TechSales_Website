@@ -1,4 +1,4 @@
-namespace PaymentRefundModule.Application.Services.Strategies;
+namespace PaymentRefundModule.Application.Services.Payments;
 
 internal interface IPaymentGatewayStrategy
 {

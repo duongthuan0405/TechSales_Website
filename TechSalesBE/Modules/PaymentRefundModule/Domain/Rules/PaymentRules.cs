@@ -1,4 +1,5 @@
 using PaymentRefundModule.Domain.Enums;
+using PaymentRefundModule.Domain.Entities;
 using CommonModule.Domain.Exceptions;
 using PaymentRefundModule.Domain.Exceptions;
 
@@ -6,6 +7,33 @@ namespace PaymentRefundModule.Domain.Rules;
 
 internal static class PaymentRules
 {
+    public static bool MatchesNotification(TransactionMethodType methodType, string? methodCode,
+        string gatewayCode, long expectedAmount, long receivedAmount)
+    {
+        return methodType == TransactionMethodType.ONLINE
+            && !string.IsNullOrWhiteSpace(methodCode)
+            && string.Equals(methodCode.Trim(), gatewayCode, StringComparison.OrdinalIgnoreCase)
+            && expectedAmount == receivedAmount;
+    }
+
+    public static void EnsureOnlineConfirmationAllowed(TransactionMethod? method,
+        TransactionStatus status, string? currentReference, string incomingReference)
+    {
+        if (method == null || method.Type != TransactionMethodType.ONLINE)
+        {
+            throw new DomainException(DomainExceptionCode.OnlineMethodRequired, DomainExceptionMessage.OnlineMethodRequired);
+        }
+        if (string.IsNullOrWhiteSpace(incomingReference)
+            || (status == TransactionStatus.SUCCESS && !string.Equals(currentReference, incomingReference, StringComparison.Ordinal)))
+        {
+            throw new DomainException(DomainExceptionCode.TransactionReferenceMismatch, DomainExceptionMessage.TransactionReferenceMismatch);
+        }
+        if (status != TransactionStatus.PENDING && status != TransactionStatus.SUCCESS)
+        {
+            throw new DomainException(DomainExceptionCode.PaymentNotPending, DomainExceptionMessage.PaymentNotPending);
+        }
+    }
+
     public static void EnsureCheckoutAllowed(TransactionMethodType methodType, TransactionStatus status)
     {
         if (methodType != TransactionMethodType.ONLINE)

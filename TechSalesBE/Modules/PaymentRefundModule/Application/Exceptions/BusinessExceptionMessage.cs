@@ -2,6 +2,8 @@ namespace PaymentRefundModule.Application.Exceptions;
 
 internal static class BusinessExceptionMessage
 {
+    public const string PaymentNotificationInvalid = "Thông báo thanh toán không khớp giao dịch hoặc không hợp lệ.";
+    public const string MomoIpnInvalid = "Thông báo thanh toán MoMo không hợp lệ hoặc không khớp giao dịch.";
     public const string PaymentGatewayNotConfigured = "Cổng thanh toán chưa được tích hợp. Chưa thể tạo liên kết thanh toán.";
     public const string PaymentAlreadyPaid = "Đối tượng này đã được thanh toán thành công.";
     public const string PendingPaymentExists = "Đã có giao dịch đang chờ thanh toán. Vui lòng sử dụng hoặc thay thế giao dịch hiện tại.";
