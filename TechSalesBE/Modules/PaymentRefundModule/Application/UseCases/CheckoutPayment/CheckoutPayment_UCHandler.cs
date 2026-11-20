@@ -3,7 +3,7 @@ using MediatR;
 using PaymentRefundModule.Application.Exceptions;
 using PaymentRefundModule.Application.Repositories;
 using PaymentRefundModule.Application.Services;
-using PaymentRefundModule.Application.Services.Strategies;
+using PaymentRefundModule.Application.Services.Payments;
 using PaymentRefundModule.Domain.Entities;
 using PaymentRefundModule.Domain.Rules;
 
@@ -12,15 +12,13 @@ namespace PaymentRefundModule.Application.UseCases.CheckoutPayment;
 internal sealed class CheckoutPayment_UCHandler : IRequestHandler<CheckoutPayment_UCInput, CheckoutPayment_UCOutput>
 {
     private readonly IPaymentRepository _payments;
-    private readonly ITransactionMethodRepository _methods;
     private readonly PaymentOwnershipService _ownership;
     private readonly IPaymentGatewayFactory _gatewayFactory;
 
-    public CheckoutPayment_UCHandler(IPaymentRepository payments, ITransactionMethodRepository methods,
+    public CheckoutPayment_UCHandler(IPaymentRepository payments,
         PaymentOwnershipService ownership, IPaymentGatewayFactory gatewayFactory)
     {
         _payments = payments;
-        _methods = methods;
         _ownership = ownership;
         _gatewayFactory = gatewayFactory;
     }
@@ -37,14 +35,14 @@ internal sealed class CheckoutPayment_UCHandler : IRequestHandler<CheckoutPaymen
             throw new BusinessException(BusinessExceptionCode.FORBIDDEN, BusinessExceptionMessage.PaymentNotOwned);
         }
 
-        TransactionMethod? method = await _methods.GetByIdAsync(payment.TransactionMethodId, cancellationToken);
+        TransactionMethod? method = payment.TransactionMethod;
         if (method == null)
         {
             throw new BusinessException(BusinessExceptionCode.NOT_FOUND, BusinessExceptionMessage.TransactionMethodNotFound);
         }
         PaymentRules.EnsureCheckoutAllowed(method.Type, payment.Status);
 
-        IPaymentGatewayStrategy strategy = _gatewayFactory.GetStrategy(method.Id);
+        IPaymentGatewayStrategy strategy = await _gatewayFactory.GetStrategyAsync(method.Id, cancellationToken);
         PaymentCheckoutRequest checkoutRequest = new PaymentCheckoutRequest(payment.Id, payment.Amount);
         // Session persistence and concurrency handling must be added with the gateway integration.
         PaymentCheckoutResult result = await strategy.CheckoutAsync(checkoutRequest, cancellationToken);

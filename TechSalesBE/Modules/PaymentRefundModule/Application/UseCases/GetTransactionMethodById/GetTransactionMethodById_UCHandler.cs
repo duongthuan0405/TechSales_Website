@@ -29,7 +29,7 @@ internal sealed class GetTransactionMethodById_UCHandler : IRequestHandler<GetTr
                 throw new BusinessException(BusinessExceptionCode.NOT_FOUND, BusinessExceptionMessage.TransactionMethodNotFound);
             }
 
-            return new GetTransactionMethodById_UCOutput(transactionMethod.Id.ToString(), transactionMethod.Name, transactionMethod.Type.ToString());
+            return new GetTransactionMethodById_UCOutput(transactionMethod.Id.ToString(), transactionMethod.Name, transactionMethod.Type.ToString(), transactionMethod.Code);
         });
     } 
 }

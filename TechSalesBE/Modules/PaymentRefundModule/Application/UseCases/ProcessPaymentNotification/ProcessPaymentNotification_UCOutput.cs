@@ -1,0 +1,3 @@
+namespace PaymentRefundModule.Application.UseCases.ProcessPaymentNotification;
+
+internal sealed record ProcessPaymentNotification_UCOutput(bool Updated);

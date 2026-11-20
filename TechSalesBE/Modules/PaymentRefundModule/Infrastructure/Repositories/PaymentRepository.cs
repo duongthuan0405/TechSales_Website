@@ -37,7 +37,7 @@ internal sealed class PaymentRepository : IPaymentRepository
 
         PaymentDbModel? row = await _db.Payments
             .FromSqlInterpolated($"SELECT * FROM payment_refund.\"Payment\" WHERE \"Id\" = {id} FOR UPDATE")
-            .AsNoTracking().SingleOrDefaultAsync(cancellationToken);
+            .Include(item => item.TransactionMethod).AsNoTracking().SingleOrDefaultAsync(cancellationToken);
         if (row == null)
         {
             return null;
@@ -50,13 +50,15 @@ internal sealed class PaymentRepository : IPaymentRepository
     {
         PaymentDbModel row = await _db.Payments.SingleAsync(item => item.Id == payment.Id, cancellationToken);
         row.Status = payment.Status;
+        row.TransactionRef = payment.TransactionRef;
         row.CompletedAt = payment.CompletedAt;
         row.UpdatedAt = payment.UpdatedAt;
     }
 
     public async Task<Payment?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        PaymentDbModel? row = await _db.Payments.AsNoTracking().SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
+        PaymentDbModel? row = await _db.Payments.Include(item => item.TransactionMethod)
+            .AsNoTracking().SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
         if (row == null)
         {
             return null;
@@ -67,7 +69,7 @@ internal sealed class PaymentRepository : IPaymentRepository
 
     public async Task<List<Payment>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        List<PaymentDbModel> rows = await _db.Payments.AsNoTracking()
+        List<PaymentDbModel> rows = await _db.Payments.Include(item => item.TransactionMethod).AsNoTracking()
             .OrderByDescending(item => item.CreatedAt).ThenBy(item => item.Id).ToListAsync(cancellationToken);
         return rows.Select(MapToEntity).ToList();
     }
@@ -91,7 +93,8 @@ internal sealed class PaymentRepository : IPaymentRepository
         }
 
         int totalCount = await query.CountAsync(cancellationToken);
-        List<PaymentDbModel> rows = await query.OrderByDescending(item => item.CreatedAt).ThenBy(item => item.Id)
+        List<PaymentDbModel> rows = await query.Include(item => item.TransactionMethod)
+            .OrderByDescending(item => item.CreatedAt).ThenBy(item => item.Id)
             .Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
         return (rows.Select(MapToEntity).ToList(), totalCount);
     }
@@ -108,7 +111,7 @@ internal sealed class PaymentRepository : IPaymentRepository
             query = query.Where(item => item.RepairRequestId == refId);
         }
 
-        List<PaymentDbModel> rows = await query.OrderByDescending(item => item.CreatedAt)
+        List<PaymentDbModel> rows = await query.Include(item => item.TransactionMethod).OrderByDescending(item => item.CreatedAt)
             .ThenBy(item => item.Id).ToListAsync(cancellationToken);
         return rows.Select(MapToEntity).ToList();
     }
@@ -120,9 +123,16 @@ internal sealed class PaymentRepository : IPaymentRepository
             throw new InvalidOperationException("Payment.Type is missing in persistence data.");
         }
 
+        if (row.TransactionMethod == null || !row.TransactionMethod.Type.HasValue)
+        {
+            throw new InvalidOperationException("TransactionMethod or TransactionMethod.Type is missing in persistence data.");
+        }
+
+        TransactionMethod method = new TransactionMethod(row.TransactionMethod.Id,
+            row.TransactionMethod.Name ?? string.Empty, row.TransactionMethod.Type.Value, row.TransactionMethod.Code);
         return new Payment(row.Id, row.Type.Value, row.OrderId, row.RepairRequestId,
             row.TransactionMethodId, row.Status, row.Amount, row.TransactionRef, row.FailureReason,
-            row.CompletedAt, row.CreatedAt, row.UpdatedAt);
+            row.CompletedAt, row.CreatedAt, row.UpdatedAt, method);
     }
 
     public async Task AddAsync(Payment payment, CancellationToken cancellationToken = default)
