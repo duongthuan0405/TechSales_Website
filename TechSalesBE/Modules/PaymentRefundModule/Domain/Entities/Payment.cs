@@ -1,5 +1,6 @@
 using PaymentRefundModule.Domain.Enums;
 using PaymentRefundModule.Domain.Rules;
+using PaymentRefundModule.Domain.Exceptions;
 
 namespace PaymentRefundModule.Domain.Entities;
 
@@ -14,7 +15,7 @@ internal sealed class Payment
     public TransactionStatus Status { get; private set; }
     public long Amount { get; }
     public string? TransactionRef { get; private set; }
-    public string? FailureReason { get; }
+    public string? FailureReason { get; private set; }
     public DateTimeOffset? CompletedAt { get; private set; }
     public DateTimeOffset CreatedAt { get; }
     public DateTimeOffset UpdatedAt { get; private set; }
@@ -43,6 +44,20 @@ internal sealed class Payment
 
         Status = TransactionStatus.SUCCESS;
         TransactionRef = transactionRef;
+        CompletedAt = DateTimeOffset.UtcNow;
+        UpdatedAt = CompletedAt.Value;
+        return true;
+    }
+
+    public bool FailOnline(string transactionRef)
+    {
+        if (!PaymentRules.CanRecordOnlineFailure(TransactionMethod, Status))
+        {
+            return false;
+        }
+        Status = TransactionStatus.FAILED;
+        TransactionRef = transactionRef;
+        FailureReason = DomainExceptionMessage.OnlinePaymentFailed;
         CompletedAt = DateTimeOffset.UtcNow;
         UpdatedAt = CompletedAt.Value;
         return true;

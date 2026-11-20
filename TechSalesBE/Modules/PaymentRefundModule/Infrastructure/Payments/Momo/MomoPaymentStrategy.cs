@@ -1,7 +1,6 @@
 using PaymentRefundModule.Application.Services.Payments;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
-using PaymentRefundModule.Infrastructure.Payments.Options;
 using PaymentRefundModule.Infrastructure.Payments.Momo.Models;
 using System.Globalization;
 using System.Security.Cryptography;
@@ -16,19 +15,16 @@ namespace PaymentRefundModule.Infrastructure.Payments.Momo;
 internal sealed class MomoPaymentStrategy : IPaymentGatewayStrategy
 {
     private readonly MomoOptions _momoOptions;
-    private readonly HookBackOptions _hookBackOptions;
     private readonly HttpClient _httpClient;
     private readonly ILogger<MomoPaymentStrategy> _logger;
 
     public MomoPaymentStrategy(
         HttpClient httpClient,
         IOptions<MomoOptions> momoOptions,
-        IOptions<HookBackOptions> hookBackOptions,
         ILogger<MomoPaymentStrategy> logger)
     {
         _httpClient = httpClient;
         _momoOptions = momoOptions.Value;
-        _hookBackOptions = hookBackOptions.Value;
         _logger = logger;
     }
 
@@ -43,7 +39,7 @@ internal sealed class MomoPaymentStrategy : IPaymentGatewayStrategy
             OrderId = request.PaymentId.ToString("N"),
             Amount = request.Amount,
             OrderInfo = $"Thanh toán giao dịch {request.PaymentId:D}",
-            RedirectUrl = _hookBackOptions.RedirectUrl,
+            RedirectUrl = _momoOptions.RedirectUrl,
             IpnUrl = _momoOptions.IpnUrl
         };
 
@@ -81,7 +77,6 @@ internal sealed class MomoPaymentStrategy : IPaymentGatewayStrategy
 
         try
         {
-            Console.WriteLine(momoRequest.IpnUrl);
             using HttpResponseMessage response = await _httpClient.PostAsJsonAsync("create", momoRequest, cancellationToken);
             statusCode = (int)response.StatusCode;
             responseBody = await response.Content.ReadAsStringAsync(cancellationToken);

@@ -43,7 +43,7 @@ internal sealed class CheckoutPayment_UCHandler : IRequestHandler<CheckoutPaymen
         PaymentRules.EnsureCheckoutAllowed(method.Type, payment.Status);
 
         IPaymentGatewayStrategy strategy = await _gatewayFactory.GetStrategyAsync(method.Id, cancellationToken);
-        PaymentCheckoutRequest checkoutRequest = new PaymentCheckoutRequest(payment.Id, payment.Amount);
+        PaymentCheckoutRequest checkoutRequest = new PaymentCheckoutRequest(payment.Id, payment.Amount, request.ClientIpAddress);
         // Session persistence and concurrency handling must be added with the gateway integration.
         PaymentCheckoutResult result = await strategy.CheckoutAsync(checkoutRequest, cancellationToken);
         return new CheckoutPayment_UCOutput(payment.Id, result.PaymentUrl);

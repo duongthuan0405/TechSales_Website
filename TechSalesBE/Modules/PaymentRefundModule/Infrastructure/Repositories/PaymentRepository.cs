@@ -51,6 +51,7 @@ internal sealed class PaymentRepository : IPaymentRepository
         PaymentDbModel row = await _db.Payments.SingleAsync(item => item.Id == payment.Id, cancellationToken);
         row.Status = payment.Status;
         row.TransactionRef = payment.TransactionRef;
+        row.FailureReason = payment.FailureReason;
         row.CompletedAt = payment.CompletedAt;
         row.UpdatedAt = payment.UpdatedAt;
     }

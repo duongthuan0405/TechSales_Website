@@ -4,7 +4,6 @@ using System.Text.Json;
 using CommonModule.BusinessExceptions;
 using Microsoft.Extensions.Options;
 using PaymentRefundModule.Application.Services.Payments;
-using PaymentRefundModule.Infrastructure.Payments.Options;
 using PaymentRefundModule.Infrastructure.Payments;
 using PaymentRefundModule.Infrastructure.Payments.Momo;
 using Xunit;
@@ -53,8 +52,7 @@ public sealed class MomoPaymentStrategyTests
     private static MomoPaymentStrategy CreateStrategy(HttpClient client)
     {
         return new MomoPaymentStrategy(client,
-            Options.Create(new MomoOptions { PartnerCode = "TEST", AccessKey = "test-access", SecretKey = "test-secret", IpnUrl = "https://example.com/ipn" }),
-            Options.Create(new HookBackOptions { RedirectUrl = "https://example.com/result" }),
+            Options.Create(new MomoOptions { PartnerCode = "TEST", AccessKey = "test-access", SecretKey = "test-secret", IpnUrl = "https://example.com/ipn", RedirectUrl = "https://example.com/result" }),
             Microsoft.Extensions.Logging.Abstractions.NullLogger<MomoPaymentStrategy>.Instance);
     }
 

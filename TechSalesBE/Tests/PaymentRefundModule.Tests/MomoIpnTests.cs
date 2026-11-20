@@ -19,7 +19,6 @@ using PaymentRefundModule.Application.UseCases.ProcessPaymentNotification;
 using PaymentRefundModule.Application.UseCases.ReceiveMomoIpn;
 using PaymentRefundModule.Domain.Entities;
 using PaymentRefundModule.Domain.Enums;
-using PaymentRefundModule.Infrastructure.Payments.Options;
 using PaymentRefundModule.Infrastructure.Payments;
 using PaymentRefundModule.Infrastructure.Payments.Momo;
 using PaymentRefundModule.Presentation.Controllers;
