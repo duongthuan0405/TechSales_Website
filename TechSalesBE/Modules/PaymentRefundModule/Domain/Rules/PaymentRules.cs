@@ -7,6 +7,14 @@ namespace PaymentRefundModule.Domain.Rules;
 
 internal static class PaymentRules
 {
+    public static bool IsMomoPollingAllowed(Payment payment)
+    {
+        return payment.Status == TransactionStatus.PENDING
+            && payment.TransactionMethod != null
+            && MatchesNotification(payment.TransactionMethod.Type, payment.TransactionMethod.Code,
+                "MOMO", payment.Amount, payment.Amount);
+    }
+
     public static bool MatchesNotification(TransactionMethodType methodType, string? methodCode,
         string gatewayCode, long expectedAmount, long receivedAmount)
     {

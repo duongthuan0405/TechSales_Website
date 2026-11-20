@@ -81,6 +81,7 @@ internal sealed class MomoPaymentStrategy : IPaymentGatewayStrategy
 
         try
         {
+            Console.WriteLine(momoRequest.IpnUrl);
             using HttpResponseMessage response = await _httpClient.PostAsJsonAsync("create", momoRequest, cancellationToken);
             statusCode = (int)response.StatusCode;
             responseBody = await response.Content.ReadAsStringAsync(cancellationToken);

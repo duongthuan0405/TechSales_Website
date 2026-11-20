@@ -24,11 +24,58 @@ using PaymentRefundModule.Infrastructure.Payments;
 using PaymentRefundModule.Infrastructure.Payments.Momo;
 using PaymentRefundModule.Presentation.Controllers;
 using Xunit;
+using PaymentRefundModule.Application.UseCases.PollMomoPayment;
 
 namespace PaymentRefundModule.Tests;
 
 public sealed class MomoIpnTests
 {
+    [Theory]
+    [InlineData(0, 10000, true)]
+    [InlineData(1000, 10000, false)]
+    public async Task PollingUpdatesOnlyConfirmedSuccessAndIsIdempotent(int code, long amount, bool expected)
+    {
+        Payment payment = NewPayment();
+        Repository repository = new Repository(payment);
+        ServiceCollection services = new ServiceCollection();
+        services.AddLogging();
+        services.AddMediatR(options => options.RegisterServicesFromAssembly(typeof(MomoCallbackController).Assembly));
+        services.AddSingleton<IPaymentRepository>(repository);
+        services.AddSingleton<IExecuteAtomically, Transaction>();
+        services.AddSingleton<IMomoStatusQuery>(new StatusQuery(payment.Id, amount, code));
+        using ServiceProvider provider = services.BuildServiceProvider();
+        ISender sender = provider.GetRequiredService<ISender>();
+
+        PollMomoPayment_UCOutput result = await sender.Send(new PollMomoPayment_UCInput(payment.Id));
+        Assert.Equal(expected, result.Updated);
+        Assert.False((await sender.Send(new PollMomoPayment_UCInput(payment.Id))).Updated);
+        Assert.Equal(expected ? 1 : 0, repository.UpdateCount);
+    }
+
+    [Fact]
+    public async Task PollingRejectsAmountMismatch()
+    {
+        Payment payment = NewPayment();
+        PollMomoPayment_UCHandler handler = new PollMomoPayment_UCHandler(
+            new Repository(payment), new StatusQuery(payment.Id, payment.Amount + 1, 0), null!);
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.Handle(new PollMomoPayment_UCInput(payment.Id), default));
+        Assert.Equal(TransactionStatus.PENDING, payment.Status);
+    }
+
+    private sealed class StatusQuery : IMomoStatusQuery
+    {
+        private readonly MomoStatusResult _result;
+        public StatusQuery(Guid id, long amount, int code)
+        {
+            _result = new MomoStatusResult(id.ToString("N"), amount, 123456, code);
+        }
+        public Task<MomoStatusResult> QueryAsync(Guid paymentId, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(_result);
+        }
+    }
+
     [Theory]
     [InlineData("MOMO")]
     [InlineData("OTHER_GATEWAY")]
@@ -240,7 +287,10 @@ public sealed class MomoIpnTests
         }
         public Task LockReferenceAsync(PaymentType type, Guid refId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task AddAsync(Payment payment, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        public Task<Payment?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task<Payment?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<Payment?>(id == Payment.Id ? Payment : null);
+        }
         public Task<List<Payment>> GetAllAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<(List<Payment> Items, int TotalCount)> GetPageAsync(int pageNumber, int pageSize, PaymentType? type, TransactionStatus? status, Guid? refId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<List<Payment>> GetByRefIdAsync(Guid refId, PaymentType type, CancellationToken cancellationToken = default) => throw new NotSupportedException();

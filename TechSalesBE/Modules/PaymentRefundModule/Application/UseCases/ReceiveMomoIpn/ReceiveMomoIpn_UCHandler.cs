@@ -24,6 +24,7 @@ internal sealed class ReceiveMomoIpn_UCHandler : IRequestHandler<ReceiveMomoIpn_
 
     public async Task<ReceiveMomoIpn_UCOutput> Handle(ReceiveMomoIpn_UCInput notification, CancellationToken cancellationToken)
     {
+        Console.WriteLine("Chuẩn bị cập nhật Payment");
         if (!IsValid(notification)
             || !Guid.TryParseExact(notification.OrderId, "N", out Guid paymentId)
             || paymentId == Guid.Empty || notification.Amount <= 0 || notification.TransId <= 0

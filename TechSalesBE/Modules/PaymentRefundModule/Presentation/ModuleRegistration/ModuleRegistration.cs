@@ -32,6 +32,20 @@ public static class ModuleRegistration
         services.AddScoped<IPaymentRepository, PaymentRepository>();
         services.AddScoped<PaymentOwnershipService>();
         services.AddScoped<PaymentCreationService>();
+        services.AddOptions<MomoPollingOptions>()
+            .Bind(configuration.GetSection(MomoPollingOptions.SectionName))
+            .Validate(options => options.IntervalSeconds >= 5 && options.BatchSize >= 1
+                && options.BatchSize <= 100 && options.RequestSpacingMilliseconds >= 100,
+                "Invalid MoMo polling configuration.")
+            .ValidateOnStart();
+        services.AddScoped<IMomoPollingSource, MomoPollingSource>();
+        services.AddHttpClient<IMomoStatusQuery, MomoStatusQuery>((serviceProvider, client) =>
+        {
+            MomoOptions options = serviceProvider.GetRequiredService<IOptions<MomoOptions>>().Value;
+            client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/", UriKind.Absolute);
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
+        services.AddHostedService<MomoPollingWorker>();
         services.AddHttpClient<MomoPaymentStrategy>((serviceProvider, client) =>
         {
             MomoOptions options = serviceProvider.GetRequiredService<IOptions<MomoOptions>>().Value;
