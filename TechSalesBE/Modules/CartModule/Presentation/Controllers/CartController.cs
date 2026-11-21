@@ -1,6 +1,7 @@
 using CartModule.Application.Messages;
 using CartModule.Application.UseCases.Carts.AddCartItem;
 using CartModule.Application.UseCases.Carts.GetCart;
+using CartModule.Application.UseCases.Carts.UpdateCartItem;
 using CartModule.Presentation.DTOs;
 using CommonModule.Presentation.ApiResponseModels;
 using CommonModule.Presentation.Extensions;
@@ -48,6 +49,22 @@ public sealed class CartController : ControllerBase
         AddCartItem_UCOutput output = await _sender.Send(input, cancellationToken);
         ApiSuccessResponse<AddCartItem_UCOutput> response = new ApiSuccessResponse<AddCartItem_UCOutput>(
             output, ResponseMessage.ItemAdded);
+        return Ok(response);
+    }
+
+    [HttpPut("items/{productId}")]
+    [ProducesResponseType(typeof(ApiSuccessResponse<UpdateCartItem_UCOutput>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> UpdateCartItem(
+        [FromRoute] Guid productId, [FromBody] UpdateCartItemRequest request, CancellationToken cancellationToken)
+    {
+        UpdateCartItem_UCInput input = new UpdateCartItem_UCInput(this.GetActorId(), productId, request.Quantity);
+        UpdateCartItem_UCOutput output = await _sender.Send(input, cancellationToken);
+        ApiSuccessResponse<UpdateCartItem_UCOutput> response = new ApiSuccessResponse<UpdateCartItem_UCOutput>(
+            output, ResponseMessage.ItemQuantityUpdated);
         return Ok(response);
     }
 }

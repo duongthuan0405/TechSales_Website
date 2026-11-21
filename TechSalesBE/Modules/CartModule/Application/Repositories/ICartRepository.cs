@@ -11,4 +11,6 @@ internal interface ICartRepository
     Task<bool> TryCreateAsync(Cart cart, CancellationToken cancellationToken);
 
     Task SaveItemAsync(CartItem item, CancellationToken cancellationToken);
+
+    Task<bool> UpdateItemAsync(CartItem item, CancellationToken cancellationToken);
 }

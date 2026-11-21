@@ -79,6 +79,17 @@ internal sealed class CartRepository : ICartRepository
             cancellationToken);
     }
 
+    public async Task<bool> UpdateItemAsync(CartItem item, CancellationToken cancellationToken)
+    {
+        int affectedRows = await _dbContext.CartItems
+            .Where(row => row.CartId == item.CartId && row.ProductId == item.ProductId)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(row => row.Quantity, item.Quantity)
+                .SetProperty(row => row.UpdatedAt, item.UpdatedAt), cancellationToken);
+
+        return affectedRows == 1;
+    }
+
     private static Cart MapToDomain(CartDbModel model, IEnumerable<CartItemDbModel> itemModels)
     {
         List<CartItem> items = itemModels

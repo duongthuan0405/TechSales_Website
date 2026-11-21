@@ -50,7 +50,7 @@ internal sealed class Cart
         return newItem;
     }
 
-    public void UpdateItemQuantity(Guid productId, int quantity, DateTimeOffset updatedAt)
+    public (CartItem Item, bool Changed) UpdateItemQuantity(Guid productId, int quantity, DateTimeOffset updatedAt)
     {
         CartRules.EnsureValidId(productId, nameof(CartItem.ProductId));
         if (!_items.TryGetValue(productId, out var item))
@@ -58,7 +58,9 @@ internal sealed class Cart
             throw new DomainException(DomainExceptionCode.ItemNotFound, DomainExceptionMessage.ItemNotFound);
         }
 
+        int previousQuantity = item.Quantity;
         item.UpdateQuantity(quantity, updatedAt);
+        return (item, item.Quantity != previousQuantity);
     }
 
     public bool RemoveItem(Guid productId)

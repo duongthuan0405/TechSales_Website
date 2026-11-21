@@ -5,4 +5,7 @@ internal static class BusinessExceptionMessage
     public const string InvalidUserId = "A non-empty user ID is required to access the cart.";
     public const string InvalidProductId = "Product ID must be a non-empty UUID.";
     public const string InvalidQuantityToAdd = "Quantity to add must be a positive integer.";
+    public const string InvalidUpdatedQuantity = "The new quantity must be a positive integer.";
+    public const string CartNotFound = "The cart was not found for the current user.";
+    public const string ItemNotFound = CartModule.Domain.Exceptions.DomainExceptionMessage.ItemNotFound;
 }
