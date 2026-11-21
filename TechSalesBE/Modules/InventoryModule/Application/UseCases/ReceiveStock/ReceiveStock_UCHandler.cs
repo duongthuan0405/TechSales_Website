@@ -1,4 +1,3 @@
-using InventoryModule.Application.Repositories;
 using InventoryModule.Application.Services;
 using InventoryModule.Domain.Entities;
 using InventoryModule.Domain.Enums;
@@ -8,12 +7,12 @@ namespace InventoryModule.Application.UseCases.ReceiveStock;
 
 internal sealed class ReceiveStock_UCHandler : IRequestHandler<ReceiveStock_UCInput, ReceiveStock_UCOutput>
 {
-    private readonly IInventoryRepository _inventory;
+    private readonly StockReceiver _receiver;
     private readonly IExecuteAtomically _transaction;
 
-    public ReceiveStock_UCHandler(IInventoryRepository inventory, IExecuteAtomically transaction)
+    public ReceiveStock_UCHandler(StockReceiver receiver, IExecuteAtomically transaction)
     {
-        _inventory = inventory;
+        _receiver = receiver;
         _transaction = transaction;
     }
 
@@ -25,13 +24,7 @@ internal sealed class ReceiveStock_UCHandler : IRequestHandler<ReceiveStock_UCIn
 
         return _transaction.ExecuteAsync(async () =>
         {
-            await _inventory.EnsureStockExistsAsync(input.ProductId, cancellationToken);
-            Inventory stock = await _inventory.GetStockForUpdateAsync(input.ProductId, cancellationToken)
-                ?? throw new InvalidOperationException("The inventory row could not be loaded after initialization.");
-
-            stock.Receive(units.Count);
-            await _inventory.UpdateStockQuantityAsync(stock, cancellationToken);
-            _inventory.AddProductUnits(units);
+            Inventory stock = await _receiver.ReceiveAsync(input.ProductId, units, cancellationToken);
 
             return new ReceiveStock_UCOutput(
                 stock.ProductId, units.Count, stock.Quantity, nameof(ProductUnitStatus.IN_STOCK));

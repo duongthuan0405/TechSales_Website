@@ -20,6 +20,8 @@ public static class ModuleRegistration
         services.AddInventoryPersistence(configuration);
         services.AddScoped<IInventoryRepository, InventoryRepository>();
         services.AddScoped<IExecuteAtomically, ExecuteAtomically>();
+        services.AddScoped<IStockImportWorkbookReader, XlsxStockImportReader>();
+        services.AddScoped<StockReceiver>();
         services.AddControllers().AddApplicationPart(typeof(ModuleRegistration).Assembly);
         services.AddMediatR(options =>
         {
