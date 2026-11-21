@@ -1,6 +1,8 @@
 using CartModule.Application.Repositories;
+using CartModule.Application.Services;
 using CartModule.Infrastructure.Persistence;
 using CartModule.Infrastructure.Repositories;
+using CartModule.Infrastructure.Services;
 using CommonModule.Application.Behaviors;
 using FluentValidation;
 using MediatR;
@@ -17,6 +19,7 @@ public static class ModuleRegistration
     {
         services.AddCartPersistence(configuration);
         services.AddScoped<ICartRepository, CartRepository>();
+        services.AddScoped<IExecuteAtomically, ExecuteAtomically>();
         services.AddControllers().AddApplicationPart(typeof(ModuleRegistration).Assembly);
         services.AddMediatR(options => options.RegisterServicesFromAssembly(typeof(ModuleRegistration).Assembly));
         services.AddValidatorsFromAssembly(typeof(ModuleRegistration).Assembly, includeInternalTypes: true);

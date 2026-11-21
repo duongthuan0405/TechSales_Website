@@ -20,9 +20,14 @@ internal static class CartRules
         }
     }
 
+    public static bool IsPositiveQuantity(int quantity)
+    {
+        return quantity > 0;
+    }
+
     public static void EnsurePositiveQuantity(int quantity)
     {
-        if (quantity <= 0)
+        if (!IsPositiveQuantity(quantity))
         {
             throw new DomainException(DomainExceptionCode.InvalidQuantity, DomainExceptionMessage.InvalidQuantity);
         }

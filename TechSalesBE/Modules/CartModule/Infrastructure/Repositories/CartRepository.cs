@@ -27,11 +27,32 @@ internal sealed class CartRepository : ICartRepository
             return null;
         }
 
-        List<CartItem> items = model.Items
-            .Select(item => new CartItem(item.CartId, item.ProductId, item.Quantity, item.CreatedAt, item.UpdatedAt))
-            .ToList();
+        return MapToDomain(model, model.Items);
+    }
 
-        return new Cart(model.Id, model.UserId, items);
+    public async Task<Cart?> GetByUserIdForUpdateAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        CartDbModel? lockedCart = await _dbContext.Carts
+            .FromSqlInterpolated($"""
+                SELECT "Id", "UserId" FROM cart."Cart"
+                WHERE "UserId" = {userId}
+                FOR UPDATE
+                """)
+            .AsNoTracking()
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (lockedCart == null)
+        {
+            return null;
+        }
+
+        // Read the items after acquiring the lock to see changes committed while waiting.
+        List<CartItemDbModel> items = await _dbContext.CartItems
+            .AsNoTracking()
+            .Where(item => item.CartId == lockedCart.Id)
+            .ToListAsync(cancellationToken);
+
+        return MapToDomain(lockedCart, items);
     }
 
     public async Task<bool> TryCreateAsync(Cart cart, CancellationToken cancellationToken)
@@ -44,5 +65,26 @@ internal sealed class CartRepository : ICartRepository
             cancellationToken);
 
         return affectedRows == 1;
+    }
+
+    public async Task SaveItemAsync(CartItem item, CancellationToken cancellationToken)
+    {
+        await _dbContext.Database.ExecuteSqlInterpolatedAsync(
+            $"""
+            INSERT INTO cart."CartItem" ("CartId", "ProductId", "Quantity", "CreatedAt", "UpdatedAt")
+            VALUES ({item.CartId}, {item.ProductId}, {item.Quantity}, {item.CreatedAt}, {item.UpdatedAt})
+            ON CONFLICT ("CartId", "ProductId") DO UPDATE
+            SET "Quantity" = EXCLUDED."Quantity", "UpdatedAt" = EXCLUDED."UpdatedAt"
+            """,
+            cancellationToken);
+    }
+
+    private static Cart MapToDomain(CartDbModel model, IEnumerable<CartItemDbModel> itemModels)
+    {
+        List<CartItem> items = itemModels
+            .Select(item => new CartItem(item.CartId, item.ProductId, item.Quantity, item.CreatedAt, item.UpdatedAt))
+            .ToList();
+
+        return new Cart(model.Id, model.UserId, items);
     }
 }

@@ -1,4 +1,4 @@
-using CartModule.Domain.Exceptions;
+using CartModule.Application.Exceptions;
 using CartModule.Domain.Rules;
 using FluentValidation;
 
@@ -10,6 +10,6 @@ internal sealed class GetCart_UCInput_Validator : AbstractValidator<GetCart_UCIn
     {
         RuleFor(input => input.UserId)
             .Must(CartRules.IsValidId)
-            .WithMessage(string.Format(DomainExceptionMessage.InvalidId, nameof(GetCart_UCInput.UserId)));
+            .WithMessage(BusinessExceptionMessage.InvalidUserId);
     }
 }

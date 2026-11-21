@@ -35,17 +35,19 @@ internal sealed class Cart
         }
     }
 
-    public void AddItem(Guid productId, DateTimeOffset addedAt, int quantity = 1)
+    public CartItem AddItem(Guid productId, DateTimeOffset addedAt, int quantity = 1)
     {
         CartRules.EnsureValidId(productId, nameof(CartItem.ProductId));
         if (_items.TryGetValue(productId, out var item))
         {
             var totalQuantity = CartRules.GetIncreasedQuantity(item.Quantity, quantity);
             item.UpdateQuantity(totalQuantity, addedAt);
-            return;
+            return item;
         }
 
-        _items.Add(productId, new CartItem(Id, productId, quantity, addedAt, addedAt));
+        CartItem newItem = new CartItem(Id, productId, quantity, addedAt, addedAt);
+        _items.Add(productId, newItem);
+        return newItem;
     }
 
     public void UpdateItemQuantity(Guid productId, int quantity, DateTimeOffset updatedAt)
