@@ -19,6 +19,11 @@ internal static class ProductUnitRules
         return serialNumbers.Distinct(StringComparer.Ordinal).Count() == serialNumbers.Count;
     }
 
+    public static bool IsManualStatusTarget(string? status)
+    {
+        return string.Equals(status, nameof(ProductUnitStatus.DAMAGED), StringComparison.OrdinalIgnoreCase);
+    }
+
     public static void EnsureSerialNumber(string serialNumber)
     {
         if (!IsValidSerialNumber(serialNumber))

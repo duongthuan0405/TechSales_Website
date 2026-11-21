@@ -90,4 +90,11 @@ internal sealed class InventoryRepository : IInventoryRepository
             });
         }
     }
+
+    public async Task UpdateProductUnitStatusAsync(ProductUnit unit, CancellationToken cancellationToken)
+    {
+        await _dbContext.ProductUnits
+            .Where(row => row.ProductId == unit.ProductId && row.SerialNumber == unit.SerialNumber)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(row => row.Status, unit.Status), cancellationToken);
+    }
 }

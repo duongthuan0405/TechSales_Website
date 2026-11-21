@@ -13,4 +13,5 @@ internal interface IInventoryRepository
     Task<Inventory?> GetStockForUpdateAsync(Guid productId, CancellationToken cancellationToken);
     Task UpdateStockQuantityAsync(Inventory stock, CancellationToken cancellationToken);
     void AddProductUnits(List<ProductUnit> units);
+    Task UpdateProductUnitStatusAsync(ProductUnit unit, CancellationToken cancellationToken);
 }
