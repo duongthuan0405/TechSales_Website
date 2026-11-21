@@ -1,6 +1,7 @@
 using CartModule.Application.Messages;
 using CartModule.Application.UseCases.Carts.AddCartItem;
 using CartModule.Application.UseCases.Carts.GetCart;
+using CartModule.Application.UseCases.Carts.RemoveCartItem;
 using CartModule.Application.UseCases.Carts.UpdateCartItem;
 using CartModule.Presentation.DTOs;
 using CommonModule.Presentation.ApiResponseModels;
@@ -65,6 +66,20 @@ public sealed class CartController : ControllerBase
         UpdateCartItem_UCOutput output = await _sender.Send(input, cancellationToken);
         ApiSuccessResponse<UpdateCartItem_UCOutput> response = new ApiSuccessResponse<UpdateCartItem_UCOutput>(
             output, ResponseMessage.ItemQuantityUpdated);
+        return Ok(response);
+    }
+
+    [HttpDelete("items/{productId}")]
+    [ProducesResponseType(typeof(ApiSuccessResponse<RemoveCartItem_UCOutput>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> RemoveCartItem([FromRoute] Guid productId, CancellationToken cancellationToken)
+    {
+        RemoveCartItem_UCInput input = new RemoveCartItem_UCInput(this.GetActorId(), productId);
+        RemoveCartItem_UCOutput output = await _sender.Send(input, cancellationToken);
+        ApiSuccessResponse<RemoveCartItem_UCOutput> response = new ApiSuccessResponse<RemoveCartItem_UCOutput>(
+            output, ResponseMessage.ItemRemoved);
         return Ok(response);
     }
 }

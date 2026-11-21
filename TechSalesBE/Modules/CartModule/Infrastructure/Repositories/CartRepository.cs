@@ -90,6 +90,13 @@ internal sealed class CartRepository : ICartRepository
         return affectedRows == 1;
     }
 
+    public async Task RemoveItemAsync(Guid cartId, Guid productId, CancellationToken cancellationToken)
+    {
+        await _dbContext.CartItems
+            .Where(row => row.CartId == cartId && row.ProductId == productId)
+            .ExecuteDeleteAsync(cancellationToken);
+    }
+
     private static Cart MapToDomain(CartDbModel model, IEnumerable<CartItemDbModel> itemModels)
     {
         List<CartItem> items = itemModels
