@@ -1,0 +1,48 @@
+using CartModule.Application.Repositories;
+using CartModule.Domain.Entities;
+using CartModule.Infrastructure.Persistence;
+using CartModule.Infrastructure.Persistence.Models;
+using Microsoft.EntityFrameworkCore;
+
+namespace CartModule.Infrastructure.Repositories;
+
+internal sealed class CartRepository : ICartRepository
+{
+    private readonly CartDbContext _dbContext;
+
+    public CartRepository(CartDbContext dbContext)
+    {
+        _dbContext = dbContext;
+    }
+
+    public async Task<Cart?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        CartDbModel? model = await _dbContext.Carts
+            .AsNoTracking()
+            .Include(cart => cart.Items)
+            .SingleOrDefaultAsync(cart => cart.UserId == userId, cancellationToken);
+
+        if (model == null)
+        {
+            return null;
+        }
+
+        List<CartItem> items = model.Items
+            .Select(item => new CartItem(item.CartId, item.ProductId, item.Quantity, item.CreatedAt, item.UpdatedAt))
+            .ToList();
+
+        return new Cart(model.Id, model.UserId, items);
+    }
+
+    public async Task<bool> TryCreateAsync(Cart cart, CancellationToken cancellationToken)
+    {
+        int affectedRows = await _dbContext.Database.ExecuteSqlInterpolatedAsync(
+            $"""
+            INSERT INTO cart."Cart" ("Id", "UserId") VALUES ({cart.Id}, {cart.UserId})
+            ON CONFLICT ("UserId") DO NOTHING
+            """,
+            cancellationToken);
+
+        return affectedRows == 1;
+    }
+}

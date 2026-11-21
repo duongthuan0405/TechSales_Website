@@ -5,9 +5,14 @@ namespace CartModule.Domain.Rules;
 
 internal static class CartRules
 {
+    public static bool IsValidId(Guid id)
+    {
+        return id != Guid.Empty;
+    }
+
     public static void EnsureValidId(Guid id, string name)
     {
-        if (id == Guid.Empty)
+        if (!IsValidId(id))
         {
             throw new DomainException(
                 DomainExceptionCode.InvalidId,
