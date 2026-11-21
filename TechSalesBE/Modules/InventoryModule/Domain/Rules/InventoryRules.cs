@@ -5,9 +5,14 @@ namespace InventoryModule.Domain.Rules;
 
 internal static class InventoryRules
 {
+    public static bool IsValidProductId(Guid productId)
+    {
+        return productId != Guid.Empty;
+    }
+
     public static void EnsureProductId(Guid productId)
     {
-        if (productId == Guid.Empty)
+        if (!IsValidProductId(productId))
         {
             throw new DomainException(DomainExceptionCode.INVALID_PRODUCT_ID, DomainExceptionMessage.InvalidProductId);
         }

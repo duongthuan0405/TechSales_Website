@@ -7,10 +7,21 @@ namespace InventoryModule.Domain.Rules;
 
 internal static class ProductUnitRules
 {
+    public static bool IsValidSerialNumber(string? serialNumber)
+    {
+        return !string.IsNullOrWhiteSpace(serialNumber)
+            && !serialNumber.Contains('\0')
+            && serialNumber.EnumerateRunes().Count() <= ProductUnitConstants.MaxSerialNumberLength;
+    }
+
+    public static bool HasDistinctSerialNumbers(IReadOnlyCollection<string> serialNumbers)
+    {
+        return serialNumbers.Distinct(StringComparer.Ordinal).Count() == serialNumbers.Count;
+    }
+
     public static void EnsureSerialNumber(string serialNumber)
     {
-        if (string.IsNullOrWhiteSpace(serialNumber) ||
-            serialNumber.EnumerateRunes().Count() > ProductUnitConstants.MaxSerialNumberLength)
+        if (!IsValidSerialNumber(serialNumber))
         {
             throw new DomainException(
                 DomainExceptionCode.INVALID_SERIAL_NUMBER, DomainExceptionMessage.InvalidSerialNumber);

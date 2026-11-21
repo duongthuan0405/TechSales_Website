@@ -8,4 +8,9 @@ internal interface IInventoryRepository
 
     Task<ProductUnit?> GetProductUnitAsync(
         Guid productId, string serialNumber, CancellationToken cancellationToken);
+
+    Task EnsureStockExistsAsync(Guid productId, CancellationToken cancellationToken);
+    Task<Inventory?> GetStockForUpdateAsync(Guid productId, CancellationToken cancellationToken);
+    Task UpdateStockQuantityAsync(Inventory stock, CancellationToken cancellationToken);
+    void AddProductUnits(List<ProductUnit> units);
 }
