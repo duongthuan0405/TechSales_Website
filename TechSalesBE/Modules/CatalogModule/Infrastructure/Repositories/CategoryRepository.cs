@@ -45,6 +45,18 @@ internal sealed class CategoryRepository : ICategoryRepository
         return Map(row);
     }
 
+    public Task SaveAsync(Category category, CancellationToken cancellationToken)
+    {
+        CategoryDbModel row = new CategoryDbModel
+        {
+            Id = category.Id,
+            Name = category.Name
+        };
+
+        _db.Categorys.Add(row);
+        return Task.CompletedTask;
+    }
+
     private static Category Map(CategoryDbModel row)
     {
         return new Category(row.Id, row.Name);
