@@ -1,13 +1,15 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { authService, LoginParams, RegisterParams } from '../services/authService';
 import { useAuth } from '../app/context/AuthContext';
 
 export const useLoginMutation = () => {
   const { setAuthUser } = useAuth();
+  const queryClient = useQueryClient();
   
   return useMutation({
     mutationFn: (params: LoginParams) => authService.login(params),
     onSuccess: (user) => {
+      queryClient.removeQueries();
       setAuthUser(user);
     }
   });

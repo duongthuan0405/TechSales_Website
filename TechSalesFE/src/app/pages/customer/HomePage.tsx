@@ -5,7 +5,7 @@ import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { useGetProducts } from '../../../dataHook/productDataHook';
-import { useGetCategories } from '../../../dataHook/categoryDataHook';
+import { useGetProductCategories } from '../../../dataHook/productDataHook';
 import { useAddToCart } from '../../../dataHook/cartDataHook';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router';
@@ -13,7 +13,7 @@ import { useNavigate } from 'react-router';
 export function HomePage() {
   const navigate = useNavigate();
   const { data: products = [], isLoading: productsLoading, isError: productsError } = useGetProducts();
-  const { data: categories = [], isLoading: categoriesLoading, isError: categoriesError } = useGetCategories();
+  const { data: categories = [], isLoading: categoriesLoading, isError: categoriesError } = useGetProductCategories();
   const { mutate: addToCart, isPending: isAdding } = useAddToCart();
 
   useEffect(() => {

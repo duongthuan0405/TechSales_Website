@@ -8,17 +8,19 @@ export interface Product {
   name: string;
   description: string;
   price: number;
+  priceIsUnset?: boolean;
   status: ProductStatus;
   categoryId?: string;
   categoryName?: string; // For UI convenience
   imageUrl?: string; // From ProductImage (primary)
   images?: string[]; // All images
-  stock: number; // From Inventory
+  stock?: number; // Available when Inventory has a read API.
   createdAt: string;
   updatedAt?: string;
   
   // UI extended fields (not directly in Product table but calculated or joined)
   rating?: number; // From Review table average
   reviewsCount?: number; // From Review table count
-  brand?: string; // Note: Schema doesn't have brand explicitly, but might be in description or we keep for UI
+  brand?: string; // Display name resolved from BrandId.
+  brandId?: string;
 }

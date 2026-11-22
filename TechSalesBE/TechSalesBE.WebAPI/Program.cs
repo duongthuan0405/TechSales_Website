@@ -1,6 +1,6 @@
 using CommonRegistration = CommonModule.Presentation.ModuleRegistration.ModuleRegistration;
 using AuthRegistration = AuthModule.Presentation.ModuleRegistration.ModuleRegistration;
-using CatalogRegistration = CatalogModule.Presentation.ModuleRegistration.ModuleRegistration;
+using ProductRegistration = ProductModule.Presentation.ModuleRegistration.ModuleRegistration;
 using InventoryRegistration = InventoryModule.Presentation.ModuleRegistration.ModuleRegistration;
 using CartRegistration = CartModule.Presentation.ModuleRegistration.ModuleRegistration;
 using OrderingRegistration = OrderingModule.Presentation.ModuleRegistration.ModuleRegistration;
@@ -49,7 +49,7 @@ namespace TechSalesBE.WebAPI
 
             CommonRegistration.RegisterModule(builder.Services, builder.Configuration);
             AuthRegistration.RegisterModule(builder.Services, builder.Configuration);
-            CatalogRegistration.RegisterModule(builder.Services, builder.Configuration);
+            ProductRegistration.RegisterModule(builder.Services, builder.Configuration);
             InventoryRegistration.RegisterModule(builder.Services, builder.Configuration);
             CartRegistration.RegisterModule(builder.Services, builder.Configuration);
             OrderingRegistration.RegisterModule(builder.Services, builder.Configuration);

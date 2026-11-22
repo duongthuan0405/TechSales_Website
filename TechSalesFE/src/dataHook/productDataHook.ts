@@ -2,6 +2,17 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { productService, ProductQueryParams } from '../services/productService';
 import { Product, ProductStatus } from '../models/ui_types/product';
 
+export const useGetProductLookups = () => useQuery({
+  queryKey: ['product-lookups'],
+  queryFn: () => productService.getLookups(),
+});
+
+export const useGetProductCategories = () => useQuery({
+  queryKey: ['product-lookups'],
+  queryFn: () => productService.getLookups(),
+  select: data => data.categories,
+});
+
 export const useGetProducts = (params?: ProductQueryParams) => {
   return useQuery({
     queryKey: ['products', params],
@@ -45,7 +56,7 @@ export const useCreateProduct = () => {
 export const useUpdateProduct = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Product> }) => 
+    mutationFn: ({ id, data }: { id: string; data: Parameters<typeof productService.updateProduct>[1] }) =>
       productService.updateProduct(id, data),
     onSuccess: (updatedProduct) => {
       queryClient.invalidateQueries({ queryKey: ['products'] });

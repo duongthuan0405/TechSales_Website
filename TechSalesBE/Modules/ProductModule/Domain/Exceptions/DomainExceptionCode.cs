@@ -1,0 +1,13 @@
+namespace ProductModule.Domain.Exceptions;
+
+internal static class DomainExceptionCode
+{
+    public const string INVALID_PRODUCT_NAME = "CATALOG.INVALID_PRODUCT_NAME";
+    public const string INVALID_PRODUCT_DESCRIPTION = "CATALOG.INVALID_PRODUCT_DESCRIPTION";
+    public const string INVALID_PRODUCT_PRICE = "CATALOG.INVALID_PRODUCT_PRICE";
+    public const string INVALID_PRODUCT_BRAND = "CATALOG.INVALID_PRODUCT_BRAND";
+    public const string INVALID_PRODUCT_CATEGORY = "CATALOG.INVALID_PRODUCT_CATEGORY";
+    public const string INVALID_PRODUCT_IMAGE = "CATALOG.INVALID_PRODUCT_IMAGE";
+    public const string INVALID_PRODUCT_IMAGES = "CATALOG.INVALID_PRODUCT_IMAGES";
+    public const string INVALID_PRODUCT_STATUS = "CATALOG.INVALID_PRODUCT_STATUS";
+}

@@ -61,6 +61,7 @@ const roleNavItems: Record<string, NavItem[]> = {
     { icon: <UserCircle className="h-5 w-5" />, label: 'Hồ sơ cá nhân', path: '/business/profile' },
   ],
   'Technical Admin': [
+    { icon: <Package className="h-5 w-5" />, label: 'Quản lý sản phẩm', path: '/business/products' },
     { icon: <Users className="h-5 w-5" />, label: 'Quản lý người dùng', path: '/technical/users' },
     { icon: <FileText className="h-5 w-5" />, label: 'Nhật ký hệ thống', path: '/technical/logs' },
   ],

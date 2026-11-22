@@ -8,7 +8,7 @@ Mỗi module là một project .NET 10, áp dụng Clean Architecture bằng cá
 |---|---|
 | Common | CommonModule |
 | IdentifyAccess | AuthModule (giữ project và namespace hiện có) |
-| CATALOG__DbConnectionString | CatalogModule |
+| Product | ProductModule |
 | INVENTORY__DbConnectionString | InventoryModule |
 | CART__DbConnectionString | CartModule |
 | ORDERING__DbConnectionString | OrderingModule |
@@ -35,6 +35,8 @@ Giao tiếp đồng bộ dùng port của consumer tại Application và adapter
 
 Project reference không tự kích hoạt tính năng tại runtime. Đăng ký DI, handler/validator discovery, controller/endpoint và adapter khi có implementation thật. Program gọi RegisterModule của từng module. Auth đăng ký JWT và service/repository hiện có; Mail đăng ký SMTP và kiểm tra options. Chỉ đăng ký không thực hiện gửi email hoặc kết nối database.
 
+ProductModule dùng mock Brand/Category tạm qua port do Product sở hữu; xem [ProductModule/README.md](ProductModule/README.md). Key `PRODUCT__DbConnectionString` mới vẫn hỗ trợ fallback `CATALOG__DbConnectionString` trong giai đoạn đổi tên.
+
 ## PostgreSQL persistence
 
 Mỗi module nghiệp vụ/tích hợp có DbContext riêng tại `Infrastructure/Persistence`, dùng Npgsql EF Core 10. CommonModule không sở hữu dữ liệu và không có DbContext.
@@ -42,7 +44,7 @@ Mỗi module nghiệp vụ/tích hợp có DbContext riêng tại `Infrastructur
 | Project | Context | Default schema | Environment variable |
 |---|---|---|---|
 | AuthModule | AuthDbContext | identify_access | AUTH__DbConnectionString |
-| CatalogModule | CatalogDbContext | catalog | CATALOG__DbConnectionString |
+| ProductModule | ProductDbContext | catalog (giữ schema cũ) | PRODUCT__DbConnectionString |
 | InventoryModule | InventoryDbContext | inventory | INVENTORY__DbConnectionString |
 | CartModule | CartDbContext | cart | CART__DbConnectionString |
 | OrderingModule | OrderingDbContext | ordering | ORDERING__DbConnectionString |
@@ -57,7 +59,7 @@ Mỗi module có `Presentation/ModuleRegistration/ModuleRegistration.RegisterMod
 
 Mỗi module đọc key riêng dạng `AUTH:DbConnectionString`, tương ứng biến môi trường `AUTH__DbConnectionString`. Không dùng ConnectionStrings hoặc fallback toàn cục. Nếu các module dùng chung một database, gán cùng giá trị cho các biến tương ứng. Cấu hình qua environment/user secrets, không commit credential:
 
-Toàn bộ cấu hình được lưu tập trung tại `TechSalesBE/TechSalesBE.WebAPI/.env`; mẫu chung là `.env.example` cùng thư mục. Các key vẫn chia prefix AUTH__, CATALOG__, CART__, MAIL__... Không còn file mẫu, file .env hay loader riêng trong từng module.
+Toàn bộ cấu hình được lưu tập trung tại `TechSalesBE/TechSalesBE.WebAPI/.env`; mẫu chung là `.env.example` cùng thư mục. Các key vẫn chia prefix AUTH__, PRODUCT__, CART__, MAIL__... Không còn file mẫu, file .env hay loader riêng trong từng module.
 
 Program xác định môi trường rồi gọi EnvironmentConfiguration.Load đúng một lần trước CreateBuilder; chỉ Development mới nạp .env. Cả 11 factory dùng lại loader Common qua DesignTimeConfiguration, không khởi tạo WebAPI hoặc JWT/SMTP. Loader định vị file chung từ project WebAPI hoặc thư mục chứa TechSalesBE.slnx; bản publish dùng `.env` cạnh assembly. File không tự copy vào publish. Production/Staging bỏ qua file hoàn toàn (kể cả --env-file), chỉ dùng cấu hình environment/CLI có sẵn.
 
@@ -76,7 +78,7 @@ Mail RegisterModule gọi đăng ký SMTP hiện có, nên cần MAIL__Host, MAI
 Mỗi context dùng `__EFMigrationsHistory` trong schema riêng và migration assembly của module. Khi đã có entity/storage model và Fluent API configuration, tạo migration riêng theo context; mỗi context có IDesignTimeDbContextFactory riêng, không khởi tạo WebAPI/JWT/SMTP. Ví dụ chạy từ root repository:
 
 ```powershell
-dotnet ef migrations add DescribeNextCatalogChange --project TechSalesBE/Modules/CatalogModule --context CatalogDbContext --output-dir Infrastructure/Persistence/Migrations
+dotnet ef migrations add DescribeNextProductChange --project TechSalesBE/Modules/ProductModule --context ProductDbContext --output-dir Infrastructure/Persistence/Migrations
 ```
 
 Microsoft.EntityFrameworkCore.Design 10.0.14 được khai báo tại từng module và host, với PrivateAssets=all. EF CLI là local tool 10.0.14, khai báo trong `TechSalesBE/.config/dotnet-tools.json`; commit manifest này để cả team dùng cùng phiên bản, không cần cài global. Package Design không tự cung cấp CLI. Common cũng có package theo cấu hình thống nhất nhưng không có DbContext/migration. Không chạy `EnsureCreated` hoặc tự `Migrate` khi startup; áp dụng migration là thao tác riêng khi có yêu cầu. Transaction của các context độc lập dù dùng cùng database; không mặc định atomic giữa module.
@@ -136,7 +138,7 @@ CI/CD đặt DOTNET_ENVIRONMENT=Production và cung cấp `<MODULE>__DbConnectio
 | Module | Số bảng | Migration ban đầu |
 |---|---:|---|
 | Auth | 7 | InitialAuthSchema |
-| Catalog | 4 | InitialCatalogSchema |
+| Product | 4 | InitialCatalogSchema (tên lịch sử) |
 | Inventory | 2 | InitialInventorySchema |
 | Cart | 2 | InitialCartSchema |
 | Ordering | 3 | InitialOrderingSchema |
@@ -159,7 +161,7 @@ RepairType có default REPAIR và sentinel được cấu hình tại Fluent API
 Để xem SQL trước khi triển khai, với EF CLI 10 đã cài:
 
 ```powershell
-dotnet ef migrations script --idempotent --project TechSalesBE/Modules/CatalogModule --context CatalogDbContext
+dotnet ef migrations script --idempotent --project TechSalesBE/Modules/ProductModule --context ProductDbContext
 ```
 
 Tạo migration hoặc script không tạo bảng trong PostgreSQL. Khi thực sự muốn áp dụng, sau khi kiểm tra database và cấu hình `.env` chung của WebAPI, dùng `dotnet ef database update` với project/context tương ứng; chạy riêng cho từng context có migration. Không chạy cho Common/Mail khi chưa có schema nghiệp vụ được định nghĩa.
