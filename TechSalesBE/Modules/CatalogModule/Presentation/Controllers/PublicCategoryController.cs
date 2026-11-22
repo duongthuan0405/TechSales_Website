@@ -1,5 +1,6 @@
 using CatalogModule.Application.Messages;
 using CatalogModule.Application.UseCases.GetAllCategory;
+using CatalogModule.Application.UseCases.GetCategoryById;
 using CatalogModule.Presentation.DTOs;
 using CommonModule.Presentation.ApiResponseModels;
 using MediatR;
@@ -37,6 +38,19 @@ public sealed class PublicCategoryController : ControllerBase
         ApiSuccessResponse<List<CategoryResponseDto>> response = new ApiSuccessResponse<List<CategoryResponseDto>>(
             categories,
             ResponseMessage.ListedCategories);
+        return Ok(response);
+    }
+
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(ApiSuccessResponse<CategoryResponseDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCategoryById([FromRoute] Guid id, CancellationToken cancellationToken)
+    {
+        GetCategoryById_UCInput input = new GetCategoryById_UCInput(id);
+        GetCategoryById_UCOutput output = await _sender.Send(input, cancellationToken);
+        CategoryResponseDto category = new CategoryResponseDto(output.Id, output.Name);
+        ApiSuccessResponse<CategoryResponseDto> response = new ApiSuccessResponse<CategoryResponseDto>(
+            category,
+            ResponseMessage.RetrievedCategory);
         return Ok(response);
     }
 }

@@ -32,6 +32,19 @@ internal sealed class CategoryRepository : ICategoryRepository
         return categories;
     }
 
+    public async Task<Category?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        CategoryDbModel? row = await _db.Categorys
+            .AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
+        if (row == null)
+        {
+            return null;
+        }
+
+        return Map(row);
+    }
+
     private static Category Map(CategoryDbModel row)
     {
         return new Category(row.Id, row.Name);
