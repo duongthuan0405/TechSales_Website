@@ -30,6 +30,18 @@ internal sealed class BrandRepository : IBrandRepository
         return brands;
     }
 
+    public async Task<Brand?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        BrandDbModel? row = await _db.Brands.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
+        if (row == null)
+        {
+            return null;
+        }
+
+        return Map(row);
+    }
+
     public async Task<Brand?> GetByNameAsync(string name, CancellationToken cancellationToken)
     {
         BrandDbModel? row = await _db.Brands.AsNoTracking()
