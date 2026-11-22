@@ -1,4 +1,6 @@
 using CatalogModule.Application.UseCases.CreateBrand;
+using CatalogModule.Application.Messages;
+using CatalogModule.Application.UseCases.UpdateBrand;
 using CatalogModule.Presentation.DTOs;
 using CommonModule.Presentation.ApiResponseModels;
 using MediatR;
@@ -32,5 +34,19 @@ public sealed class BrandController : ControllerBase
         ApiSuccessResponse<BrandResponseDto> response = new ApiSuccessResponse<BrandResponseDto>(data);
 
         return StatusCode(StatusCodes.Status201Created, response);
+    }
+
+    [HttpPut("{id:guid}")]
+    [ProducesResponseType(typeof(ApiSuccessResponse<BrandResponseDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> UpdateBrand(Guid id, [FromBody] UpdateBrandRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        UpdateBrand_UCInput input = new UpdateBrand_UCInput(id, request.Name);
+        UpdateBrand_UCOutput output = await _sender.Send(input, cancellationToken);
+        BrandResponseDto data = new BrandResponseDto(output.Id, output.Name);
+        ApiSuccessResponse<BrandResponseDto> response = new ApiSuccessResponse<BrandResponseDto>(
+            data, ResponseMessage.UpdatedBrand);
+
+        return Ok(response);
     }
 }

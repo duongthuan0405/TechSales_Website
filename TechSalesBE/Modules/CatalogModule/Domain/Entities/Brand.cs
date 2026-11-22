@@ -24,4 +24,14 @@ internal sealed class Brand
     {
         return new Brand(Guid.NewGuid(), name);
     }
+
+    public void Update(string? name)
+    {
+        if (!BrandRules.ValidName(name))
+        {
+            throw new DomainException(DomainExceptionCode.INVALID_BRAND, DomainExceptionMessage.InvalidBrand);
+        }
+
+        Name = name!;
+    }
 }
