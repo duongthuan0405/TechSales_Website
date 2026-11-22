@@ -10,6 +10,7 @@ internal sealed class InventoryStoreFake : IInventoryRepository, IExecuteAtomica
     public Dictionary<(Guid ProductId, string SerialNumber), ProductUnit> Units { get; } = new();
     public List<Guid> LockedProducts { get; } = new();
     public int TransactionCount { get; private set; }
+    public bool SkipStockInitialization { get; set; }
 
     public Task<T> ExecuteAsync<T>(Func<Task<T>> operation, CancellationToken cancellationToken)
     {
@@ -31,7 +32,10 @@ internal sealed class InventoryStoreFake : IInventoryRepository, IExecuteAtomica
 
     public Task EnsureStockExistsAsync(Guid productId, CancellationToken cancellationToken)
     {
-        Stocks.TryAdd(productId, new Inventory(productId, 0, 0));
+        if (!SkipStockInitialization)
+        {
+            Stocks.TryAdd(productId, new Inventory(productId, 0, 0));
+        }
         return Task.CompletedTask;
     }
 

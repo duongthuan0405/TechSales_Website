@@ -95,6 +95,16 @@ public sealed class XlsxStockImportReaderTests
         AssertWorkbookError(overLimit, "File", BusinessExceptionMessage.TooManyImportRows);
     }
 
+    [Fact]
+    public void StopsReadingWhenCancellationWasAlreadyRequested()
+    {
+        using Stream workbook = CreateWorkbook(Header + DataRow(2, ProductId, "SN-1"));
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => _reader.Read(workbook, cancellation.Token));
+    }
+
     private void AssertWorkbookError(Stream workbook, string field, string expectedMessage)
     {
         BusinessException error = Assert.Throws<BusinessException>(() => _reader.Read(workbook, CancellationToken.None));

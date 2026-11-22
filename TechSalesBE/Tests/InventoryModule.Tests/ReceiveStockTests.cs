@@ -97,6 +97,18 @@ public sealed class ReceiveStockTests
         Assert.Equal(valid, result.IsValid);
     }
 
+    [Fact(DisplayName = "INV-REC-17 FailsBeforeWritingWhenInitializedStockCannotBeLoaded")]
+    public async Task FailsBeforeWritingWhenInitializedStockCannotBeLoaded()
+    {
+        _store.SkipStockInitialization = true;
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Receive("SN-1"));
+
+        Assert.Equal(_productId, Assert.Single(_store.LockedProducts));
+        Assert.Empty(_store.Stocks);
+        Assert.Empty(_store.Units);
+    }
+
     private Task<ReceiveStock_UCOutput> Receive(params string[] serialNumbers)
     {
         ReceiveStock_UCHandler handler = new ReceiveStock_UCHandler(new StockReceiver(_store), _store);
