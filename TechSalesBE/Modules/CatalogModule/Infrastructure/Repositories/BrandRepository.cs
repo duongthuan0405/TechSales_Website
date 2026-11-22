@@ -15,6 +15,21 @@ internal sealed class BrandRepository : IBrandRepository
         _db = db;
     }
 
+    public async Task<List<Brand>> GetAllAsync(CancellationToken cancellationToken)
+    {
+        List<BrandDbModel> rows = await _db.Brands.AsNoTracking()
+            .OrderBy(item => item.Name)
+            .ThenBy(item => item.Id)
+            .ToListAsync(cancellationToken);
+        List<Brand> brands = new List<Brand>();
+        foreach (BrandDbModel row in rows)
+        {
+            brands.Add(Map(row));
+        }
+
+        return brands;
+    }
+
     public async Task<Brand?> GetByNameAsync(string name, CancellationToken cancellationToken)
     {
         BrandDbModel? row = await _db.Brands.AsNoTracking()
