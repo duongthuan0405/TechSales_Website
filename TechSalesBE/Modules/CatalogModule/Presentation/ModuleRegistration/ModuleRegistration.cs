@@ -19,6 +19,7 @@ public static class ModuleRegistration
     {
         services.AddCatalogPersistence(configuration);
         services.AddScoped<IBrandRepository, BrandRepository>();
+        services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IExecuteAtomically, ExecuteAtomically>();
         services.AddControllers().AddApplicationPart(typeof(ModuleRegistration).Assembly);
         services.AddMediatR(options =>
