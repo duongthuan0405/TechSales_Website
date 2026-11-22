@@ -24,4 +24,14 @@ internal sealed class Category
     {
         return new Category(Guid.NewGuid(), name);
     }
+
+    public void Update(string? name)
+    {
+        if (!CategoryRules.ValidName(name))
+        {
+            throw new DomainException(DomainExceptionCode.INVALID_CATEGORY, DomainExceptionMessage.InvalidCategory);
+        }
+
+        Name = name!;
+    }
 }

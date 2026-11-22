@@ -45,16 +45,22 @@ internal sealed class CategoryRepository : ICategoryRepository
         return Map(row);
     }
 
-    public Task SaveAsync(Category category, CancellationToken cancellationToken)
+    public async Task SaveAsync(Category category, CancellationToken cancellationToken)
     {
-        CategoryDbModel row = new CategoryDbModel
-        {
-            Id = category.Id,
-            Name = category.Name
-        };
+        CategoryDbModel? row = await _db.Categorys
+            .SingleOrDefaultAsync(item => item.Id == category.Id, cancellationToken);
 
-        _db.Categorys.Add(row);
-        return Task.CompletedTask;
+        if (row == null)
+        {
+            row = new CategoryDbModel
+            {
+                Id = category.Id
+            };
+
+            _db.Categorys.Add(row);
+        }
+
+        row.Name = category.Name;
     }
 
     private static Category Map(CategoryDbModel row)

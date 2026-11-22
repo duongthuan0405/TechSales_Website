@@ -1,4 +1,6 @@
 using CatalogModule.Application.UseCases.CreateCategory;
+using CatalogModule.Application.Messages;
+using CatalogModule.Application.UseCases.UpdateCategory;
 using CatalogModule.Presentation.DTOs;
 using CommonModule.Presentation.ApiResponseModels;
 using MediatR;
@@ -34,5 +36,22 @@ public sealed class CategoryController : ControllerBase
         ApiSuccessResponse<CategoryResponseDto> response = new ApiSuccessResponse<CategoryResponseDto>(data);
 
         return StatusCode(StatusCodes.Status201Created, response);
+    }
+
+    [HttpPut("{id:guid}")]
+    [ProducesResponseType(typeof(ApiSuccessResponse<CategoryResponseDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> UpdateCategory(
+        [FromRoute] Guid id,
+        [FromBody] UpdateCategoryRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        UpdateCategory_UCInput input = new UpdateCategory_UCInput(id, request.Name);
+        UpdateCategory_UCOutput output = await _sender.Send(input, cancellationToken);
+        CategoryResponseDto data = new CategoryResponseDto(output.Id, output.Name);
+        ApiSuccessResponse<CategoryResponseDto> response = new ApiSuccessResponse<CategoryResponseDto>(
+            data,
+            ResponseMessage.UpdatedCategory);
+
+        return Ok(response);
     }
 }
