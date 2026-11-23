@@ -20,6 +20,7 @@ public static class ModuleRegistration
         this IServiceCollection services, IConfiguration configuration)
     {
         services.AddCatalogPersistence(configuration);
+        services.AddScoped<CatalogModule.Contracts.IProductCatalog, ProductCatalog>();
         services.AddScoped<IBrandRepository, BrandRepository>();
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IExecuteAtomically, ExecuteAtomically>();

@@ -77,18 +77,11 @@ namespace CartModule.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("CartModule.Infrastructure.Persistence.Models.CartItemDbModel", b =>
                 {
-                    b.HasOne("CartModule.Infrastructure.Persistence.Models.CartDbModel", "Cart")
-                        .WithMany("Items")
+                    b.HasOne("CartModule.Infrastructure.Persistence.Models.CartDbModel", null)
+                        .WithMany()
                         .HasForeignKey("CartId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("Cart");
-                });
-
-            modelBuilder.Entity("CartModule.Infrastructure.Persistence.Models.CartDbModel", b =>
-                {
-                    b.Navigation("Items");
                 });
 #pragma warning restore 612, 618
         }

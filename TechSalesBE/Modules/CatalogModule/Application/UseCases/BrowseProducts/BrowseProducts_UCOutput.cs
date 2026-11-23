@@ -7,6 +7,8 @@ public sealed record ProductLookupItem(Guid Id, string Name);
 
 public sealed record BrowseProductItem(Guid Id, string Name, string Description, long? Price, string Status,
     Guid BrandId, string BrandName, Guid CategoryId, string CategoryName, DateTimeOffset CreatedAt,
-    DateTimeOffset? UpdatedAt, List<BrowseProductImage> Images);
+    DateTimeOffset? UpdatedAt, List<BrowseProductImage> Images, BrowseProductInventory Inventory);
+
+public sealed record BrowseProductInventory(int Quantity, int ReservedQuantity);
 
 public sealed record BrowseProductImage(Guid Id, string ImageUrl, bool IsPrimary);

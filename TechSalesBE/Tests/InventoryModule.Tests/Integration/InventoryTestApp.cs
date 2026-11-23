@@ -85,6 +85,7 @@ public sealed class InventoryTestApp : IAsyncLifetime
             CommonRegistration.RegisterModule(builder.Services, builder.Configuration);
             AuthRegistration.RegisterModule(builder.Services, builder.Configuration);
             InventoryRegistration.RegisterModule(builder.Services, builder.Configuration);
+            builder.Services.AddSingleton<InventoryModule.Application.Ports.IInventoryProducts, InventoryProductsFake>();
 
             _app = builder.Build();
             await using (var scope = _app.Services.CreateAsyncScope())

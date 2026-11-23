@@ -22,12 +22,13 @@ internal sealed class ImportStock_UCHandler : IRequestHandler<ImportStock_UCInpu
         _transaction = transaction;
     }
 
-    public Task<ImportStock_UCOutput> Handle(ImportStock_UCInput input, CancellationToken cancellationToken)
+    public async Task<ImportStock_UCOutput> Handle(ImportStock_UCInput input, CancellationToken cancellationToken)
     {
         List<StockImportRow> rows = _reader.Read(input.Content, cancellationToken);
         List<ProductUnit> units = ValidateRows(rows, cancellationToken);
 
-        return _transaction.ExecuteAsync(async () =>
+        await _receiver.EnsureProductsExistAsync(units.Select(unit => unit.ProductId).Distinct().ToList(), cancellationToken);
+        return await _transaction.ExecuteAsync(async () =>
         {
             List<ImportStock_UCOutput.ProductStock> products = new List<ImportStock_UCOutput.ProductStock>();
             foreach (IGrouping<Guid, ProductUnit> product in units.GroupBy(unit => unit.ProductId).OrderBy(group => group.Key))

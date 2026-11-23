@@ -11,6 +11,29 @@ namespace InventoryModule.Tests;
 
 public sealed class ImportStockTests
 {
+    [Fact]
+    public async Task Unknown_product_in_workbook_prevents_the_entire_import()
+    {
+        InventoryStoreFake store = new InventoryStoreFake();
+        InventoryProductsFake products = new InventoryProductsFake();
+        Guid missing = Guid.NewGuid();
+        products.MissingIds.Add(missing);
+        List<StockImportRow> rows = new List<StockImportRow>
+        {
+            new StockImportRow(2, Guid.NewGuid().ToString(), "VALID-001"),
+            new StockImportRow(3, missing.ToString(), "MISSING-001")
+        };
+        ImportStock_UCHandler handler = new ImportStock_UCHandler(new WorkbookReaderStub(rows),
+            new StockReceiver(store, products), store);
+        var error = await Assert.ThrowsAsync<CommonModule.BusinessExceptions.BusinessException>(() =>
+            handler.Handle(new ImportStock_UCInput(Stream.Null, "stock.xlsx", 100), default));
+        Assert.Equal(CommonModule.BusinessExceptions.BusinessExceptionCode.NOT_FOUND, error.Code);
+        Assert.Empty(store.Stocks);
+        Assert.Empty(store.Units);
+        Assert.Equal(0, store.TransactionCount);
+        Assert.Equal(2, Assert.Single(products.Calls).Count);
+    }
+
     private static readonly Guid FirstProduct = Guid.Parse("11111111-1111-4111-8111-111111111111");
     private static readonly Guid SecondProduct = Guid.Parse("22222222-2222-4222-8222-222222222222");
     private readonly InventoryStoreFake _store = new();
@@ -98,7 +121,7 @@ public sealed class ImportStockTests
     private async Task<ImportStock_UCOutput> Import(params StockImportRow[] rows)
     {
         ImportStock_UCHandler handler = new ImportStock_UCHandler(
-            new WorkbookReaderStub(rows.ToList()), new StockReceiver(_store), _store);
+            new WorkbookReaderStub(rows.ToList()), new StockReceiver(_store, new InventoryProductsFake()), _store);
         return await handler.Handle(new ImportStock_UCInput(Stream.Null, "inventory.xlsx", 100), CancellationToken.None);
     }
 

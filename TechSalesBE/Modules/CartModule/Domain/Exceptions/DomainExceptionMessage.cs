@@ -2,6 +2,7 @@ namespace CartModule.Domain.Exceptions;
 
 internal static class DomainExceptionMessage
 {
+    public const string ProductUnavailable = "Sản phẩm đã ngừng kinh doanh, không thể thêm hoặc cập nhật trong giỏ hàng.";
     public const string InvalidId = "{0} must not be empty.";
     public const string InvalidQuantity = "Cart item quantity must be greater than zero.";
     public const string QuantityOverflow = "Cart item quantity exceeds the supported integer range.";

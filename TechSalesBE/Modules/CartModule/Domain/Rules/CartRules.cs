@@ -5,6 +5,13 @@ namespace CartModule.Domain.Rules;
 
 internal static class CartRules
 {
+    public static void EnsureProductPurchasable(string status)
+    {
+        if (status != "ACTIVE")
+        {
+            throw new DomainException(DomainExceptionCode.ProductUnavailable, DomainExceptionMessage.ProductUnavailable);
+        }
+    }
     public static bool IsValidId(Guid id)
     {
         return id != Guid.Empty;

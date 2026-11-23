@@ -9,6 +9,42 @@ namespace CatalogModule.Tests;
 
 public sealed class BrowseProductsApiTests
 {
+    [Fact]
+    public async Task Product_list_and_detail_include_available_and_reserved_stock()
+    {
+        ProductInventoryFake inventory = new ProductInventoryFake();
+        await using ProductTestApp app = await ProductTestApp.CreateAsync(inventory: inventory);
+        (Guid active, _) = await SeedAsync(app);
+        inventory.Stocks.Add(new CatalogModule.Application.Ports.ProductInventory(active, 7, 3));
+        foreach (string route in new List<string> { "/api/products", $"/api/products/{active}" })
+        {
+            using HttpResponseMessage response = await app.SendAsync(HttpMethod.Get, route);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            using JsonDocument json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+            JsonElement stock = json.RootElement.GetProperty("data").GetProperty("items")[0].GetProperty("inventory");
+            Assert.Equal(7, stock.GetProperty("quantity").GetInt32());
+            Assert.Equal(3, stock.GetProperty("reservedQuantity").GetInt32());
+        }
+        inventory.Stocks.Clear();
+        using HttpResponseMessage missingStock = await app.SendAsync(HttpMethod.Get, $"/api/products/{active}");
+        using JsonDocument missing = JsonDocument.Parse(await missingStock.Content.ReadAsStringAsync());
+        Assert.Equal(0, missing.RootElement.GetProperty("data").GetProperty("items")[0]
+            .GetProperty("inventory").GetProperty("quantity").GetInt32());
+    }
+
+    [Fact]
+    public async Task Catalog_contract_reads_real_products_including_discontinued_without_inventory_dependency()
+    {
+        await using ProductTestApp app = await ProductTestApp.CreateAsync();
+        (Guid active, Guid inactive) = await SeedAsync(app);
+        var products = await app.WithDatabaseAsync(db =>
+            new CatalogModule.Infrastructure.Services.ProductCatalog(db).GetProductsAsync(
+                new List<Guid> { active, inactive, Guid.NewGuid() }, CancellationToken.None));
+        Assert.Equal(2, products.Count);
+        Assert.Equal("Mock brand", products.Single(product => product.Id == active).BrandName);
+        Assert.Equal("DISCONTINUED", products.Single(product => product.Id == inactive).Status);
+    }
+
     [Theory]
     [InlineData("/api/products", 1)]
     [InlineData("/api/admin/products", 2)]

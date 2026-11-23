@@ -10,6 +10,7 @@ interface ProductRecord {
   id: string; name: string; description: string; price: number | null; status: ProductStatus;
   brandId: string; brandName?: string; categoryId: string; categoryName?: string;
   createdAt: string; updatedAt?: string;
+  inventory?: { quantity: number; reservedQuantity: number };
   images: { id: string; imageUrl: string; isPrimary: boolean }[];
 }
 interface ProductPage {
@@ -27,6 +28,7 @@ const mapProduct = (row: ProductRecord, lookups: { brands: ProductLookup[]; cate
   brand: row.brandName ?? lookups.brands.find(brand => brand.id === row.brandId)?.name,
   categoryName: row.categoryName ?? lookups.categories.find(category => category.id === row.categoryId)?.name,
   createdAt: row.createdAt, updatedAt: row.updatedAt,
+  stock: row.inventory?.quantity,
   imageUrl: apiAssetUrl(row.images.find(image => image.isPrimary)?.imageUrl ?? row.images[0]?.imageUrl),
   images: row.images.map(image => apiAssetUrl(image.imageUrl)!),
   imageDetails: row.images.map(image => ({ ...image, imageUrl: apiAssetUrl(image.imageUrl)! })),

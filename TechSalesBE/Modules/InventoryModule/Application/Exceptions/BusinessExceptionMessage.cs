@@ -6,6 +6,7 @@ namespace InventoryModule.Application.Exceptions;
 
 internal static class BusinessExceptionMessage
 {
+    public const string ProductNotFound = "Không tìm thấy một hoặc nhiều sản phẩm trong Catalog.";
     public const string InvalidProductId = DomainExceptionMessage.InvalidProductId;
     public static readonly string InvalidSerialNumber = DomainExceptionMessage.InvalidSerialNumber;
     public const string SerialNumbersRequired = "Specify at least one serial number.";

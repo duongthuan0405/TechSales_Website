@@ -18,6 +18,7 @@ public static class ModuleRegistration
         this IServiceCollection services, IConfiguration configuration)
     {
         services.AddInventoryPersistence(configuration);
+        services.AddScoped<InventoryModule.Contracts.IInventoryQuery, InventoryQuery>();
         services.AddScoped<IInventoryRepository, InventoryRepository>();
         services.AddScoped<IExecuteAtomically, ExecuteAtomically>();
         services.AddScoped<IStockImportWorkbookReader, XlsxStockImportReader>();

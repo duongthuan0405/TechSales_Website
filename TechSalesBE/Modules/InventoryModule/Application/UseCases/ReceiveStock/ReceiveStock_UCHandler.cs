@@ -16,13 +16,14 @@ internal sealed class ReceiveStock_UCHandler : IRequestHandler<ReceiveStock_UCIn
         _transaction = transaction;
     }
 
-    public Task<ReceiveStock_UCOutput> Handle(ReceiveStock_UCInput input, CancellationToken cancellationToken)
+    public async Task<ReceiveStock_UCOutput> Handle(ReceiveStock_UCInput input, CancellationToken cancellationToken)
     {
         List<ProductUnit> units = input.SerialNumbers
             .Select(serialNumber => new ProductUnit(input.ProductId, serialNumber))
             .ToList();
 
-        return _transaction.ExecuteAsync(async () =>
+        await _receiver.EnsureProductsExistAsync(new List<Guid> { input.ProductId }, cancellationToken);
+        return await _transaction.ExecuteAsync(async () =>
         {
             Inventory stock = await _receiver.ReceiveAsync(input.ProductId, units, cancellationToken);
 

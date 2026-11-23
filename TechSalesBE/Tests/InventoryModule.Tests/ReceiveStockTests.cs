@@ -10,6 +10,21 @@ namespace InventoryModule.Tests;
 
 public sealed class ReceiveStockTests
 {
+    [Fact]
+    public async Task Missing_catalog_product_is_rejected_before_stock_is_written()
+    {
+        InventoryStoreFake store = new InventoryStoreFake();
+        InventoryProductsFake products = new InventoryProductsFake();
+        Guid id = Guid.NewGuid();
+        products.MissingIds.Add(id);
+        StockReceiver receiver = new StockReceiver(store, products);
+        await Assert.ThrowsAsync<CommonModule.BusinessExceptions.BusinessException>(() =>
+            receiver.EnsureProductsExistAsync(new List<Guid> { id }, CancellationToken.None));
+        Assert.Empty(store.Stocks);
+        Assert.Empty(store.Units);
+        Assert.Equal(0, store.TransactionCount);
+    }
+
     private readonly Guid _productId = Guid.NewGuid();
     private readonly InventoryStoreFake _store = new();
     private readonly ReceiveStock_UCInput_Validator _validator = new();
@@ -111,7 +126,7 @@ public sealed class ReceiveStockTests
 
     private Task<ReceiveStock_UCOutput> Receive(params string[] serialNumbers)
     {
-        ReceiveStock_UCHandler handler = new ReceiveStock_UCHandler(new StockReceiver(_store), _store);
+        ReceiveStock_UCHandler handler = new ReceiveStock_UCHandler(new StockReceiver(_store, new InventoryProductsFake()), _store);
         return handler.Handle(new ReceiveStock_UCInput(_productId, serialNumbers.ToList()), CancellationToken.None);
     }
 }

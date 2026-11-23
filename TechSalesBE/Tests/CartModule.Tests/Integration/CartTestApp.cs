@@ -75,14 +75,14 @@ public sealed class CartTestApp : IAsyncLifetime
             CommonRegistration.RegisterModule(builder.Services, builder.Configuration);
             AuthRegistration.RegisterModule(builder.Services, builder.Configuration);
             CartRegistration.RegisterModule(builder.Services, builder.Configuration);
+            builder.Services.AddSingleton<CartModule.Application.Ports.ICartProducts, CartProductsFake>();
 
             _app = builder.Build();
             await using (var scope = _app.Services.CreateAsyncScope())
             {
                 await scope.ServiceProvider.GetRequiredService<AuthDbContext>().Database.EnsureCreatedAsync();
-                // The following CREATE_Db migration repeats the initial Cart DDL on this branch.
                 await scope.ServiceProvider.GetRequiredService<CartDbContext>().Database
-                    .MigrateAsync("20261116100919_InitialCartSchema");
+                    .MigrateAsync();
             }
 
             _app.UseMiddleware<GlobalExceptionMiddleware>();

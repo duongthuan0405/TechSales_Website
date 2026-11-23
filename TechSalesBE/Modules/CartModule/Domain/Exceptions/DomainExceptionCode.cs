@@ -2,6 +2,7 @@ namespace CartModule.Domain.Exceptions;
 
 internal static class DomainExceptionCode
 {
+    public const string ProductUnavailable = "CART.PRODUCT_UNAVAILABLE";
     public const string InvalidId = "CART_INVALID_ID";
     public const string InvalidQuantity = "CART_INVALID_QUANTITY";
     public const string QuantityOverflow = "CART_QUANTITY_OVERFLOW";

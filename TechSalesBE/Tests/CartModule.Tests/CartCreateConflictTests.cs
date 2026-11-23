@@ -20,12 +20,12 @@ public sealed class CartCreateConflictTests
         Task request;
         if (add)
         {
-            request = new AddCartItem_UCHandler(store, new ImmediateTransaction())
+            request = new AddCartItem_UCHandler(store, new ImmediateTransaction(), new CartProductsFake())
                 .Handle(new AddCartItem_UCInput(user, product, 2), CancellationToken.None);
         }
         else
         {
-            request = new GetCart_UCHandler(store).Handle(new GetCart_UCInput(user), CancellationToken.None);
+            request = new GetCart_UCHandler(store, new CartProductsFake()).Handle(new GetCart_UCInput(user), CancellationToken.None);
         }
 
         InvalidOperationException failure = await Assert.ThrowsAsync<InvalidOperationException>(() => request);

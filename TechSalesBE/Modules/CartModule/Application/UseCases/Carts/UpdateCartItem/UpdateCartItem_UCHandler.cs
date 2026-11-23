@@ -6,6 +6,8 @@ using CartModule.Domain.Exceptions;
 using CommonModule.BusinessExceptions;
 using CommonModule.Domain.Exceptions;
 using MediatR;
+using CartModule.Application.Ports;
+using CartModule.Domain.Rules;
 
 namespace CartModule.Application.UseCases.Carts.UpdateCartItem;
 
@@ -13,11 +15,13 @@ internal sealed class UpdateCartItem_UCHandler : IRequestHandler<UpdateCartItem_
 {
     private readonly ICartRepository _carts;
     private readonly IExecuteAtomically _transaction;
+    private readonly ICartProducts _products;
 
-    public UpdateCartItem_UCHandler(ICartRepository carts, IExecuteAtomically transaction)
+    public UpdateCartItem_UCHandler(ICartRepository carts, IExecuteAtomically transaction, ICartProducts products)
     {
         _carts = carts;
         _transaction = transaction;
+        _products = products;
     }
 
     public Task<UpdateCartItem_UCOutput> Handle(UpdateCartItem_UCInput input, CancellationToken cancellationToken)
@@ -29,6 +33,13 @@ internal sealed class UpdateCartItem_UCHandler : IRequestHandler<UpdateCartItem_
 
             CartItem item;
             bool changed;
+            CartProduct? product = (await _products.GetProductsAsync(new List<Guid> { input.ProductId }, cancellationToken))
+                .SingleOrDefault();
+            if (product == null)
+            {
+                throw new BusinessException(BusinessExceptionCode.NOT_FOUND, BusinessExceptionMessage.ProductNotFound);
+            }
+            CartRules.EnsureProductPurchasable(product.Status);
             try
             {
                 (item, changed) = cart.UpdateItemQuantity(input.ProductId, input.Quantity, DateTimeOffset.UtcNow);

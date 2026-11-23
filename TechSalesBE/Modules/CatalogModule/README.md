@@ -5,6 +5,27 @@ Tất cả repository dùng chung CatalogDbContext. IProductReferenceData đư�
 Infrastructure/Services/ProductReferenceData.cs, đọc dữ liệu thật từ repository Brand/Category.
 Host chỉ đăng ký CatalogModule, không còn adapter dữ liệu tham chiếu giả.
 
+## Contract với Cart và Inventory
+
+`Contracts/IProductCatalog` cung cấp snapshot sản phẩm theo danh sách ID, bao gồm
+trạng thái, giá, Brand/Category và ảnh. Contract đọc trực tiếp dữ liệu Catalog,
+không gọi API BrowseProducts hay Inventory nên không tạo vòng gọi giữa hai module.
+
+API GET Product (public/admin, danh sách/chi tiết) trả thêm thuộc tính:
+
+```json
+{ "inventory": { "quantity": 7, "reservedQuantity": 3 } }
+```
+
+`quantity` là tồn khả dụng, đã tách khỏi số lượng đang giữ chỗ; không trừ
+`reservedQuantity` lần nữa. Sản phẩm chưa có bản ghi Inventory trả cả hai số bằng 0.
+Dữ liệu tồn kho được lấy theo lô cho các sản phẩm trên trang hiện tại thông qua
+`IProductInventory` và contract `InventoryModule.Contracts.IInventoryQuery`.
+Frontend ánh xạ `inventory.quantity` sang `Product.stock`.
+
+Cart và Inventory sở hữu port Application riêng; adapter tại WebAPI/Integration
+nối các port với contract. Không thêm project reference giữa các module nghiệp vụ.
+
 Giữ nguyên các route API, mã lỗi CATALOG.*, schema catalog, bảng và ID migration hiện có.
 Namespace và metadata migration dùng CatalogModule/CatalogDbContext; không thay đổi schema database.
 Cấu hình bằng CATALOG__DbConnectionString. Không chạy migration hay seed khi khởi động.
