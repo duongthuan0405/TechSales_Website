@@ -22,14 +22,6 @@ internal sealed class ShippingFeeRepository : IShippingFeeRepository
             throw new InvalidOperationException("Saving shipping fees requires an active transaction.");
         }
 
-        if (_db.Database.IsNpgsql())
-        {
-            // Also serialize concurrent creation when this province has no fee row yet.
-            string lockKey = $"shipping-fee:{shippingFee.ProvinceCode}";
-            await _db.Database.ExecuteSqlInterpolatedAsync(
-                $"SELECT pg_advisory_xact_lock(hashtextextended({lockKey}, 0))", cancellationToken);
-        }
-
         ShippingFeeDbModel? row = await _db.ShippingFees
             .SingleOrDefaultAsync(item => item.ProviceCode == shippingFee.ProvinceCode, cancellationToken);
         if (row == null)

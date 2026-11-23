@@ -24,6 +24,7 @@ public static class ModuleRegistration
         services.AddScoped<ILocationRepository, LocationRepository>();
         services.AddScoped<IShippingFeeRepository, ShippingFeeRepository>();
         services.AddScoped<IShippingAddressRepository, ShippingAddressRepository>();
+        services.AddScoped<IShippingAddressLockService, ShippingAddressLockService>();
         services.AddScoped<IExecuteAtomically, ExecuteAtomically>();
         services.AddControllers().AddApplicationPart(typeof(ModuleRegistration).Assembly);
         services.AddMediatR(options =>

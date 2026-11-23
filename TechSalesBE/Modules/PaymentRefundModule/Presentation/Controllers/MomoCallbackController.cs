@@ -18,27 +18,15 @@ public sealed class MomoCallbackController : ControllerBase
         _sender = sender;
     }
 
-    // Display redirect parameters for diagnostics only. Payment state is updated by the signed IPN.
+    // Display redirect parameters only; confirmed payment state comes from IPN or polling.
     [AllowAnonymous]
     [HttpGet("return")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public IActionResult ReceiveReturn(
-        [FromQuery] string? orderId,
-        [FromQuery] string? requestId,
-        [FromQuery] string? resultCode,
-        [FromQuery] string? transId,
-        [FromQuery] string? amount,
-        [FromQuery] string? message)
+    public IActionResult ReceiveReturn()
     {
-        return Ok(new
-        {
-            orderId,
-            requestId,
-            resultCode,
-            transId,
-            amount,
-            message
-        });
+        Dictionary<string, string> parameters = Request.Query.ToDictionary(
+            parameter => parameter.Key, parameter => parameter.Value.ToString());
+        return Ok(parameters);
     }
 
     [AllowAnonymous]

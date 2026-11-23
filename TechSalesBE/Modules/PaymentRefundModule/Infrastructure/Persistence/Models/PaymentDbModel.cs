@@ -11,6 +11,7 @@ internal sealed class PaymentDbModel
     public Guid TransactionMethodId { get; set; }
     public TransactionStatus Status { get; set; }
     public long Amount { get; set; }
+    public string? PaymentUrl { get; set; }
     public string? TransactionRef { get; set; }
     public string? FailureReason { get; set; }
     public DateTimeOffset? CompletedAt { get; set; }

@@ -2,6 +2,8 @@ namespace PaymentRefundModule.Application.Exceptions;
 
 internal static class BusinessExceptionMessage
 {
+    public const string PaymentClientIpInvalid = "Không xác định được địa chỉ IP của khách hàng để tạo liên kết thanh toán.";
+    public const string VnpayAmountInvalid = "Số tiền thanh toán VNPAY phải từ 1 đến 9.999.999.999 VNĐ.";
     public const string PaymentNotificationInvalid = "Thông báo thanh toán không khớp giao dịch hoặc không hợp lệ.";
     public const string MomoIpnInvalid = "Thông báo thanh toán MoMo không hợp lệ hoặc không khớp giao dịch.";
     public const string PaymentGatewayNotConfigured = "Cổng thanh toán chưa được tích hợp. Chưa thể tạo liên kết thanh toán.";

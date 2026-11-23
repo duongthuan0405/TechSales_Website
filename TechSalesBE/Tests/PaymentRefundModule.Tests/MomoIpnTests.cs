@@ -19,7 +19,6 @@ using PaymentRefundModule.Application.UseCases.ProcessPaymentNotification;
 using PaymentRefundModule.Application.UseCases.ReceiveMomoIpn;
 using PaymentRefundModule.Domain.Entities;
 using PaymentRefundModule.Domain.Enums;
-using PaymentRefundModule.Infrastructure.Payments.Options;
 using PaymentRefundModule.Infrastructure.Payments;
 using PaymentRefundModule.Infrastructure.Payments.Momo;
 using PaymentRefundModule.Presentation.Controllers;
@@ -285,7 +284,6 @@ public sealed class MomoIpnTests
             UpdateCount++;
             return Task.CompletedTask;
         }
-        public Task LockReferenceAsync(PaymentType type, Guid refId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task AddAsync(Payment payment, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<Payment?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {

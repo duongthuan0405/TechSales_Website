@@ -78,7 +78,8 @@ public sealed class PaymentController : ControllerBase
     [ProducesResponseType(typeof(ApiSuccessResponse<CheckoutPayment_UCOutput>), StatusCodes.Status200OK)]
     public async Task<IActionResult> CheckoutPayment(Guid id, CancellationToken cancellationToken)
     {
-        CheckoutPayment_UCInput input = new CheckoutPayment_UCInput(this.GetActorId(), id);
+        CheckoutPayment_UCInput input = new CheckoutPayment_UCInput(
+            this.GetActorId(), id, HttpContext.Connection.RemoteIpAddress?.ToString());
         CheckoutPayment_UCOutput output = await _sender.Send(input, cancellationToken);
         return Ok(new ApiSuccessResponse<CheckoutPayment_UCOutput>(output));
     }

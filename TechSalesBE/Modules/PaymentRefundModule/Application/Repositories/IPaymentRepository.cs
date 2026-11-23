@@ -5,7 +5,6 @@ namespace PaymentRefundModule.Application.Repositories;
 
 internal interface IPaymentRepository
 {
-    Task LockReferenceAsync(PaymentType type, Guid refId, CancellationToken cancellationToken = default);
     Task AddAsync(Payment payment, CancellationToken cancellationToken = default);
     Task<Payment?> GetByIdForUpdateAsync(Guid id, CancellationToken cancellationToken = default);
     Task UpdateAsync(Payment payment, CancellationToken cancellationToken = default);

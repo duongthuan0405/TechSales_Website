@@ -124,6 +124,7 @@ public sealed class PaymentContractTests
         });
         services.AddValidatorsFromAssembly(typeof(PaymentCreationService).Assembly, includeInternalTypes: true);
         services.AddSingleton<IPaymentRepository>(repository);
+        services.AddSingleton<IPaymentLockService>(new LockService(repository));
         services.AddSingleton<ITransactionMethodRepository, Methods>();
         services.AddSingleton<IOrderOwnershipPort, Source>();
         services.AddSingleton<IRepairOwnershipPort, Source>();
@@ -180,17 +181,28 @@ public sealed class PaymentContractTests
         }
     }
 
+    private sealed class LockService : IPaymentLockService
+    {
+        private readonly Repository _repository;
+
+        public LockService(Repository repository)
+        {
+            _repository = repository;
+        }
+
+        public Task LockReferenceAsync(PaymentType type, Guid refId, CancellationToken cancellationToken = default)
+        {
+            Assert.True(_repository.InTransaction);
+            _repository.LockCount++;
+            return Task.CompletedTask;
+        }
+    }
+
     private sealed class Repository : IPaymentRepository
     {
         internal List<Payment> Items { get; } = new List<Payment>();
         internal bool InTransaction { get; set; }
-        internal int LockCount { get; private set; }
-        public Task LockReferenceAsync(PaymentType type, Guid refId, CancellationToken cancellationToken = default)
-        {
-            Assert.True(InTransaction);
-            LockCount++;
-            return Task.CompletedTask;
-        }
+        internal int LockCount { get; set; }
         public Task<Payment?> GetByIdForUpdateAsync(Guid id, CancellationToken cancellationToken = default)
         {
             Assert.True(InTransaction);

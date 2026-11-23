@@ -102,7 +102,8 @@ namespace PromotionModule.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Code")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasDatabaseName("IX_Voucher_Code");
 
                     b.ToTable("Voucher", "promotion");
                 });

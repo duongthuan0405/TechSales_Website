@@ -1,7 +1,6 @@
 using PaymentRefundModule.Application.Services.Payments;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
-using PaymentRefundModule.Infrastructure.Payments.Options;
 using PaymentRefundModule.Infrastructure.Payments.Momo.Models;
 using System.Globalization;
 using System.Security.Cryptography;
@@ -16,19 +15,16 @@ namespace PaymentRefundModule.Infrastructure.Payments.Momo;
 internal sealed class MomoPaymentStrategy : IPaymentGatewayStrategy
 {
     private readonly MomoOptions _momoOptions;
-    private readonly HookBackOptions _hookBackOptions;
     private readonly HttpClient _httpClient;
     private readonly ILogger<MomoPaymentStrategy> _logger;
 
     public MomoPaymentStrategy(
         HttpClient httpClient,
         IOptions<MomoOptions> momoOptions,
-        IOptions<HookBackOptions> hookBackOptions,
         ILogger<MomoPaymentStrategy> logger)
     {
         _httpClient = httpClient;
         _momoOptions = momoOptions.Value;
-        _hookBackOptions = hookBackOptions.Value;
         _logger = logger;
     }
 
@@ -36,6 +32,11 @@ internal sealed class MomoPaymentStrategy : IPaymentGatewayStrategy
 
     private MomoCreatePaymentRequest BuildCreatePaymentRequest(PaymentCheckoutRequest request)
     {
+        if (_momoOptions.ExpirationMinutes <= 0)
+        {
+            throw new BusinessException(BusinessExceptionCode.CONFLICT, BusinessExceptionMessage.PaymentGatewayNotConfigured);
+        }
+
         MomoCreatePaymentRequest momoRequest = new MomoCreatePaymentRequest
         {
             PartnerCode = _momoOptions.PartnerCode,
@@ -43,8 +44,9 @@ internal sealed class MomoPaymentStrategy : IPaymentGatewayStrategy
             OrderId = request.PaymentId.ToString("N"),
             Amount = request.Amount,
             OrderInfo = $"Thanh toán giao dịch {request.PaymentId:D}",
-            RedirectUrl = _hookBackOptions.RedirectUrl,
-            IpnUrl = _momoOptions.IpnUrl
+            RedirectUrl = _momoOptions.RedirectUrl,
+            IpnUrl = _momoOptions.IpnUrl,
+            OrderExpireTime = _momoOptions.ExpirationMinutes
         };
 
         momoRequest.Signature = CreateSignature(momoRequest);
@@ -76,12 +78,13 @@ internal sealed class MomoPaymentStrategy : IPaymentGatewayStrategy
         PaymentCheckoutRequest request, CancellationToken cancellationToken = default)
     {
         MomoCreatePaymentRequest momoRequest = BuildCreatePaymentRequest(request);
+        // Local cutoff from request start; captureWallet enforcement is still experimental.
+        DateTimeOffset expiresAt = DateTimeOffset.UtcNow.AddMinutes(_momoOptions.ExpirationMinutes);
         string? responseBody = null;
         int? statusCode = null;
 
         try
         {
-            Console.WriteLine(momoRequest.IpnUrl);
             using HttpResponseMessage response = await _httpClient.PostAsJsonAsync("create", momoRequest, cancellationToken);
             statusCode = (int)response.StatusCode;
             responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -103,7 +106,7 @@ internal sealed class MomoPaymentStrategy : IPaymentGatewayStrategy
                 throw new BusinessException(BusinessExceptionCode.CONFLICT, ExceptionMessage.PaymentGatewayRequestFailed);
             }
 
-            return new PaymentCheckoutResult(result.PayUrl);
+            return new PaymentCheckoutResult(result.PayUrl, expiresAt);
         }
         catch (HttpRequestException exception)
         {

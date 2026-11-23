@@ -14,13 +14,15 @@ internal sealed class CheckoutPayment_UCHandler : IRequestHandler<CheckoutPaymen
     private readonly IPaymentRepository _payments;
     private readonly PaymentOwnershipService _ownership;
     private readonly IPaymentGatewayFactory _gatewayFactory;
+    private readonly IExecuteAtomically _transaction;
 
     public CheckoutPayment_UCHandler(IPaymentRepository payments,
-        PaymentOwnershipService ownership, IPaymentGatewayFactory gatewayFactory)
+        PaymentOwnershipService ownership, IPaymentGatewayFactory gatewayFactory, IExecuteAtomically transaction)
     {
         _payments = payments;
         _ownership = ownership;
         _gatewayFactory = gatewayFactory;
+        _transaction = transaction;
     }
 
     public async Task<CheckoutPayment_UCOutput> Handle(CheckoutPayment_UCInput request, CancellationToken cancellationToken)
@@ -42,10 +44,27 @@ internal sealed class CheckoutPayment_UCHandler : IRequestHandler<CheckoutPaymen
         }
         PaymentRules.EnsureCheckoutAllowed(method.Type, payment.Status);
 
+        if (!string.IsNullOrWhiteSpace(payment.PaymentUrl))
+        {
+            return new CheckoutPayment_UCOutput(payment.Id, payment.PaymentUrl);
+        }
+
         IPaymentGatewayStrategy strategy = await _gatewayFactory.GetStrategyAsync(method.Id, cancellationToken);
-        PaymentCheckoutRequest checkoutRequest = new PaymentCheckoutRequest(payment.Id, payment.Amount);
-        // Session persistence and concurrency handling must be added with the gateway integration.
+        PaymentCheckoutRequest checkoutRequest = new PaymentCheckoutRequest(payment.Id, payment.Amount, request.ClientIpAddress);
         PaymentCheckoutResult result = await strategy.CheckoutAsync(checkoutRequest, cancellationToken);
-        return new CheckoutPayment_UCOutput(payment.Id, result.PaymentUrl);
+        return await _transaction.ExecuteAtomicallyAsync(async () =>
+        {
+            // Reload under lock so a callback received during checkout is not overwritten.
+            Payment? current = await _payments.GetByIdForUpdateAsync(payment.Id, cancellationToken);
+            if (current == null)
+            {
+                throw new BusinessException(BusinessExceptionCode.NOT_FOUND, BusinessExceptionMessage.PaymentNotFound);
+            }
+
+            current.SetPaymentUrl(result.PaymentUrl);
+            await _payments.UpdateAsync(current, cancellationToken);
+            return new CheckoutPayment_UCOutput(current.Id, current.PaymentUrl!);
+        }, cancellationToken);
     }
+
 }

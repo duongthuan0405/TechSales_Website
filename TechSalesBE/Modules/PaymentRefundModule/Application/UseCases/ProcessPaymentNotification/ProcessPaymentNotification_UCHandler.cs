@@ -40,6 +40,16 @@ internal sealed class ProcessPaymentNotification_UCHandler : IRequestHandler<Pro
                 throw new BusinessException(BusinessExceptionCode.BAD_REQUEST, BusinessExceptionMessage.PaymentNotificationInvalid);
             }
 
+            if (request.Status == PaymentNotificationStatus.Failed)
+            {
+                bool failed = payment.FailOnline(request.TransactionRef);
+                if (failed)
+                {
+                    await _payments.UpdateAsync(payment, cancellationToken);
+                }
+                return new ProcessPaymentNotification_UCOutput(failed);
+            }
+
             if (request.Status != PaymentNotificationStatus.Success)
             {
                 _logger.LogWarning("Payment notification left payment unchanged. PaymentId: {PaymentId}, GatewayCode: {GatewayCode}, Status: {Status}",
