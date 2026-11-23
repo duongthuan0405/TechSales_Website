@@ -1,3 +1,4 @@
+import { ListPagination } from '../../components/ui/list-pagination';
 import { useDebouncedValue } from '../../../dataHook/useDebouncedValue';
 import { useApiError } from '../../../dataHook/useApiError';
 import { useState } from "react";
@@ -32,7 +33,6 @@ import {
   Search,
   Plus,
   Loader2,
-  Tag,
   Edit,
   Trash2,
   AlertTriangle,
@@ -40,7 +40,7 @@ import {
   ArrowRightLeft
 } from "lucide-react";
 import {
-  useGetCategories,
+  useGetAdminCategories,
   useCreateCategory,
   useUpdateCategory,
   useDeleteCategory
@@ -50,14 +50,20 @@ import { toast } from "sonner";
 import { Label } from "../../components/ui/label";
 
 export function CategoryManagementPage() {
-  const { data: categories = [], isLoading, error: apiError } = useGetCategories();
-  useApiError(apiError);
   const createMutation = useCreateCategory();
   const updateMutation = useUpdateCategory();
   const deleteMutation = useDeleteCategory();
 
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebouncedValue(searchTerm);
+  const [pageNumber, setPageNumber] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const { data: categoryPage, isLoading, isFetching, error: apiError } = useGetAdminCategories({
+    pageNumber, pageSize, keyword: debouncedSearch,
+  }, searchTerm === debouncedSearch);
+  useApiError(apiError);
+  const categories = categoryPage?.items ?? [];
+  const totalCount = categoryPage?.totalCount ?? 0;
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | undefined>(undefined);
@@ -69,9 +75,7 @@ export function CategoryManagementPage() {
     description: "",
   });
 
-  const filteredCategories = categories.filter((cat) =>
-    cat.name.toLowerCase().includes(debouncedSearch.toLowerCase())
-  );
+  const filteredCategories = categories;
 
   const handleCreate = () => {
     setEditingCategory(undefined);
@@ -99,6 +103,7 @@ export function CategoryManagementPage() {
         {
           onSuccess: () => {
             toast.success("Category updated successfully");
+            setPageNumber(1);
             setIsFormOpen(false);
           },
           onError: (error) => toast.error(error.message || "Failed to update category"),
@@ -108,6 +113,7 @@ export function CategoryManagementPage() {
       createMutation.mutate(formData, {
         onSuccess: () => {
           toast.success("Category created successfully");
+          setPageNumber(1);
           setIsFormOpen(false);
         },
         onError: (error) => toast.error(error.message || "Failed to create category"),
@@ -151,7 +157,7 @@ export function CategoryManagementPage() {
           <Input
             placeholder="Search categories..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => { setSearchTerm(e.target.value); setPageNumber(1); }}
             className="pl-9"
           />
         </div>
@@ -171,7 +177,7 @@ export function CategoryManagementPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg font-medium">
-              Categories ({filteredCategories.length})
+              Categories ({totalCount})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -187,12 +193,7 @@ export function CategoryManagementPage() {
                 {filteredCategories.map((cat) => (
                   <TableRow key={cat.id}>
                     <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-md bg-primary/10 text-primary">
-                          <Tag className="h-4 w-4" />
-                        </div>
-                        <div className="font-semibold">{cat.name}</div>
-                      </div>
+                      <div className="font-semibold">{cat.name}</div>
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm max-w-[400px] truncate">
                       {cat.description || "No description provided"}
@@ -219,6 +220,10 @@ export function CategoryManagementPage() {
           </CardContent>
         </Card>
       )}
+
+      <ListPagination pageNumber={pageNumber} pageSize={pageSize} totalCount={totalCount}
+        disabled={isFetching || searchTerm !== debouncedSearch} onPageChange={setPageNumber}
+        onPageSizeChange={size => { setPageSize(size); setPageNumber(1); }} />
 
       {/* Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>

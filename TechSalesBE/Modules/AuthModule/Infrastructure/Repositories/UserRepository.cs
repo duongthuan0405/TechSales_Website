@@ -76,7 +76,7 @@ internal sealed class UserRepository : IUserRepository
         row.Profile.UpdatedAt = user.UpdatedAt;
     }
 
-    public async Task<(List<User> Items, int Count)> GetPageAsync(string[] roles, int page, int size, CancellationToken cancellationToken)
+    public async Task<(List<User> Items, int Count)> GetPageAsync(List<string> roles, int page, int size, CancellationToken cancellationToken)
     {
         var query = _db.Users.AsNoTracking().Where(u => u.UserRoles.Any(ur => roles.Contains(ur.Role.Name)));
         var count = await query.CountAsync(cancellationToken);

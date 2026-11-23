@@ -25,7 +25,8 @@ Tất cả service đã nối sử dụng token hiện tại và xử lý envelo
 | Danh sách/chi tiết, thêm/sửa sản phẩm và nhiều ảnh | `/api/products`, `/api/admin/products/*` |
 | Giỏ hàng: đọc, thêm đúng số lượng, sửa, xóa | `/api/cart`, `/api/cart/items/{productId}` |
 | Xóa toàn bộ giỏ | Gọi DELETE từng item trong snapshot hiện tại; BE chưa có endpoint bulk |
-| Danh mục: danh sách, tạo, sửa tên | `/api/categories`, `/api/admin/categories/{id}` |
+| Danh mục quản trị: phân trang, tìm tên (debounce 500ms), tạo, sửa | `/api/admin/categories?pageNumber=1&pageSize=20&keyword=...`, `/api/admin/categories/{id}` |
+| Danh mục public/dropdown customer | `/api/categories` (danh sách đầy đủ, không phân trang) |
 | Nhập kho từ màn hình sản phẩm | `POST /api/inventory/{productId}/receive` với `serialNumbers` |
 | Sổ địa chỉ: CRUD, đặt mặc định | `/api/shipping-address/*` |
 | Chọn tỉnh/phường, xem phí giao hàng dự kiến | `/api/shipping/provinces/*`, `/api/shipping/wards/{wardCode}/fee` |
@@ -66,6 +67,13 @@ Các nút thanh toán trên đơn mẫu không được coi là giao dịch th�
 để trả ID đơn hợp lệ trước khi dùng các endpoint Payment đã nối.
 
 ## Kiểm tra
+
+Bộ lọc role ở trang tài khoản và nhân viên gửi xuống `GET /api/admin/users/staff?role=Staff`
+(hoặc `Business%20Admin`, `Technical%20Admin`). Query được áp dụng tại database trước count/phân trang.
+Business Admin chỉ được lọc Staff ở endpoint này; Technical Admin được lọc cả ba role nội bộ.
+Không truyền role để lấy các role nội bộ được phép xem. Role không hợp lệ hoặc ngoài phạm vi trả 403.
+Customer dùng endpoint `/api/admin/users/customers` riêng. Kết quả hợp lệ nhưng không có dữ liệu vẫn trả 200.
+Tìm kiếm tên/email trên hai màn hình này hiện vẫn lọc ở FE với debounce 500ms.
 
 ```powershell
 node --test tests/api-services.test.mjs

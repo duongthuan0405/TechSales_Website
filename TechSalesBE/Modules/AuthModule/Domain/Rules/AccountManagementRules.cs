@@ -16,11 +16,20 @@ internal static class AccountManagementRules
             return;
         }
 
+        if (!HasRole(actor, AccountRoleNames.BUSINESS_ADMIN))
+        {
+            throw new DomainException(DomainExceptionCode.RULE_CANNOT_MANAGE_ACCOUNT, DomainExceptionMessage.CannotManageAccount);
+        }
+
         foreach (string roleName in requestedRoles)
         {
             if (roleName == AccountRoleNames.TECHNICAL_ADMIN)
             {
                 throw new DomainException(DomainExceptionCode.RULE_CANNOT_CREATE_TECHNICAL_ADMIN, DomainExceptionMessage.CannotCreateTechnicalAdmin);
+            }
+            if (roleName != AccountRoleNames.CUSTOMER && roleName != AccountRoleNames.STAFF)
+            {
+                throw new DomainException(DomainExceptionCode.RULE_CANNOT_CREATE_ADMIN, DomainExceptionMessage.CannotCreateAdmin);
             }
         }
     }
@@ -81,6 +90,21 @@ internal static class AccountManagementRules
             roleNames.Add(AccountRoleNames.TECHNICAL_ADMIN);
         }
         return roleNames;
+    }
+
+    public static List<string> FilterVisibleRoles(List<string> visibleRoles, string? requestedRole)
+    {
+        if (string.IsNullOrWhiteSpace(requestedRole))
+        {
+            return visibleRoles;
+        }
+        string? role = visibleRoles.FirstOrDefault(name =>
+            string.Equals(name, requestedRole.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (role == null)
+        {
+            throw new DomainException(DomainExceptionCode.RULE_USER_FILTER_FORBIDDEN, DomainExceptionMessage.UserFilterForbidden);
+        }
+        return new List<string> { role };
     }
 
     private static void EnsureDifferentAccount(Guid actorId, Guid targetUserId)

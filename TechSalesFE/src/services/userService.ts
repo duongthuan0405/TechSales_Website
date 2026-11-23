@@ -8,17 +8,19 @@ interface UserRecord { id: string; email: string; status: UserStatus; createdAt:
 const mapUser = (row: UserRecord): User => ({ id: row.id, email: row.email, status: row.status,
   createdAt: row.createdAt, ...row.profile, avatarUrl: apiAssetUrl(row.profile.avatarUrl),
   role: row.roles[0] ?? 'Customer', roles: row.roles });
-const list = async (kind: 'customers' | 'staff'): Promise<User[]> => {
+const list = async (kind: 'customers' | 'staff', role?: string): Promise<User[]> => {
   const result: User[] = [];
   for (let page = 1; ; page++) {
-    const data = await api.get<PagedResponse<UserRecord>>(`/api/admin/users/${kind}?pageNumber=${page}&pageSize=100`);
+    const roleQuery = role ? `&role=${encodeURIComponent(role)}` : '';
+    const data = await api.get<PagedResponse<UserRecord>>(`/api/admin/users/${kind}?pageNumber=${page}&pageSize=100${roleQuery}`);
     result.push(...data.items.map(mapUser));
     if (!data.items.length || page * data.pageSize >= data.totalCount) return result;
   }
 };
 
 export const userService = {
-  getUsers: async (): Promise<User[]> => {
+  getUsers: async (role?: string): Promise<User[]> => {
+    if (role && role !== 'all') return role === 'Customer' ? list('customers') : list('staff', role);
     const session = JSON.parse(localStorage.getItem('tech_sales_user') || 'null');
     const roles: string[] = session?.roles ?? [session?.role];
     const customers = await list('customers');
@@ -26,7 +28,7 @@ export const userService = {
     return [...new Map([...customers, ...staff].map(user => [user.id, user])).values()];
   },
   getCustomers: (): Promise<User[]> => list('customers'),
-  getStaff: (): Promise<User[]> => list('staff'),
+  getStaff: (role?: string): Promise<User[]> => list('staff', role && role !== 'all' ? role : undefined),
   getUserById: async (id: string): Promise<User> => {
     const raw = localStorage.getItem('tech_sales_user');
     if (raw && JSON.parse(raw).id === id) return mapUser(await api.get<UserRecord>('/api/user/me'));

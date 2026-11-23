@@ -16,7 +16,7 @@ internal sealed class GetCustomers_UCHandler : IRequestHandler<GetCustomers_UCIn
 
     public async Task<GetCustomers_UCOutput> Handle(GetCustomers_UCInput input, CancellationToken ct)
     {
-        string[] roleNames = new string[]
+        List<string> roleNames = new List<string>
         {
             UserRoleName.CUSTOMER
         };

@@ -15,6 +15,21 @@ internal sealed class CategoryRepository : ICategoryRepository
         _db = db;
     }
 
+    public async Task<(List<Category> Items, int TotalCount)> GetPageAsync(int pageNumber, int pageSize,
+        string? keyword, CancellationToken cancellationToken)
+    {
+        IQueryable<CategoryDbModel> query = _db.Categorys.AsNoTracking();
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            string term = keyword.Trim().ToLowerInvariant();
+            query = query.Where(row => row.Name.ToLower().Contains(term));
+        }
+        int totalCount = await query.CountAsync(cancellationToken);
+        List<CategoryDbModel> rows = await query.OrderBy(row => row.Name).ThenBy(row => row.Id)
+            .Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
+        return (rows.Select(Map).ToList(), totalCount);
+    }
+
     public async Task<List<Category>> GetAllAsync(CancellationToken cancellationToken)
     {
         List<CategoryDbModel> rows = await _db.Categorys

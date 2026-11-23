@@ -354,7 +354,7 @@ export function CustomerManagementPage() {
             initialData={editingUser} 
             onSubmit={onFormSubmit}
             isLoading={updateMutation.isPending || createMutation.isPending}
-            forcedRole={selectedUser?.role} 
+            forcedRole={editingUser?.role ?? 'Customer'}
           />
         </DialogContent>
       </Dialog>

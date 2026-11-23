@@ -1,5 +1,6 @@
 import { useDebouncedValue } from '../../../dataHook/useDebouncedValue';
 import { useState, useEffect } from 'react';
+import { formatDate } from '../../../utils/format';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Badge } from '../../components/ui/badge';
@@ -27,19 +28,20 @@ import { useAuth } from '../../context/AuthContext';
 
 export function UserManagementPage() {
   const { user: currentUser } = useAuth();
-  const { data: users = [], isLoading, isError } = useGetUsers();
+  const [roleFilter, setRoleFilter] = useState('all');
+  const { data: users = [], isLoading, isError, error } = useGetUsers(roleFilter);
   const { mutate: toggleStatus, isPending: isToggling } = useToggleUserStatus();
   const createMutation = useCreateUser();
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearch = useDebouncedValue(searchTerm);
-  const [roleFilter, setRoleFilter] = useState('all');
+
   const [isFormOpen, setIsFormOpen] = useState(false);
 
   useEffect(() => {
     if (isError) {
-      toast.error('Failed to load users');
+      toast.error(error?.message || 'Không tải được danh sách người dùng.');
     }
-  }, [isError]);
+  }, [isError, error]);
 
   const handleToggleStatus = (id: string, currentStatus: any) => {
     const action = currentStatus === 'BLOCKED' ? 'unblock' : 'block';
@@ -54,8 +56,7 @@ export function UserManagementPage() {
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.fullName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
       user.email.toLowerCase().includes(debouncedSearch.toLowerCase());
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-    return matchesSearch && matchesRole;
+    return matchesSearch;
   });
 
   return (
@@ -115,7 +116,7 @@ export function UserManagementPage() {
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Last Login</TableHead>
+                  <TableHead>Ngày tạo</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -125,9 +126,9 @@ export function UserManagementPage() {
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold">
-                          {user.fullName.charAt(0)}
+                          {(user.fullName.trim() || user.email).charAt(0).toUpperCase()}
                         </div>
-                        <div className="font-medium">{user.fullName}</div>
+                        <div className="font-medium">{user.fullName.trim() || 'Chưa cập nhật'}</div>
                       </div>
                     </TableCell>
                     <TableCell>{user.email}</TableCell>
@@ -141,7 +142,7 @@ export function UserManagementPage() {
                         {user.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{user.createdAt}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{formatDate(user.createdAt)}</TableCell>
                     <TableCell>
                       <div className="flex gap-2">
                         <Button 

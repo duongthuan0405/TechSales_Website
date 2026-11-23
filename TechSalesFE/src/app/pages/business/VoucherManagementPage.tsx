@@ -1,3 +1,4 @@
+import { ListPagination } from '../../components/ui/list-pagination';
 import { useApiError } from '../../../dataHook/useApiError';
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
@@ -40,7 +41,8 @@ import { formatCurrency } from "../../../utils/format";
 
 export function VoucherManagementPage() {
   const [page, setPage] = useState(1);
-  const { data: voucherData, isLoading, error: apiError } = useGetVouchers(page);
+  const [pageSize, setPageSize] = useState(20);
+  const { data: voucherData, isLoading, isFetching, error: apiError } = useGetVouchers(page, pageSize);
   useApiError(apiError);
   const createMutation = useCreateVoucher();
   const deactivateMutation = useDeleteVoucher(); // Still use the same hook as it calls the soft-delete API
@@ -190,31 +192,13 @@ export function VoucherManagementPage() {
               </TableBody>
             </Table>
             
-            {/* Pagination */}
-            {voucherData.totalCount > voucherData.pageSize && (
-              <div className="flex items-center justify-end space-x-2 pt-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                >
-                  Previous
-                </Button>
-                <div className="text-sm font-medium">Page {page}</div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(p => p + 1)}
-                  disabled={page * voucherData.pageSize >= voucherData.totalCount}
-                >
-                  Next
-                </Button>
-              </div>
-            )}
           </CardContent>
         </Card>
       )}
+
+      <ListPagination pageNumber={page} pageSize={pageSize} totalCount={voucherData?.totalCount ?? 0}
+        disabled={isFetching} onPageChange={setPage}
+        onPageSizeChange={size => { setPageSize(size); setPage(1); }} />
 
       {/* Info Card */}
       <Card className="bg-primary/5 border-primary/20">

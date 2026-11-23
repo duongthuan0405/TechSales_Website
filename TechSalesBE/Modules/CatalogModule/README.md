@@ -1,5 +1,25 @@
 # CatalogModule
 
+## Danh sách Brand và Category cho quản trị
+
+Hai luồng quản trị có use case riêng, không gọi use case lấy danh sách public:
+
+```http
+GET /api/admin/categories?pageNumber=1&pageSize=20&keyword=laptop
+GET /api/admin/brands?pageNumber=1&pageSize=20&keyword=samsung
+```
+
+Yêu cầu role Business Admin hoặc Technical Admin. Mặc định trang 1, 20 dòng;
+pageSize từ 1 đến 100. Phân trang không hợp lệ trả 400. Keyword tìm theo tên,
+bỏ khoảng trắng hai đầu và không phân biệt hoa/thường. Lọc/count/phân trang
+thực hiện tại database; thứ tự tên rồi ID để ổn định khi chuyển trang.
+
+Response `data` gồm `items: [{ id, name }]`, `totalCount`, `pageNumber`, `pageSize`.
+Trang ngoài phạm vi trả items rỗng và vẫn giữ totalCount đúng.
+
+`GET /api/categories` và `GET /api/brands` giữ nguyên response là danh sách đầy đủ,
+không phân trang, dành cho customer và các dropdown. Không thay đổi schema hay migration.
+
 Module quản lý Product, ảnh sản phẩm, Brand và Category trong một project Clean Architecture.
 Tất cả repository dùng chung CatalogDbContext. IProductReferenceData được triển khai bởi
 Infrastructure/Services/ProductReferenceData.cs, đọc dữ liệu thật từ repository Brand/Category.

@@ -15,6 +15,21 @@ internal sealed class BrandRepository : IBrandRepository
         _db = db;
     }
 
+    public async Task<(List<Brand> Items, int TotalCount)> GetPageAsync(int pageNumber, int pageSize,
+        string? keyword, CancellationToken cancellationToken)
+    {
+        IQueryable<BrandDbModel> query = _db.Brands.AsNoTracking();
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            string term = keyword.Trim().ToLowerInvariant();
+            query = query.Where(row => row.Name.ToLower().Contains(term));
+        }
+        int totalCount = await query.CountAsync(cancellationToken);
+        List<BrandDbModel> rows = await query.OrderBy(row => row.Name).ThenBy(row => row.Id)
+            .Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
+        return (rows.Select(Map).ToList(), totalCount);
+    }
+
     public async Task<List<Brand>> GetAllAsync(CancellationToken cancellationToken)
     {
         List<BrandDbModel> rows = await _db.Brands.AsNoTracking()

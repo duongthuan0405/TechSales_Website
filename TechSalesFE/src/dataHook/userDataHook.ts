@@ -2,10 +2,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { userService } from '../services/userService';
 import { User, UserRole, UserStatus } from '../models/ui_types/user';
 
-export const useGetUsers = () => {
+export const useGetUsers = (role?: string) => {
   return useQuery({
-    queryKey: ['users'],
-    queryFn: () => userService.getUsers(),
+    queryKey: ['users', 'all', role],
+    queryFn: () => userService.getUsers(role),
   });
 };
 
@@ -16,10 +16,10 @@ export const useGetCustomers = () => {
   });
 };
 
-export const useGetStaff = () => {
+export const useGetStaff = (role?: string) => {
   return useQuery({
-    queryKey: ['users', 'staff-management'],
-    queryFn: () => userService.getStaff(),
+    queryKey: ['users', 'staff-management', role],
+    queryFn: () => userService.getStaff(role),
   });
 };
 

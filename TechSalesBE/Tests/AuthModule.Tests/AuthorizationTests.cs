@@ -46,7 +46,7 @@ public sealed class AuthorizationTests
     }
 
     [Fact]
-    public async Task Business_admin_can_create_staff_and_business_admin_but_not_technical_admin()
+    public async Task Business_admin_can_create_customer_and_staff_but_not_administrators()
     {
         await using var app = await AuthTestApp.CreateAsync();
         await app.SeedUserAsync("business@example.com", UserRoleName.BUSINESS_ADMIN);
@@ -54,7 +54,7 @@ public sealed class AuthorizationTests
         foreach (var role in new[]
         {
             UserRoleName.STAFF,
-            UserRoleName.BUSINESS_ADMIN
+            UserRoleName.CUSTOMER
         }
 
         )
@@ -63,6 +63,8 @@ public sealed class AuthorizationTests
         }
 
         await ExpectAsync(await app.Client.SendAsync(app.Authorized(HttpMethod.Post, "/api/admin/users", token, new { email = "illegal@example.com", password = Password, roles = new[] { UserRoleName.TECHNICAL_ADMIN } })), HttpStatusCode.Forbidden);
+        await ExpectAsync(await app.Client.SendAsync(app.Authorized(HttpMethod.Post, "/api/admin/users", token, new { email = "illegal-business@example.com", password = Password, roles = new[] { UserRoleName.BUSINESS_ADMIN } })), HttpStatusCode.Forbidden);
+        await ExpectAsync(await app.Client.SendAsync(app.Authorized(HttpMethod.Post, "/api/admin/users", token, new { email = "illegal-mixed@example.com", password = Password, roles = new[] { UserRoleName.STAFF, UserRoleName.BUSINESS_ADMIN } })), HttpStatusCode.Forbidden);
         await ExpectAsync(await app.Client.SendAsync(app.Authorized(HttpMethod.Get, "/api/admin/users/staff", token)), HttpStatusCode.OK);
         await ExpectAsync(await app.Client.SendAsync(app.Authorized(HttpMethod.Get, "/api/admin/rbac/permissions", token)), HttpStatusCode.Forbidden);
     }

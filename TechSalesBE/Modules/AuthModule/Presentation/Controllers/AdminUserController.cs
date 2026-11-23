@@ -41,9 +41,9 @@ public sealed class AdminUserController : ControllerBase
     [HttpGet("staff")]
     [Authorize(Roles = RoleAccess.Administrators)]
     [ProducesResponseType(typeof(ApiSuccessResponse<GetStaff_UCOutput>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetStaff([FromQuery] int pageNumber = AuthLimits.DefaultPageNumber, [FromQuery] int pageSize = AuthLimits.DefaultPageSize, CancellationToken ct = default)
+    public async Task<IActionResult> GetStaff([FromQuery] int pageNumber = AuthLimits.DefaultPageNumber, [FromQuery] int pageSize = AuthLimits.DefaultPageSize, [FromQuery] string? role = null, CancellationToken ct = default)
     {
-        GetStaff_UCOutput result = await _sender.Send(new GetStaff_UCInput(this.GetActorId(), pageNumber, pageSize), ct);
+        GetStaff_UCOutput result = await _sender.Send(new GetStaff_UCInput(this.GetActorId(), pageNumber, pageSize, role), ct);
         ApiSuccessResponse<GetStaff_UCOutput> response = new ApiSuccessResponse<GetStaff_UCOutput>(result, ResponseMessage.SuccessStaff);
         return Ok(response);
     }

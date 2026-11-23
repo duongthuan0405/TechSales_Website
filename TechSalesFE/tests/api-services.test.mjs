@@ -63,6 +63,20 @@ test('categories use supported API operations and refuse an unsupported delete',
   await assert.rejects(modules.category.deleteCategory('cat'), error => error.status === 501);
   assert.equal(calls.length, 3);
 });
+test('admin category pagination uses a separate endpoint from public lookups', async () => {
+  backend(call => call.url.startsWith('/api/admin/categories')
+    ? { items: [{ id: 'c', name: 'Laptop' }], totalCount: 35, pageNumber: 2, pageSize: 20 }
+    : [{ id: 'c', name: 'Laptop' }, { id: 'other', name: 'Phone' }]);
+  const page = await modules.category.getAdminCategories({ pageNumber: 2, pageSize: 20, keyword: '  lap  ' });
+  const request = new URL(calls[0].url, 'http://localhost');
+  assert.equal(request.pathname, '/api/admin/categories');
+  assert.equal(request.searchParams.get('pageNumber'), '2');
+  assert.equal(request.searchParams.get('pageSize'), '20');
+  assert.equal(request.searchParams.get('keyword'), 'lap');
+  assert.equal(page.totalCount, 35);
+  assert.equal((await modules.category.getCategories()).length, 2);
+  assert.equal(calls[1].url, '/api/categories');
+});
 test('address creation sends ward code and separately sets default', async () => {
   backend(call => call.method === 'POST' ? { id: 'address', isDefault: false } : null);
   await modules.address.createAddress({ province: 'HCM', ward: 'Ward', wardCode: '001', detail: '10 Street', isDefault: true });
@@ -104,6 +118,16 @@ test('users map nested profiles and deduplicate accounts with multiple roles', a
   const users = await modules.user.getUsers();
   assert.equal(users.length, 1);
   assert.equal(users[0].fullName, 'Test');
+});
+test('user role selection is sent to the database-backed API without fetching other user types', async () => {
+  backend(() => ({ items: [], totalCount: 0, pageNumber: 1, pageSize: 100 }));
+  await modules.user.getUsers('Technical Admin');
+  assert.equal(calls.length, 1);
+  const request = new URL(calls[0].url, 'http://localhost');
+  assert.equal(request.pathname, '/api/admin/users/staff');
+  assert.equal(request.searchParams.get('role'), 'Technical Admin');
+  await modules.user.getUsers('Customer');
+  assert.ok(calls[1].url.startsWith('/api/admin/users/customers?'));
 });
 test('editing an account resolves a role ID from the public role-list response', async () => {
   const record = { id: 'u', email: 'test@example.com', status: 'ACTIVE', roles: ['Staff'], createdAt: '', profile: { fullName: '', phone: '' } };

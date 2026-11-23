@@ -67,7 +67,8 @@ import { useAuth } from "../../context/AuthContext";
 
 export function StaffManagementPage() {
   const { user: currentUser } = useAuth();
-  const { data: staffMembers = [], isLoading, error: apiError } = useGetStaff();
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const { data: staffMembers = [], isLoading, error: apiError } = useGetStaff(roleFilter);
   useApiError(apiError);
   const updateMutation = useUpdateUser();
   const createMutation = useCreateUser();
@@ -75,7 +76,7 @@ export function StaffManagementPage() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebouncedValue(searchTerm);
-  const [roleFilter, setRoleFilter] = useState<string>("all");
+
   
   // Dialog states
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -87,8 +88,7 @@ export function StaffManagementPage() {
     const matchesSearch = 
       u.fullName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
       u.email.toLowerCase().includes(debouncedSearch.toLowerCase());
-    const matchesRole = roleFilter === "all" || u.role === roleFilter;
-    return matchesSearch && matchesRole;
+    return matchesSearch;
   });
 
   const handleRowClick = (user: User) => {
@@ -417,6 +417,7 @@ export function StaffManagementPage() {
             onSubmit={onFormSubmit}
             isLoading={updateMutation.isPending || createMutation.isPending}
             currentUserRole={currentUser?.role}
+            forcedRole={editingUser?.role ?? 'Staff'}
           />
         </DialogContent>
       </Dialog>

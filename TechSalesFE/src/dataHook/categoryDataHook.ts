@@ -1,5 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { categoryService } from '../services/categoryService';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { categoryService, CategoryQuery } from '../services/categoryService';
 import { Category } from '../models/ui_types/category';
 
 export const useGetCategories = () => {
@@ -8,6 +8,13 @@ export const useGetCategories = () => {
     queryFn: () => categoryService.getCategories(),
   });
 };
+
+export const useGetAdminCategories = (params: CategoryQuery, enabled = true) => useQuery({
+  queryKey: ['categories', 'admin', params],
+  queryFn: () => categoryService.getAdminCategories(params),
+  enabled,
+  placeholderData: keepPreviousData,
+});
 
 export const useCreateCategory = () => {
   const queryClient = useQueryClient();

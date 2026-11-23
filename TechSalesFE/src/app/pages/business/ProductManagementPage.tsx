@@ -1,3 +1,4 @@
+import { ListPagination } from '../../components/ui/list-pagination';
 import { useDebouncedValue } from '../../../dataHook/useDebouncedValue';
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
@@ -53,9 +54,9 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [pageNumber, setPageNumber] = useState(1);
-  const pageSize = 20;
+  const [pageSize, setPageSize] = useState(20);
   const { data: lookups } = useGetProductLookups();
-  const { data: adminData, isLoading, error: productsError } = useGetAdminProducts({
+  const { data: adminData, isLoading, isFetching, error: productsError } = useGetAdminProducts({
     pageNumber, pageSize, keyword: debouncedSearch || undefined,
     categoryId: categoryFilter === 'all' ? undefined : categoryFilter,
     status: statusFilter === 'all' ? undefined : statusFilter as ProductStatus,
@@ -362,16 +363,15 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
                 })}
               </TableBody>
             </Table>
-            <div className="mt-4 flex items-center justify-end gap-3">
-              <Button variant="outline" disabled={pageNumber === 1} onClick={() => setPageNumber(pageNumber - 1)}>Trước</Button>
-              <span className="text-sm">Trang {pageNumber} / {Math.max(1, Math.ceil((adminData?.totalCount ?? 0) / pageSize))}</span>
-              <Button variant="outline" disabled={pageNumber * pageSize >= (adminData?.totalCount ?? 0)} onClick={() => setPageNumber(pageNumber + 1)}>Sau</Button>
-            </div>
+
           </CardContent>
         </Card>
       )}
 
       {/* Form Dialog */}
+      <ListPagination pageNumber={pageNumber} pageSize={pageSize} totalCount={adminData?.totalCount ?? 0}
+        disabled={isFetching || searchTerm !== debouncedSearch} onPageChange={setPageNumber}
+        onPageSizeChange={size => { setPageSize(size); setPageNumber(1); }} />
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>

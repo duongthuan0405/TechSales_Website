@@ -4,13 +4,15 @@ namespace AuthModule.Domain.Exceptions;
 
 public static class DomainExceptionMessage
 {
+    public const string UserFilterForbidden = "Bạn không được phép lọc loại người dùng này.";
     public const string AccountInactive = "Tài khoản chưa được kích hoạt hoặc đã bị vô hiệu hóa.";
     public const string AccountNotLocked = "Tài khoản hiện không bị khóa.";
     public const string AccountNotPending = "Tài khoản không ở trạng thái chờ xác nhận email.";
     public const string ActiveActorRequired = "Chỉ tài khoản đang hoạt động được quản lý tài khoản khác.";
     public const string AvatarInvalid = "Đường dẫn ảnh đại diện không hợp lệ.";
     public const string BirthDateInvalid = "Ngày sinh không hợp lệ.";
-    public const string CannotCreateTechnicalAdmin = "Quản trị viên kinh doanh chỉ được tạo tài khoản nhân viên hoặc quản trị viên kinh doanh.";
+    public const string CannotCreateAdmin = "Quản trị viên kinh doanh chỉ được tạo tài khoản khách hàng hoặc nhân viên.";
+    public const string CannotCreateTechnicalAdmin = CannotCreateAdmin;
     public const string CannotManageAccount = "Bạn không được phép quản lý tài khoản này.";
     public const string CannotManageAdmin = "Bạn không được phép quản lý tài khoản quản trị này.";
     public const string CannotManageSelf = "Vui lòng dùng chức năng hồ sơ cá nhân hoặc đổi mật khẩu để quản lý tài khoản của bạn.";

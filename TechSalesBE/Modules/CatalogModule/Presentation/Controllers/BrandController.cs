@@ -1,3 +1,5 @@
+using CatalogModule.Application.UseCases.BrowseBrandsForManagement;
+using CatalogModule.Application.Constants;
 using CatalogModule.Application.UseCases.CreateBrand;
 using CatalogModule.Application.Messages;
 using CatalogModule.Application.UseCases.UpdateBrand;
@@ -22,6 +24,16 @@ public sealed class BrandController : ControllerBase
     public BrandController(ISender sender)
     {
         _sender = sender;
+    }
+
+    [HttpGet]
+    [ProducesResponseType(typeof(ApiSuccessResponse<BrowseBrandsForManagement_UCOutput>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Browse(int pageNumber = 1, int pageSize = CatalogPagination.DefaultPageSize,
+        string? keyword = null, CancellationToken cancellationToken = default)
+    {
+        BrowseBrandsForManagement_UCOutput output = await _sender.Send(
+            new BrowseBrandsForManagement_UCInput(pageNumber, pageSize, keyword), cancellationToken);
+        return Ok(new ApiSuccessResponse<BrowseBrandsForManagement_UCOutput>(output, ResponseMessage.ListedBrands));
     }
 
     [HttpPost]

@@ -119,7 +119,7 @@ export function UserForm({ initialData, onSubmit, isLoading, forcedRole, current
         )}
 
         <div className="grid grid-cols-2 gap-4">
-          <FormField
+          {!forcedRole && <FormField
             control={form.control}
             name="role"
             render={({ field }) => (
@@ -137,16 +137,19 @@ export function UserForm({ initialData, onSubmit, isLoading, forcedRole, current
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="Staff">Sales Staff</SelectItem>
-                    <SelectItem value="Business Admin">Business Admin</SelectItem>
+                    <SelectItem value="Customer">Customer</SelectItem>
                     {currentUserRole === 'Technical Admin' && (
-                      <SelectItem value="Technical Admin">Technical Admin</SelectItem>
+                      <>
+                        <SelectItem value="Business Admin">Business Admin</SelectItem>
+                        <SelectItem value="Technical Admin">Technical Admin</SelectItem>
+                      </>
                     )}
                   </SelectContent>
                 </Select>
                 <FormMessage />
               </FormItem>
             )}
-          />
+          />}
 
           <FormField
             control={form.control}
