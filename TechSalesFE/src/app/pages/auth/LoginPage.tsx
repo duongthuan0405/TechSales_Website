@@ -98,8 +98,8 @@ export function LoginPage() {
                   size="sm"
                   className="text-xs justify-start h-9"
                   onClick={() => {
-                    setEmail('customer@email.com');
-                    setPassword('password');
+                    setEmail('customer@gmail.com');
+                    setPassword('customer@123');
                   }}
                 >
                   <span className="h-2 w-2 rounded-full bg-emerald-500 mr-1.5 shrink-0" />
@@ -111,8 +111,8 @@ export function LoginPage() {
                   size="sm"
                   className="text-xs justify-start h-9"
                   onClick={() => {
-                    setEmail('sales@techsales.com');
-                    setPassword('password');
+                    setEmail('techsale@gmail.com');
+                    setPassword('techsale@123');
                   }}
                 >
                   <span className="h-2 w-2 rounded-full bg-blue-500 mr-1.5 shrink-0" />
@@ -125,7 +125,7 @@ export function LoginPage() {
                   className="text-xs justify-start h-9"
                   onClick={() => {
                     setEmail('business@techsales.com');
-                    setPassword('password');
+                    setPassword('business@123');
                   }}
                 >
                   <span className="h-2 w-2 rounded-full bg-purple-500 mr-1.5 shrink-0" />
@@ -137,8 +137,8 @@ export function LoginPage() {
                   size="sm"
                   className="text-xs justify-start h-9"
                   onClick={() => {
-                    setEmail('admin@techsales.com');
-                    setPassword('password');
+                    setEmail('techadmin@gmail.com');
+                    setPassword('techadmin@123');
                   }}
                 >
                   <span className="h-2 w-2 rounded-full bg-rose-500 mr-1.5 shrink-0" />

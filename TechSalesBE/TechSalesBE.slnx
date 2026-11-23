@@ -10,6 +10,7 @@
   <Project Path="Modules/PromotionModule/PromotionModule.csproj" />
   <Folder Name="/Modules/" />
   <Folder Name="/Tests/">
+    <Project Path="Tests/CatalogModule.Tests/CatalogModule.Tests.csproj" />
     <Project Path="Tests/AuthModule.Tests/AuthModule.Tests.csproj" />
     <Project Path="Tests/ShippingModule.Tests/ShippingModule.Tests.csproj" />
     <Project Path="Tests/PromotionModule.Tests/PromotionModule.Tests.csproj" />

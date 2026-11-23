@@ -23,7 +23,7 @@ import {
   DollarSign
 } from 'lucide-react';
 import { useGetProducts } from '../../../dataHook/productDataHook';
-import { useGetCategories } from '../../../dataHook/categoryDataHook';
+import { useGetProductCategories } from '../../../dataHook/productDataHook';
 import { useAddToCart } from '../../../dataHook/cartDataHook';
 import { toast } from 'sonner';
 import { useNavigate, useSearchParams } from 'react-router';
@@ -63,7 +63,7 @@ export function ProductCatalogPage() {
     sortBy: sortBy as any
   });
 
-  const { data: categoriesData = [] } = useGetCategories();
+  const { data: categoriesData = [] } = useGetProductCategories();
   const { mutate: addToCart, isPending: isAdding } = useAddToCart();
 
   useEffect(() => {

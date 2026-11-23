@@ -13,10 +13,10 @@ public static class PersistenceRegistration
 
     internal static void ConfigureOptions(DbContextOptionsBuilder options, IConfiguration configuration)
     {
-        var connectionString = configuration["CATALOG:DbConnectionString"];
+        string? connectionString = configuration["CATALOG:DbConnectionString"];
         if (string.IsNullOrWhiteSpace(connectionString))
         {
-            throw new InvalidOperationException("Configure CATALOG__DbConnectionString for CatalogModule persistence.");
+            throw new InvalidOperationException("Cấu hình CATALOG__DbConnectionString cho CatalogModule.");
         }
 
         options.UseNpgsql(connectionString, postgres =>

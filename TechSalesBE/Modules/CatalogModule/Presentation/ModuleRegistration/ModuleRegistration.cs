@@ -5,6 +5,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using CatalogModule.Application.Repositories;
 using CatalogModule.Application.Services;
+using CatalogModule.Application.Ports;
+using CommonModule.Presentation.Configuration;
 using CatalogModule.Infrastructure.Persistence;
 using CatalogModule.Infrastructure.Repositories;
 using CatalogModule.Infrastructure.Services;
@@ -21,6 +23,12 @@ public static class ModuleRegistration
         services.AddScoped<IBrandRepository, BrandRepository>();
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IExecuteAtomically, ExecuteAtomically>();
+        services.AddScoped<IProductRepository, ProductRepository>();
+        services.AddScoped<IProductUnitOfWork, ProductUnitOfWork>();
+        services.AddScoped<IProductImageStorage, LocalProductImageStorage>();
+        services.AddScoped<IProductReferenceData, ProductReferenceData>();
+        services.AddVietnameseResponses();
+        services.AddAuthorization();
         services.AddControllers().AddApplicationPart(typeof(ModuleRegistration).Assembly);
         services.AddMediatR(options =>
         {

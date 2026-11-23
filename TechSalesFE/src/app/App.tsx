@@ -156,6 +156,8 @@ function AppContent() {
         {user.role === 'Technical Admin' && (
           <>
             <Route path="/technical" element={<TechnicalDashboardPage />} />
+            <Route path="/business/products" element={<ProductManagementPage />} />
+            <Route path="/business/products/:id" element={<StaffProductDetailPage />} />
             <Route path="/technical/users" element={<UserManagementPage />} />
             <Route path="/technical/logs" element={<SystemLogsPage />} />
           </>

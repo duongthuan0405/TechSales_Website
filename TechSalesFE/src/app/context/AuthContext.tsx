@@ -18,6 +18,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Restore session by verifying token with the Backend on page init/refresh
   useEffect(() => {
+    const handleUnauthorized = () => setUser(null);
+    window.addEventListener('techsales:unauthorized', handleUnauthorized);
     const restoreSession = async () => {
       try {
         const currentUser = await authService.getCurrentUser();
@@ -32,6 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     restoreSession();
+    return () => window.removeEventListener('techsales:unauthorized', handleUnauthorized);
   }, []);
 
   const setAuthUser = (newUser: AuthUser | null) => {
@@ -49,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const switchRole = (role: UserRole) => {
-    if (user) {
+    if (user?.roles?.includes(role)) {
       const updatedUser = { ...user, role };
       setAuthUser(updatedUser);
     }

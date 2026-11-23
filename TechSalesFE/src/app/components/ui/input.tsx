@@ -3,7 +3,7 @@ import * as React from "react";
 import { cn } from "./utils";
 
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
-  ({ className, type, ...props }, ref) => {
+  ({ className, type, onChange, ...props }, ref) => {
     return (
       <input
         type={type}
@@ -16,6 +16,19 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
           className,
         )}
         {...props}
+        onChange={(event) => {
+          if (type === "number") {
+            // Normalize before passing the value to React Hook Form or local state.
+            // Keep a single zero before decimals, such as 0.05.
+            const value = event.currentTarget.value;
+            const normalizedValue = value.replace(/^(-?)0+(?=\d)/, "$1");
+            if (normalizedValue !== value) {
+              event.currentTarget.value = normalizedValue;
+            }
+          }
+
+          onChange?.(event);
+        }}
       />
     );
   }

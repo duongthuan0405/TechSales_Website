@@ -30,7 +30,8 @@ import {
   useGetAdminProducts, 
   useCreateProduct, 
   useUpdateProduct,
-  useToggleProductStatus 
+  useToggleProductStatus,
+  useGetProductLookups
 } from "../../../dataHook/productDataHook";
 import { useNavigate } from "react-router";
 import { Product, ProductStatus } from "../../../models/ui_types/product";
@@ -46,16 +47,23 @@ interface ProductManagementPageProps {
 
 export function ProductManagementPage({ readOnly = false }: ProductManagementPageProps) {
   const navigate = useNavigate();
-  const { data: adminData, isLoading } = useGetAdminProducts({ pageSize: 100 });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [pageNumber, setPageNumber] = useState(1);
+  const pageSize = 20;
+  const { data: lookups } = useGetProductLookups();
+  const { data: adminData, isLoading, error: productsError } = useGetAdminProducts({
+    pageNumber, pageSize, keyword: searchTerm || undefined,
+    categoryId: categoryFilter === 'all' ? undefined : categoryFilter,
+    status: statusFilter === 'all' ? undefined : statusFilter as ProductStatus,
+  });
   const products = adminData?.items || [];
   const createMutation = useCreateProduct();
   const updateMutation = useUpdateProduct();
   const toggleStatusMutation = useToggleProductStatus();
   const updateInventoryMutation = useUpdateInventory();
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
   
   // Dialog states
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -63,21 +71,8 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
   const [isStockOpen, setIsStockOpen] = useState(false);
   const [adjustingProduct, setAdjustingProduct] = useState<Product | undefined>(undefined);
 
-  const categories = [
-    "all",
-    ...Array.from(new Set(products.map((p) => p.categoryName))).filter(Boolean),
-  ];
-
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch =
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.brand?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory =
-      categoryFilter === "all" || product.categoryName === categoryFilter;
-    const matchesStatus = 
-      statusFilter === "all" || product.status === statusFilter;
-    return matchesSearch && matchesCategory && matchesStatus;
-  });
+  const categories = [{ id: 'all', name: 'All Categories' }, ...(lookups?.categories || [])];
+  const filteredProducts = products;
 
   const mapStockToVariant = (stock: number): "success" | "warning" | "danger" | "default" => {
     if (stock === 0) return "danger";
@@ -115,19 +110,20 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
         { id: editingProduct.id, data },
         {
           onSuccess: () => {
-            toast.success("Product updated successfully");
+            toast.success("Cập nhật sản phẩm thành công.");
             setIsFormOpen(false);
           },
-          onError: () => toast.error("Failed to update product"),
+          onError: (error) => toast.error(error.message || "Không cập nhật được sản phẩm."),
         }
       );
     } else {
       createMutation.mutate(data, {
         onSuccess: () => {
-          toast.success("Product created successfully");
+          toast.success("Thêm sản phẩm thành công.");
+          setPageNumber(1);
           setIsFormOpen(false);
         },
-        onError: () => toast.error("Failed to create product"),
+        onError: (error) => toast.error(error.message || "Không thêm được sản phẩm."),
       });
     }
   };
@@ -136,9 +132,9 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
     e.stopPropagation();
     toggleStatusMutation.mutate(id, {
       onSuccess: () => {
-        toast.success(`Product discontinued successfully`);
+        toast.success("Đã cập nhật trạng thái sản phẩm.");
       },
-      onError: () => toast.error("Failed to update product status"),
+      onError: (error) => toast.error(error.message || "Không cập nhật được trạng thái sản phẩm."),
     });
   };
 
@@ -164,6 +160,7 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
 
   return (
     <div className="space-y-6">
+      {productsError && <p role="alert" className="text-destructive">{productsError.message}</p>}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Product Management</h1>
@@ -183,22 +180,22 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
           <Input
             placeholder="Search products by name or brand..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => { setSearchTerm(e.target.value); setPageNumber(1); }}
             className="pl-9"
           />
         </div>
         <div className="flex gap-2">
           <Select
             value={categoryFilter}
-            onValueChange={setCategoryFilter}
+            onValueChange={(value) => { setCategoryFilter(value); setPageNumber(1); }}
           >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="All Categories" />
             </SelectTrigger>
             <SelectContent>
               {categories.map((cat) => (
-                <SelectItem key={cat as string} value={cat as string ?? ""}>
-                  {cat === "all" ? "All Categories" : cat as string}
+                <SelectItem key={cat.id} value={cat.id}>
+                  {cat.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -206,7 +203,7 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
 
           <Select
             value={statusFilter}
-            onValueChange={setStatusFilter}
+            onValueChange={(value) => { setStatusFilter(value); setPageNumber(1); }}
           >
             <SelectTrigger className="w-[160px]">
               <SelectValue placeholder="All Status" />
@@ -224,7 +221,7 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
         <div className="flex h-64 items-center justify-center">
           <div className="flex flex-col items-center gap-2">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-muted-foreground font-medium">Loading catalog...</p>
+            <p className="text-muted-foreground font-medium">Loading products...</p>
           </div>
         </div>
       ) : filteredProducts.length === 0 ? (
@@ -237,7 +234,7 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg font-medium">
-              Products List ({filteredProducts.length})
+              Products List ({adminData?.totalCount ?? 0})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -255,7 +252,7 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
               </TableHeader>
               <TableBody>
                 {filteredProducts.map((product) => {
-                  const stockVariant = mapStockToVariant(product.stock);
+                  const stockVariant = mapStockToVariant(product.stock ?? 0);
                   const isDiscontinued = product.status === ProductStatus.DISCONTINUED;
                   const isToggling = toggleStatusMutation.isPending && toggleStatusMutation.variables === product.id;
 
@@ -288,15 +285,15 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
                       <TableCell>{product.categoryName}</TableCell>
                       <TableCell>{product.brand}</TableCell>
                       <TableCell className="font-bold">
-                        {formatCurrency(product.price)}
+                        {product.priceIsUnset ? 'Chưa niêm yết' : formatCurrency(product.price)}
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-col gap-1">
+                        {product.stock === undefined ? <span className="text-muted-foreground">—</span> : <div className="flex flex-col gap-1">
                           <span className="text-sm font-medium">{product.stock} units</span>
                           <Badge variant={stockVariant as any} className="w-fit text-[10px] px-1.5 py-0">
                             {getStockLabel(product.stock)}
                           </Badge>
-                        </div>
+                        </div>}
                       </TableCell>
                       <TableCell>
                         <Badge variant={mapStatusToVariant(product.status) as any}>
@@ -335,21 +332,22 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
                                 size="icon"
                                 onClick={(e) => handleAdjustStock(product, e)}
                                 title="Adjust Stock"
+                                disabled={product.stock === undefined}
                               >
                                 <PackagePlus className="h-4 w-4 text-orange-500" />
                               </Button>
-                              {!isDiscontinued && (
+                              {(
                                 <Button 
                                   variant="ghost" 
                                   size="icon"
                                   onClick={(e) => handleToggleStatus(product.id, e)}
-                                  title="Discontinue Product"
+                                  title={isDiscontinued ? "Kinh doanh trở lại" : "Ngừng kinh doanh"}
                                   disabled={isToggling}
                                 >
                                   {isToggling ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                   ) : (
-                                    <Ban className="h-4 w-4 text-destructive" />
+                                    isDiscontinued ? <RefreshCcw className="h-4 w-4 text-emerald-600" /> : <Ban className="h-4 w-4 text-destructive" />
                                   )}
                                 </Button>
                               )}
@@ -362,6 +360,11 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
                 })}
               </TableBody>
             </Table>
+            <div className="mt-4 flex items-center justify-end gap-3">
+              <Button variant="outline" disabled={pageNumber === 1} onClick={() => setPageNumber(pageNumber - 1)}>Trước</Button>
+              <span className="text-sm">Trang {pageNumber} / {Math.max(1, Math.ceil((adminData?.totalCount ?? 0) / pageSize))}</span>
+              <Button variant="outline" disabled={pageNumber * pageSize >= (adminData?.totalCount ?? 0)} onClick={() => setPageNumber(pageNumber + 1)}>Sau</Button>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -376,6 +379,7 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
             </DialogDescription>
           </DialogHeader>
           <ProductForm 
+            key={editingProduct?.id ?? 'create'}
             initialData={editingProduct} 
             onSubmit={onFormSubmit}
             isLoading={createMutation.isPending || updateMutation.isPending}
