@@ -13,6 +13,7 @@
     <Project Path="Tests/CatalogModule.Tests/CatalogModule.Tests.csproj" />
     <Project Path="Tests/AuthModule.Tests/AuthModule.Tests.csproj" />
     <Project Path="Tests/CartModule.Tests/CartModule.Tests.csproj" />
+    <Project Path="Tests/InventoryModule.Tests/InventoryModule.Tests.csproj" />
     <Project Path="Tests/ShippingModule.Tests/ShippingModule.Tests.csproj" />
     <Project Path="Tests/PromotionModule.Tests/PromotionModule.Tests.csproj" />
     <Project Path="Tests/MailModule.Tests/MailModule.Tests.csproj" />
