@@ -239,7 +239,6 @@ public sealed class PaymentAccessTests
         {
             _items = items;
         }
-        public Task LockReferenceAsync(PaymentType type, Guid refId, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task AddAsync(Payment payment, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task<Payment?> GetByIdForUpdateAsync(Guid id, CancellationToken cancellationToken = default) => GetByIdAsync(id, cancellationToken);
         public Task UpdateAsync(Payment payment, CancellationToken cancellationToken = default) => Task.CompletedTask;

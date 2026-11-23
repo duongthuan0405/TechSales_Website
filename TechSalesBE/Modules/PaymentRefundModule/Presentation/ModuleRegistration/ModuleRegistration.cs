@@ -32,6 +32,7 @@ public static class ModuleRegistration
         services.AddScoped<IPaymentRepository, PaymentRepository>();
         services.AddScoped<PaymentOwnershipService>();
         services.AddScoped<PaymentCreationService>();
+        services.AddScoped<IPaymentLockService, PaymentLockService>();
         services.AddOptions<MomoPollingOptions>()
             .Bind(configuration.GetSection(MomoPollingOptions.SectionName))
             .Validate(options => options.IntervalSeconds >= 5 && options.BatchSize >= 1

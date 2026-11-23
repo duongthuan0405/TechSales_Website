@@ -7,6 +7,15 @@ namespace PaymentRefundModule.Domain.Rules;
 
 internal static class PaymentRules
 {
+    public static void EnsureValidPaymentUrl(string paymentUrl)
+    {
+        if (!Uri.TryCreate(paymentUrl, UriKind.Absolute, out Uri? uri)
+            || uri.Scheme != Uri.UriSchemeHttps)
+        {
+            throw new DomainException(DomainExceptionCode.PaymentUrlInvalid, DomainExceptionMessage.PaymentUrlInvalid);
+        }
+    }
+
     public static bool CanRecordOnlineFailure(TransactionMethod? method, TransactionStatus status)
     {
         return method != null && method.Type == TransactionMethodType.ONLINE
@@ -59,7 +68,7 @@ internal static class PaymentRules
         }
         if (!IsPending(status))
         {
-            throw new DomainException(DomainExceptionCode.PaymentNotPending, DomainExceptionMessage.PaymentNotPending);
+            throw new DomainException(DomainExceptionCode.PaymentNotPending, DomainExceptionMessage.CheckoutNotAllowed(status));
         }
     }
 

@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
 using PromotionModule.Application.Services;
 using PromotionModule.Infrastructure.Persistence;
+using PromotionModule.Infrastructure.Persistence.Configurations;
 
 namespace PromotionModule.Infrastructure.Services;
 
@@ -44,7 +45,8 @@ internal sealed class ExecuteAtomically : IExecuteAtomically
             _db.ChangeTracker.Clear();
             PostgresException? databaseException = exception.InnerException as PostgresException;
             if (exception is DbUpdateException && databaseException != null
-                && databaseException.SqlState == PostgresErrorCodes.UniqueViolation)
+                && databaseException.SqlState == PostgresErrorCodes.UniqueViolation
+                && databaseException.ConstraintName == VoucherConfiguration.CodeUniqueIndexName)
             {
                 throw new BusinessException(BusinessExceptionCode.CONFLICT, BusinessExceptionMessage.DuplicateCode);
             }

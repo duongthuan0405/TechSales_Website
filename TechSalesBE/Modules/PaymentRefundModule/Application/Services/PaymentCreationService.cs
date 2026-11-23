@@ -15,15 +15,18 @@ internal sealed class PaymentCreationService
     private readonly PaymentOwnershipService _ownership;
     private readonly IPaymentAmountPort _amounts;
     private readonly IExecuteAtomically _transaction;
+    private readonly IPaymentLockService _paymentLock;
 
     public PaymentCreationService(IPaymentRepository payments, ITransactionMethodRepository methods,
-        PaymentOwnershipService ownership, IPaymentAmountPort amounts, IExecuteAtomically transaction)
+        PaymentOwnershipService ownership, IPaymentAmountPort amounts, IExecuteAtomically transaction,
+        IPaymentLockService paymentLock)
     {
         _payments = payments;
         _methods = methods;
         _ownership = ownership;
         _amounts = amounts;
         _transaction = transaction;
+        _paymentLock = paymentLock;
     }
 
     public Task<(Guid PaymentId, Guid? ReplacedPaymentId)> ExecuteAsync(Guid customerId, string? paymentType,
@@ -32,7 +35,7 @@ internal sealed class PaymentCreationService
         PaymentType type = PaymentInputParser.RequiredType(paymentType);
         return _transaction.ExecuteAtomicallyAsync(async () =>
         {
-            await _payments.LockReferenceAsync(type, refId, cancellationToken);
+            await _paymentLock.LockReferenceAsync(type, refId, cancellationToken);
             if (!await _ownership.IsOwnedAsync(type, refId, customerId, cancellationToken))
             {
                 throw new BusinessException(BusinessExceptionCode.FORBIDDEN, BusinessExceptionMessage.PaymentNotOwned);
@@ -70,6 +73,7 @@ internal sealed class PaymentCreationService
             if (method == null)
             {
                 throw new BusinessException(BusinessExceptionCode.NOT_FOUND, BusinessExceptionMessage.TransactionMethodNotFound);
+                
             }
 
             long amount = await _amounts.GetAmountAsync(type, refId, cancellationToken);

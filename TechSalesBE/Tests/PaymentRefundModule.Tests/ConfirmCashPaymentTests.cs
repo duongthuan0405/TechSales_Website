@@ -122,7 +122,6 @@ public sealed class ConfirmCashPaymentTests
             UpdateCount++;
             return Task.CompletedTask;
         }
-        public Task LockReferenceAsync(PaymentType type, Guid refId, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task AddAsync(Payment payment, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<Payment?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<List<Payment>> GetAllAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();

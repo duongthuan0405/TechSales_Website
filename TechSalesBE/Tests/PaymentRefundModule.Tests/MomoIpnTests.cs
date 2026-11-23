@@ -284,7 +284,6 @@ public sealed class MomoIpnTests
             UpdateCount++;
             return Task.CompletedTask;
         }
-        public Task LockReferenceAsync(PaymentType type, Guid refId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task AddAsync(Payment payment, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<Payment?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {

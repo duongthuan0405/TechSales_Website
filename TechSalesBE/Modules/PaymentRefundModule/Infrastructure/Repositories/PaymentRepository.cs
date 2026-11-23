@@ -16,18 +16,6 @@ internal sealed class PaymentRepository : IPaymentRepository
         _db = db;
     }
 
-    public async Task LockReferenceAsync(PaymentType type, Guid refId, CancellationToken cancellationToken = default)
-    {
-        if (_db.Database.CurrentTransaction == null)
-        {
-            throw new InvalidOperationException("Payment reference locking requires an active transaction.");
-        }
-
-        string lockKey = $"payment:{type}:{refId:D}";
-        await _db.Database.ExecuteSqlInterpolatedAsync(
-            $"SELECT pg_advisory_xact_lock(hashtextextended({lockKey}, 0))", cancellationToken);
-    }
-
     public async Task<Payment?> GetByIdForUpdateAsync(Guid id, CancellationToken cancellationToken = default)
     {
         if (_db.Database.CurrentTransaction == null)
@@ -50,6 +38,7 @@ internal sealed class PaymentRepository : IPaymentRepository
     {
         PaymentDbModel row = await _db.Payments.SingleAsync(item => item.Id == payment.Id, cancellationToken);
         row.Status = payment.Status;
+        row.PaymentUrl = payment.PaymentUrl;
         row.TransactionRef = payment.TransactionRef;
         row.FailureReason = payment.FailureReason;
         row.CompletedAt = payment.CompletedAt;
@@ -133,7 +122,7 @@ internal sealed class PaymentRepository : IPaymentRepository
             row.TransactionMethod.Name ?? string.Empty, row.TransactionMethod.Type.Value, row.TransactionMethod.Code);
         return new Payment(row.Id, row.Type.Value, row.OrderId, row.RepairRequestId,
             row.TransactionMethodId, row.Status, row.Amount, row.TransactionRef, row.FailureReason,
-            row.CompletedAt, row.CreatedAt, row.UpdatedAt, method);
+            row.CompletedAt, row.CreatedAt, row.UpdatedAt, method, row.PaymentUrl);
     }
 
     public async Task AddAsync(Payment payment, CancellationToken cancellationToken = default)
@@ -147,6 +136,7 @@ internal sealed class PaymentRepository : IPaymentRepository
             TransactionMethodId = payment.TransactionMethodId,
             Status = payment.Status,
             Amount = payment.Amount,
+            PaymentUrl = payment.PaymentUrl,
             CreatedAt = payment.CreatedAt,
             UpdatedAt = payment.UpdatedAt
         };

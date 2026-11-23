@@ -32,6 +32,11 @@ internal sealed class MomoPaymentStrategy : IPaymentGatewayStrategy
 
     private MomoCreatePaymentRequest BuildCreatePaymentRequest(PaymentCheckoutRequest request)
     {
+        if (_momoOptions.ExpirationMinutes <= 0)
+        {
+            throw new BusinessException(BusinessExceptionCode.CONFLICT, BusinessExceptionMessage.PaymentGatewayNotConfigured);
+        }
+
         MomoCreatePaymentRequest momoRequest = new MomoCreatePaymentRequest
         {
             PartnerCode = _momoOptions.PartnerCode,
@@ -40,7 +45,8 @@ internal sealed class MomoPaymentStrategy : IPaymentGatewayStrategy
             Amount = request.Amount,
             OrderInfo = $"Thanh toán giao dịch {request.PaymentId:D}",
             RedirectUrl = _momoOptions.RedirectUrl,
-            IpnUrl = _momoOptions.IpnUrl
+            IpnUrl = _momoOptions.IpnUrl,
+            OrderExpireTime = _momoOptions.ExpirationMinutes
         };
 
         momoRequest.Signature = CreateSignature(momoRequest);
@@ -72,6 +78,8 @@ internal sealed class MomoPaymentStrategy : IPaymentGatewayStrategy
         PaymentCheckoutRequest request, CancellationToken cancellationToken = default)
     {
         MomoCreatePaymentRequest momoRequest = BuildCreatePaymentRequest(request);
+        // Local cutoff from request start; captureWallet enforcement is still experimental.
+        DateTimeOffset expiresAt = DateTimeOffset.UtcNow.AddMinutes(_momoOptions.ExpirationMinutes);
         string? responseBody = null;
         int? statusCode = null;
 
@@ -98,7 +106,7 @@ internal sealed class MomoPaymentStrategy : IPaymentGatewayStrategy
                 throw new BusinessException(BusinessExceptionCode.CONFLICT, ExceptionMessage.PaymentGatewayRequestFailed);
             }
 
-            return new PaymentCheckoutResult(result.PayUrl);
+            return new PaymentCheckoutResult(result.PayUrl, expiresAt);
         }
         catch (HttpRequestException exception)
         {

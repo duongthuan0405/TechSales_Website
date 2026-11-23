@@ -21,11 +21,13 @@ internal sealed class VnpayPaymentStrategy : IPaymentGatewayStrategy
 
     public string GatewayCode => "VNPAY";
 
+
     public Task<PaymentCheckoutResult> CheckoutAsync(
         PaymentCheckoutRequest request, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(_options.TmnCode)
+            || _options.ExpirationMinutes <= 0
             || string.IsNullOrWhiteSpace(_options.HashSecret)
             || !Uri.TryCreate(_options.PaymentUrl, UriKind.Absolute, out Uri? paymentUrl)
             || paymentUrl.Scheme != Uri.UriSchemeHttps
@@ -52,7 +54,9 @@ internal sealed class VnpayPaymentStrategy : IPaymentGatewayStrategy
             clientIp = clientIp.MapToIPv4();
         }
 
-        DateTimeOffset createdAt = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7));
+        DateTimeOffset createdAt = DateTimeOffset.FromUnixTimeSeconds(DateTimeOffset.UtcNow.ToUnixTimeSeconds())
+            .ToOffset(TimeSpan.FromHours(7));
+        DateTimeOffset expiresAt = createdAt.AddMinutes(_options.ExpirationMinutes);
         SortedDictionary<string, string> parameters = new SortedDictionary<string, string>(StringComparer.Ordinal)
         {
             ["vnp_Version"] = "2.1.0",
@@ -67,7 +71,7 @@ internal sealed class VnpayPaymentStrategy : IPaymentGatewayStrategy
             ["vnp_ReturnUrl"] = _options.ReturnUrl,
             ["vnp_IpAddr"] = clientIp.ToString(),
             ["vnp_CreateDate"] = createdAt.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture),
-            ["vnp_ExpireDate"] = createdAt.AddMinutes(15).ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture)
+            ["vnp_ExpireDate"] = expiresAt.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture)
         };
 
         // Sign exactly the sorted, form-encoded query sent to VNPAY (spaces are '+').
@@ -76,6 +80,6 @@ internal sealed class VnpayPaymentStrategy : IPaymentGatewayStrategy
         string signature = Convert.ToHexStringLower(HMACSHA512.HashData(
             Encoding.UTF8.GetBytes(_options.HashSecret), Encoding.UTF8.GetBytes(query)));
         string url = _options.PaymentUrl + "?" + query + "&vnp_SecureHash=" + signature;
-        return Task.FromResult(new PaymentCheckoutResult(url));
+        return Task.FromResult(new PaymentCheckoutResult(url, expiresAt.ToUniversalTime()));
     }
 }

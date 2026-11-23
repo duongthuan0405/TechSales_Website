@@ -12,6 +12,30 @@ namespace PaymentRefundModule.Tests;
 
 public sealed class VnpayPaymentStrategyTests
 {
+    [Theory]
+    [InlineData(5)]
+    [InlineData(30)]
+    public async Task UsesConfiguredExpiration(int minutes)
+    {
+        PaymentCheckoutResult result = await CreateStrategy(minutes).CheckoutAsync(
+            new PaymentCheckoutRequest(Guid.NewGuid(), 10000, "127.0.0.1"));
+        var query = QueryHelpers.ParseQuery(new Uri(result.PaymentUrl).Query);
+        DateTime created = DateTime.ParseExact(query["vnp_CreateDate"].ToString(), "yyyyMMddHHmmss", CultureInfo.InvariantCulture);
+        DateTime expires = DateTime.ParseExact(query["vnp_ExpireDate"].ToString(), "yyyyMMddHHmmss", CultureInfo.InvariantCulture);
+
+        Assert.Equal(TimeSpan.FromMinutes(minutes), expires - created);
+        Assert.Equal(new DateTimeOffset(expires, TimeSpan.FromHours(7)).ToUniversalTime(), result.ExpiresAt);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public async Task RejectsInvalidExpiration(int minutes)
+    {
+        await Assert.ThrowsAsync<BusinessException>(() => CreateStrategy(minutes).CheckoutAsync(
+            new PaymentCheckoutRequest(Guid.NewGuid(), 10000, "127.0.0.1")));
+    }
+
     [Fact]
     public async Task CreatesSignedUrlWithVndAmountPaymentReferenceAndVietnamTime()
     {
@@ -78,10 +102,11 @@ public sealed class VnpayPaymentStrategyTests
             new PaymentCheckoutRequest(Guid.NewGuid(), 10000, "127.0.0.1")));
     }
 
-    private static VnpayPaymentStrategy CreateStrategy()
+    private static VnpayPaymentStrategy CreateStrategy(int expirationMinutes = 15)
     {
         return new VnpayPaymentStrategy(Options.Create(new VnpayOptions
         {
+            ExpirationMinutes = expirationMinutes,
             TmnCode = "TESTCODE",
             HashSecret = "test-secret",
             PaymentUrl = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html",

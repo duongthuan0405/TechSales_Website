@@ -14,11 +14,19 @@ internal sealed class Payment
     public TransactionMethod? TransactionMethod { get; }
     public TransactionStatus Status { get; private set; }
     public long Amount { get; }
+    public string? PaymentUrl { get; private set; }
     public string? TransactionRef { get; private set; }
     public string? FailureReason { get; private set; }
     public DateTimeOffset? CompletedAt { get; private set; }
     public DateTimeOffset CreatedAt { get; }
     public DateTimeOffset UpdatedAt { get; private set; }
+
+    public void SetPaymentUrl(string paymentUrl)
+    {
+        PaymentRules.EnsureValidPaymentUrl(paymentUrl);
+        PaymentUrl = paymentUrl;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
 
     public bool ConfirmCash(TransactionMethodType methodType)
     {
@@ -73,7 +81,7 @@ internal sealed class Payment
     internal Payment(Guid id, PaymentType type, Guid? orderId, Guid? repairRequestId,
         Guid transactionMethodId, TransactionStatus status, long amount, string? transactionRef,
         string? failureReason, DateTimeOffset? completedAt, DateTimeOffset createdAt, DateTimeOffset updatedAt,
-        TransactionMethod? transactionMethod = null)
+        TransactionMethod? transactionMethod = null, string? paymentUrl = null)
     {
         Id = id;
         Type = type;
@@ -82,6 +90,7 @@ internal sealed class Payment
         TransactionMethodId = transactionMethodId;
         TransactionMethod = transactionMethod;
         Status = status;
+        PaymentUrl = paymentUrl;
         Amount = amount;
         TransactionRef = transactionRef;
         FailureReason = failureReason;

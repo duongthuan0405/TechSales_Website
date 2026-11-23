@@ -67,9 +67,11 @@ public sealed class PaymentGatewayFactoryTests
 
     private static MomoPaymentStrategy CreateMomoStrategy()
     {
+        HttpClient client = new HttpClient();
+        var options = Options.Create(new MomoOptions());
         return new MomoPaymentStrategy(
-            new HttpClient(),
-            Options.Create(new MomoOptions()),
+            client,
+            options,
             Microsoft.Extensions.Logging.Abstractions.NullLogger<MomoPaymentStrategy>.Instance);
     }
 

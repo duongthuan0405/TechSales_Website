@@ -280,7 +280,6 @@ public sealed class VnpayIpnTests
             UpdateCount++;
             return Task.CompletedTask;
         }
-        public Task LockReferenceAsync(PaymentType type, Guid refId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task AddAsync(Payment payment, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<List<Payment>> GetAllAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task<(List<Payment> Items, int TotalCount)> GetPageAsync(int pageNumber, int pageSize, PaymentType? type, TransactionStatus? status, Guid? refId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
