@@ -7,21 +7,39 @@ namespace PaymentRefundModule.Domain.Rules;
 
 internal static class PaymentRules
 {
+    public static void EnsureValidPaymentUrl(string paymentUrl)
+    {
+        if (!Uri.TryCreate(paymentUrl, UriKind.Absolute, out Uri? uri)
+            || uri.Scheme != Uri.UriSchemeHttps)
+        {
+            throw new DomainException(DomainExceptionCode.PaymentUrlInvalid, DomainExceptionMessage.PaymentUrlInvalid);
+        }
+    }
+
+    public static bool CanRecordOnlineFailure(TransactionMethod? method, TransactionStatus status)
+    {
+        return method != null && method.Type == TransactionMethodType.ONLINE
+            && status == TransactionStatus.PENDING;
+    }
+
     public static bool IsMomoPollingAllowed(Payment payment)
     {
         return payment.Status == TransactionStatus.PENDING
             && payment.TransactionMethod != null
-            && MatchesNotification(payment.TransactionMethod.Type, payment.TransactionMethod.Code,
-                "MOMO", payment.Amount, payment.Amount);
+            && MatchesGateway(payment.TransactionMethod.Type, payment.TransactionMethod.Code, "MOMO");
     }
 
     public static bool MatchesNotification(TransactionMethodType methodType, string? methodCode,
         string gatewayCode, long expectedAmount, long receivedAmount)
     {
+        return MatchesGateway(methodType, methodCode, gatewayCode) && expectedAmount == receivedAmount;
+    }
+
+    public static bool MatchesGateway(TransactionMethodType methodType, string? methodCode, string gatewayCode)
+    {
         return methodType == TransactionMethodType.ONLINE
             && !string.IsNullOrWhiteSpace(methodCode)
-            && string.Equals(methodCode.Trim(), gatewayCode, StringComparison.OrdinalIgnoreCase)
-            && expectedAmount == receivedAmount;
+            && string.Equals(methodCode.Trim(), gatewayCode, StringComparison.OrdinalIgnoreCase);
     }
 
     public static void EnsureOnlineConfirmationAllowed(TransactionMethod? method,
@@ -50,7 +68,7 @@ internal static class PaymentRules
         }
         if (!IsPending(status))
         {
-            throw new DomainException(DomainExceptionCode.PaymentNotPending, DomainExceptionMessage.PaymentNotPending);
+            throw new DomainException(DomainExceptionCode.PaymentNotPending, DomainExceptionMessage.CheckoutNotAllowed(status));
         }
     }
 

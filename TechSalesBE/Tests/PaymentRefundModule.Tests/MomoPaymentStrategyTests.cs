@@ -4,7 +4,6 @@ using System.Text.Json;
 using CommonModule.BusinessExceptions;
 using Microsoft.Extensions.Options;
 using PaymentRefundModule.Application.Services.Payments;
-using PaymentRefundModule.Infrastructure.Payments.Options;
 using PaymentRefundModule.Infrastructure.Payments;
 using PaymentRefundModule.Infrastructure.Payments.Momo;
 using Xunit;
@@ -13,6 +12,22 @@ namespace PaymentRefundModule.Tests;
 
 public sealed class MomoPaymentStrategyTests
 {
+    [Theory]
+    [InlineData(5)]
+    [InlineData(30)]
+    public async Task SendsConfiguredOrderExpiration(int minutes)
+    {
+        using StubHandler handler = new StubHandler(HttpStatusCode.OK, """{"resultCode":0,"payUrl":"https://test-payment.momo.vn/pay/test"}""");
+        using HttpClient client = new HttpClient(handler) { BaseAddress = new Uri("https://example.com/") };
+        DateTimeOffset before = DateTimeOffset.UtcNow;
+        PaymentCheckoutResult result = await CreateStrategy(client, minutes).CheckoutAsync(new PaymentCheckoutRequest(Guid.NewGuid(), 10000));
+        Assert.NotNull(result.ExpiresAt);
+        Assert.InRange(result.ExpiresAt.Value, before.AddMinutes(minutes), DateTimeOffset.UtcNow.AddMinutes(minutes));
+        using JsonDocument document = JsonDocument.Parse(handler.Body!);
+        Assert.Equal(minutes, document.RootElement.GetProperty("orderExpireTime").GetInt32());
+        Assert.Equal("captureWallet", document.RootElement.GetProperty("requestType").GetString());
+    }
+
     [Fact]
     public async Task SendsSignedRequestAndReturnsPaymentUrl()
     {
@@ -50,11 +65,11 @@ public sealed class MomoPaymentStrategyTests
         await Assert.ThrowsAsync<BusinessException>(() => CreateStrategy(client).CheckoutAsync(new PaymentCheckoutRequest(Guid.NewGuid(), 10000)));
     }
 
-    private static MomoPaymentStrategy CreateStrategy(HttpClient client)
+    private static MomoPaymentStrategy CreateStrategy(HttpClient client, int expirationMinutes = 15)
     {
+        var options = Options.Create(new MomoOptions { ExpirationMinutes = expirationMinutes, PartnerCode = "TEST", AccessKey = "test-access", SecretKey = "test-secret", IpnUrl = "https://example.com/ipn", RedirectUrl = "https://example.com/result" });
         return new MomoPaymentStrategy(client,
-            Options.Create(new MomoOptions { PartnerCode = "TEST", AccessKey = "test-access", SecretKey = "test-secret", IpnUrl = "https://example.com/ipn" }),
-            Options.Create(new HookBackOptions { RedirectUrl = "https://example.com/result" }),
+            options,
             Microsoft.Extensions.Logging.Abstractions.NullLogger<MomoPaymentStrategy>.Instance);
     }
 

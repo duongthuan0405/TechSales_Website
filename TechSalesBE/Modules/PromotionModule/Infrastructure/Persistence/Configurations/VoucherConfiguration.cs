@@ -8,13 +8,14 @@ namespace PromotionModule.Infrastructure.Persistence.Configurations;
 
 internal sealed class VoucherConfiguration : IEntityTypeConfiguration<VoucherDbModel>
 {
+    internal const string CodeUniqueIndexName = "IX_Voucher_Code";
     public void Configure(EntityTypeBuilder<VoucherDbModel> builder)
     {
         builder.ToTable("Voucher");
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id).HasColumnName("Id").HasColumnType("uuid").IsRequired();
         builder.Property(e => e.Code).HasColumnName("Code").HasColumnType($"character varying({PromotionLimits.VoucherCodeMaxLength})").HasMaxLength(PromotionLimits.VoucherCodeMaxLength).IsRequired();
-        builder.HasIndex(e => e.Code).IsUnique();
+        builder.HasIndex(e => e.Code).HasDatabaseName(CodeUniqueIndexName).IsUnique();
         builder.Property(e => e.Type).HasColumnName("Type").HasColumnType("character varying(50)").HasConversion<string>().HasMaxLength(50).IsRequired();
         builder.Property(e => e.Value).HasColumnName("Value").HasColumnType("bigint").IsRequired(false);
         builder.Property(e => e.MaxUsage).HasColumnName("MaxUsage").HasColumnType("integer").IsRequired(false);

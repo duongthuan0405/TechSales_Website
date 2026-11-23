@@ -58,21 +58,6 @@ internal sealed class VoucherRepository : IVoucherRepository
         return Map(row);
     }
 
-    public async Task LockCodeAsync(string normalizedCode, CancellationToken cancellationToken)
-    {
-        if (_db.Database.CurrentTransaction == null)
-        {
-            throw new InvalidOperationException("Voucher writes require an active transaction.");
-        }
-
-        if (_db.Database.IsNpgsql())
-        {
-            string lockKey = $"promotion-voucher:{normalizedCode}";
-            await _db.Database.ExecuteSqlInterpolatedAsync(
-                $"SELECT pg_advisory_xact_lock(hashtextextended({lockKey}, 0))", cancellationToken);
-        }
-    }
-
     public async Task SaveAsync(Voucher voucher, CancellationToken cancellationToken)
     {
         VoucherDbModel? row = await _db.Vouchers.SingleOrDefaultAsync(item => item.Id == voucher.Id, cancellationToken);

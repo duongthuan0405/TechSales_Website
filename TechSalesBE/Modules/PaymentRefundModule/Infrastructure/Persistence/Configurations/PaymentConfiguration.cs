@@ -10,6 +10,7 @@ internal sealed class PaymentConfiguration : IEntityTypeConfiguration<PaymentDbM
     public void Configure(EntityTypeBuilder<PaymentDbModel> builder)
     {
         builder.ToTable("Payment");
+        builder.Property(e => e.PaymentUrl).HasColumnType("text").IsRequired(false);
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id).HasColumnName("Id").HasColumnType("uuid").IsRequired();
         builder.Property(e => e.Type).HasColumnName("Type").HasColumnType("character varying(50)").HasConversion<string>().HasMaxLength(50).IsRequired(false);

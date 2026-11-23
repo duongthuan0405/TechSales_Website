@@ -30,7 +30,6 @@ internal sealed class UpdateVoucher_UCHandler : IRequestHandler<UpdateVoucher_UC
             }
 
             string normalizedCode = VoucherRules.NormalizeCode(input.Code);
-            await _vouchers.LockCodeAsync(normalizedCode, cancellationToken);
             Voucher? existing = await _vouchers.GetByCodeAsync(normalizedCode, cancellationToken);
             if (!VoucherRules.CodeAvailable(existing, voucher.Id))
             {

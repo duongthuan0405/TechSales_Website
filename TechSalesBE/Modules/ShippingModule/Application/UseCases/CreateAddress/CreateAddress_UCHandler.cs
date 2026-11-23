@@ -12,12 +12,14 @@ internal sealed class CreateAddress_UCHandler : IRequestHandler<CreateAddress_UC
 {
     private readonly IShippingAddressRepository _addresses;
     private readonly IExecuteAtomically _transaction;
+    private readonly IShippingAddressLockService _addressLock;
     private readonly ILocationRepository _locations;
 
-    public CreateAddress_UCHandler(IShippingAddressRepository addresses, IExecuteAtomically transaction, ILocationRepository locations)
+    public CreateAddress_UCHandler(IShippingAddressRepository addresses, IExecuteAtomically transaction, ILocationRepository locations, IShippingAddressLockService addressLock)
     {
         _addresses = addresses;
         _transaction = transaction;
+        _addressLock = addressLock;
         _locations = locations;
     }
 
@@ -25,7 +27,7 @@ internal sealed class CreateAddress_UCHandler : IRequestHandler<CreateAddress_UC
     {
         return await _transaction.ExecuteAtomicallyAsync(async () =>
         {
-            await _addresses.LockByUserAsync(input.ActorId, cancellationToken);
+            await _addressLock.LockByUserAsync(input.ActorId, cancellationToken);
             Ward? ward = await _locations.GetWardAsync(input.WardCode, cancellationToken);
             if (ward == null)
             {

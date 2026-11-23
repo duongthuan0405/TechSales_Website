@@ -28,6 +28,9 @@ internal sealed class MomoCreatePaymentRequest
     [JsonPropertyName("requestType")]
     public string RequestType { get; set; } = "captureWallet";
 
+    [JsonPropertyName("orderExpireTime")]
+    public int OrderExpireTime { get; set; }
+
     [JsonPropertyName("extraData")]
     public string ExtraData { get; set; } = string.Empty;
 

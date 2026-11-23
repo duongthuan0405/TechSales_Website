@@ -10,18 +10,20 @@ internal sealed class SetDefaultAddress_UCHandler : IRequestHandler<SetDefaultAd
 {
     private readonly IShippingAddressRepository _addresses;
     private readonly IExecuteAtomically _transaction;
+    private readonly IShippingAddressLockService _addressLock;
 
-    public SetDefaultAddress_UCHandler(IShippingAddressRepository addresses, IExecuteAtomically transaction)
+    public SetDefaultAddress_UCHandler(IShippingAddressRepository addresses, IExecuteAtomically transaction, IShippingAddressLockService addressLock)
     {
         _addresses = addresses;
         _transaction = transaction;
+        _addressLock = addressLock;
     }
 
     public async Task<SetDefaultAddress_UCOutput> Handle(SetDefaultAddress_UCInput input, CancellationToken cancellationToken)
     {
         return await _transaction.ExecuteAtomicallyAsync(async () =>
         {
-            await _addresses.LockByUserAsync(input.ActorId, cancellationToken);
+            await _addressLock.LockByUserAsync(input.ActorId, cancellationToken);
             ShippingAddress? existing = await _addresses.GetActiveAsync(input.AddressId, cancellationToken);
             ShippingAddress address = AddressOwnershipRules.EnsureOwned(existing, input.ActorId);
 

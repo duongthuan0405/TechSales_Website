@@ -54,6 +54,9 @@ namespace PaymentRefundModule.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("OrderId");
 
+                    b.Property<string>("PaymentUrl")
+                        .HasColumnType("text");
+
                     b.Property<Guid?>("RepairRequestId")
                         .HasColumnType("uuid")
                         .HasColumnName("RepairRequestId");
