@@ -46,6 +46,10 @@ export const useUpdateUser = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<User> }) => 
       userService.updateUser(id, data),
+    onError: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['user', variables.id] });
+    },
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       queryClient.invalidateQueries({ queryKey: ['user', updated.id] });

@@ -6,7 +6,6 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Modal } from '../../components/ui/modal';
 import { Trash2, Plus, Minus, Loader2 } from 'lucide-react';
-import { useCreateOrder, useCheckoutSummary } from '../../../dataHook/orderDataHook';
 import { useGetCart, useUpdateCartQuantity, useRemoveFromCart, useClearCart } from '../../../dataHook/cartDataHook';
 import { toast } from 'sonner';
 
@@ -17,14 +16,10 @@ export function ShoppingCartPage() {
   const { mutate: updateQuantity, isPending: isUpdating } = useUpdateCartQuantity();
   const { mutate: removeItem, isPending: isRemoving } = useRemoveFromCart();
   const { mutate: clearCart } = useClearCart();
-  const { mutate: createOrder } = useCreateOrder();
 
-  const { data: summary } = useCheckoutSummary({
-    items: cartItems.map(i => ({ productId: i.productId, quantity: i.quantity }))
-  });
 
-  const subtotal = summary?.subtotal || 0;
-  const total = summary?.total || 0;
+  const subtotal = cartItems.reduce((total, item) => total + (item.price ?? 0) * item.quantity, 0);
+  const total = subtotal;
 
   useEffect(() => {
     if (isError) {
@@ -33,6 +28,7 @@ export function ShoppingCartPage() {
   }, [isError]);
 
   const handleCheckout = () => {
+    if (cartItems.some(item => item.unavailable)) { toast.error('Vui lòng xóa sản phẩm không khả dụng trước khi tiếp tục.'); return; }
     navigate('/customer/checkout', { state: { items: cartItems, fromCart: true } });
   };
 
@@ -46,26 +42,6 @@ export function ShoppingCartPage() {
     removeItem(productId, {
       onSuccess: () => toast.success('Đã xóa sản phẩm khỏi giỏ hàng'),
       onError: () => toast.error('Xóa sản phẩm thất bại')
-    });
-  };
-
-  const handleConfirmCheckout = () => {
-    createOrder({
-      items: cartItems,
-      total,
-      subtotal
-    }, {
-      onSuccess: () => {
-        clearCart(undefined, {
-          onSuccess: () => {
-            toast.success('Đặt hàng thành công!');
-            navigate('/customer/orders');
-          }
-        });
-      },
-      onError: () => {
-        toast.error('Đặt hàng thất bại');
-      }
     });
   };
 
@@ -108,7 +84,7 @@ export function ShoppingCartPage() {
                 <div className="flex-1">
                   <div className="flex items-start justify-between">
                     <div>
-                      <h3 className="font-semibold">{item.productName}</h3>
+                      <h3 className="font-semibold">{item.productName}</h3>{item.unavailable && <p className="text-sm text-destructive">Sản phẩm không khả dụng</p>}
                       <p className="text-sm text-muted-foreground">Mã SP: {item.productId}</p>
                     </div>
                     <button
@@ -123,7 +99,7 @@ export function ShoppingCartPage() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleUpdateQuantity(item.productId, item.quantity - 1)}
-                        disabled={item.quantity <= 1 || isUpdating}
+                        disabled={item.unavailable || item.quantity <= 1 || isUpdating}
                         className="flex h-8 w-8 items-center justify-center rounded-lg border border-border hover:bg-accent disabled:opacity-50"
                       >
                         <Minus className="h-4 w-4" />
@@ -131,7 +107,7 @@ export function ShoppingCartPage() {
                       <span className="w-12 text-center">{item.quantity}</span>
                       <button
                         onClick={() => handleUpdateQuantity(item.productId, item.quantity + 1)}
-                        disabled={isUpdating}
+                        disabled={item.unavailable || isUpdating}
                         className="flex h-8 w-8 items-center justify-center rounded-lg border border-border hover:bg-accent disabled:opacity-50"
                       >
                         <Plus className="h-4 w-4" />

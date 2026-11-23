@@ -1,3 +1,4 @@
+import { useDebouncedValue } from '../../../dataHook/useDebouncedValue';
 import { useState } from 'react';
 import { Search, Wrench, CheckCircle2, PackageCheck, Factory, Eye } from 'lucide-react';
 import { toast } from 'sonner';
@@ -18,13 +19,14 @@ export function RepairManagementPage() {
   const { data: requests = [] } = useGetRepairRequests();
   const update = useUpdateRepairRequest();
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search);
   const [selected, setSelected] = useState<RepairRequest | null>(null);
   const [checking, setChecking] = useState('');
   const [solution, setSolution] = useState('');
   const [location, setLocation] = useState<'AT_STORE' | 'AT_MANUFACTURER'>('AT_STORE');
   const [repairType, setRepairType] = useState<'WARRANTY' | 'REPAIR'>('REPAIR');
   const [repairFee, setRepairFee] = useState('0');
-  const visible = requests.filter(item => `${item.id} ${item.serialNumber} ${item.productName} ${item.customerName}`.toLowerCase().includes(search.toLowerCase()));
+  const visible = requests.filter(item => `${item.id} ${item.serialNumber} ${item.productName} ${item.customerName}`.toLowerCase().includes(debouncedSearch.toLowerCase()));
   const openDetail = (item: RepairRequest) => { setSelected(item); setChecking(item.checkingResult || ''); setSolution(item.solutionDescription || ''); setLocation(item.processingLocation || 'AT_STORE'); setRepairType(item.repairType || 'REPAIR'); setRepairFee(String(item.totalAmount || 0)); };
   const change = (status: RepairRequestStatus, extra = {}) => { if (!selected) return; update.mutate({ id: selected.id, status, ...extra }, { onSuccess: updated => { setSelected(updated); toast.success('Đã cập nhật yêu cầu sửa chữa.'); }, onError: (e: any) => toast.error(e.message) }); };
 

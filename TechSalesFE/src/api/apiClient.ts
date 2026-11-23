@@ -49,7 +49,7 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
       localStorage.removeItem('tech_sales_user');
       window.dispatchEvent(new Event('techsales:unauthorized'));
     }
-    throw new ApiError(payload?.message || `Yêu cầu thất bại (${response.status}).`, response.status, payload?.data);
+    throw new ApiError(payload?.message || `Yêu cầu thất bại (${response.status}).`, response.status, payload?.errors ?? payload?.data);
   }
   return payload?.data as T;
 }

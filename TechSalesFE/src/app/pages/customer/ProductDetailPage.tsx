@@ -41,7 +41,7 @@ export function ProductDetailPage() {
 
   const handleAddToCart = () => {
     if (!product) return;
-    addToCart(product.id, {
+    addToCart({ productId: product.id, quantity }, {
       onSuccess: () => toast.success('Đã thêm vào giỏ hàng'),
       onError: () => toast.error('Thêm vào giỏ hàng thất bại')
     });

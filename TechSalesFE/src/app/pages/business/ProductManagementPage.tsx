@@ -1,3 +1,4 @@
+import { useDebouncedValue } from '../../../dataHook/useDebouncedValue';
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import {
@@ -48,16 +49,17 @@ interface ProductManagementPageProps {
 export function ProductManagementPage({ readOnly = false }: ProductManagementPageProps) {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearch = useDebouncedValue(searchTerm);
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [pageNumber, setPageNumber] = useState(1);
   const pageSize = 20;
   const { data: lookups } = useGetProductLookups();
   const { data: adminData, isLoading, error: productsError } = useGetAdminProducts({
-    pageNumber, pageSize, keyword: searchTerm || undefined,
+    pageNumber, pageSize, keyword: debouncedSearch || undefined,
     categoryId: categoryFilter === 'all' ? undefined : categoryFilter,
     status: statusFilter === 'all' ? undefined : statusFilter as ProductStatus,
-  });
+  }, searchTerm === debouncedSearch);
   const products = adminData?.items || [];
   const createMutation = useCreateProduct();
   const updateMutation = useUpdateProduct();
@@ -144,7 +146,7 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
     setIsStockOpen(true);
   };
 
-  const onStockSubmit = (data: { value: number; type: "ADD" | "SET" }) => {
+  const onStockSubmit = (data: { serialNumbers: string[] }) => {
     if (!adjustingProduct) return;
     updateInventoryMutation.mutate(
       { id: adjustingProduct.id, ...data },
@@ -153,7 +155,7 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
           toast.success("Stock adjusted successfully");
           setIsStockOpen(false);
         },
-        onError: () => toast.error("Failed to adjust stock"),
+        onError: (error) => toast.error(error.message),
       }
     );
   };

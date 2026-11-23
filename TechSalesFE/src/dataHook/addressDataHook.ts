@@ -13,7 +13,7 @@ export const useCreateAddress = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (address: Omit<Address, 'id'>) => addressService.createAddress(address),
-    onSuccess: () => {
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['addresses'] });
     },
   });
@@ -24,7 +24,7 @@ export const useUpdateAddress = () => {
   return useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: Partial<Address> }) => 
       addressService.updateAddress(id, updates),
-    onSuccess: () => {
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['addresses'] });
     },
   });
@@ -34,7 +34,7 @@ export const useDeleteAddress = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => addressService.deleteAddress(id),
-    onSuccess: () => {
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['addresses'] });
     },
   });
@@ -44,7 +44,7 @@ export const useSetDefaultAddress = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => addressService.setDefaultAddress(id),
-    onSuccess: () => {
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['addresses'] });
     },
   });

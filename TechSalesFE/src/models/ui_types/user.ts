@@ -1,7 +1,8 @@
 export enum UserStatus {
   PENDING = 'PENDING',
   ACTIVE = 'ACTIVE',
-  BLOCKED = 'BLOCKED'
+  BLOCKED = 'BLOCKED',
+  INACTIVE = 'INACTIVE'
 }
 
 export type UserRole = 'Staff' | 'Customer' | 'Business Admin' | 'Technical Admin';
@@ -32,4 +33,5 @@ export interface User {
   
   // Roles (simplified for UI)
   role: UserRole;
+  roles?: UserRole[];
 }

@@ -121,7 +121,7 @@ export const productService = {
   deleteProduct: async (id: string): Promise<void> => {
     await productService.updateProduct(id, { status: ProductStatus.DISCONTINUED });
   },
-  updateInventory: async (_id: string, _value: number, _type: 'ADD' | 'SET'): Promise<void> => {
-    throw new ApiError('Chức năng tồn kho chưa được kết nối.', 501);
+  updateInventory: async (id: string, serialNumbers: string[]): Promise<void> => {
+    await api.post(`/api/inventory/${encodeURIComponent(id)}/receive`, { serialNumbers });
   },
 };

@@ -22,9 +22,9 @@ import { User, UserRole, UserStatus } from "../../../models/ui_types/user";
 import { Loader2 } from "lucide-react";
 
 const userSchema = z.object({
-  fullName: z.string().min(2, "Full name must be at least 2 characters"),
+  fullName: z.string(),
   email: z.string().email("Invalid email address"),
-  phone: z.string().min(10, "Phone number must be at least 10 digits"),
+  phone: z.string(),
   role: z.enum(['Staff', 'Customer', 'Business Admin', 'Technical Admin']),
   status: z.nativeEnum(UserStatus),
   password: z.string().min(6, "Password must be at least 6 characters").optional(),
@@ -63,7 +63,7 @@ export function UserForm({ initialData, onSubmit, isLoading, forcedRole, current
             <FormItem>
               <FormLabel>Full Name</FormLabel>
               <FormControl>
-                <Input placeholder="John Doe" {...field} />
+                <Input placeholder="Chủ tài khoản tự cập nhật hồ sơ" {...field} disabled />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -78,7 +78,7 @@ export function UserForm({ initialData, onSubmit, isLoading, forcedRole, current
               <FormItem>
                 <FormLabel>Email Address</FormLabel>
                 <FormControl>
-                  <Input placeholder="john@example.com" {...field} disabled={!!initialData} />
+                  <Input placeholder="john@example.com" {...field}  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -91,7 +91,7 @@ export function UserForm({ initialData, onSubmit, isLoading, forcedRole, current
               <FormItem>
                 <FormLabel>Phone Number</FormLabel>
                 <FormControl>
-                  <Input placeholder="+1 (555) 000-0000" {...field} />
+                  <Input placeholder="Chủ tài khoản tự cập nhật hồ sơ" {...field} disabled />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -153,8 +153,8 @@ export function UserForm({ initialData, onSubmit, isLoading, forcedRole, current
             name="status"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Status</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormLabel>Status (dùng nút khóa/mở khóa trong danh sách)</FormLabel>
+                <Select disabled onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select status" />

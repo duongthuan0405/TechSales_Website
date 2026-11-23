@@ -1,3 +1,4 @@
+import { useApiError } from '../../../dataHook/useApiError';
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import {
@@ -39,7 +40,8 @@ import { formatCurrency } from "../../../utils/format";
 
 export function VoucherManagementPage() {
   const [page, setPage] = useState(1);
-  const { data: voucherData, isLoading } = useGetVouchers(page);
+  const { data: voucherData, isLoading, error: apiError } = useGetVouchers(page);
+  useApiError(apiError);
   const createMutation = useCreateVoucher();
   const deactivateMutation = useDeleteVoucher(); // Still use the same hook as it calls the soft-delete API
 
@@ -52,7 +54,7 @@ export function VoucherManagementPage() {
         setIsFormOpen(false);
       },
       onError: (error: any) => {
-        toast.error(error.response?.data?.message || "Failed to create voucher");
+        toast.error(error.message || "Failed to create voucher");
       },
     });
   };

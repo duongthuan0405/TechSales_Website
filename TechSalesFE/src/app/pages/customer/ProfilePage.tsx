@@ -112,7 +112,7 @@ export function ProfilePage() {
       
       toast.success('Cập nhật thông tin thành công');
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Cập nhật thông tin thất bại');
+      toast.error(error.message || 'Cập nhật thông tin thất bại');
     } finally {
       setIsLoading(false);
     }

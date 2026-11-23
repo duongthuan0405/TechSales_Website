@@ -1,3 +1,4 @@
+import { useDebouncedValue } from '../../../dataHook/useDebouncedValue';
 import { useState } from 'react';
 import { formatCurrency } from '../../../utils/format';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -34,6 +35,7 @@ export function OrderManagementPage() {
   const { data: orders = [], isLoading } = useGetAdminOrders();
   const { mutate: updateStatus } = useUpdateOrderStatus();
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebouncedValue(searchTerm);
   const [statusFilter, setStatusFilter] = useState('all');
 
   // Confirmation State
@@ -41,8 +43,8 @@ export function OrderManagementPage() {
   const [orderForSerialModal, setOrderForSerialModal] = useState<Order | null>(null);
 
   const filteredOrders = orders.filter(order => {
-    const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (order.customerName || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = order.id.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      (order.customerName || '').toLowerCase().includes(debouncedSearch.toLowerCase());
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });

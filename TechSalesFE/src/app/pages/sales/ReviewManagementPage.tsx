@@ -1,3 +1,4 @@
+import { useDebouncedValue } from '../../../dataHook/useDebouncedValue';
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
@@ -24,6 +25,7 @@ export function ReviewManagementPage() {
   const { mutate: replyToReview } = useReplyToReview();
   
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebouncedValue(searchTerm);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
 
@@ -31,9 +33,9 @@ export function ReviewManagementPage() {
   const [confirmingMod, setConfirmingMod] = useState<{ id: string, status: ReviewStatus } | null>(null);
 
   const filteredReviews = reviews.filter(rev => 
-    rev.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    rev.comment.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (rev.productName || '').toLowerCase().includes(searchTerm.toLowerCase())
+    rev.userName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+    rev.comment.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+    (rev.productName || '').toLowerCase().includes(debouncedSearch.toLowerCase())
   );
 
   const handleModerate = () => {

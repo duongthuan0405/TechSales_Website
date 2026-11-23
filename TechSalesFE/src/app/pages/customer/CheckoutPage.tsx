@@ -1,3 +1,6 @@
+import { LocationFields } from '../../components/customer/LocationFields';
+import { useQuery } from '@tanstack/react-query';
+import api from '../../../api/apiClient';
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
@@ -18,11 +21,11 @@ import {
   Ticket,
   X
 } from 'lucide-react';
-import { useGetCart, useClearCart } from '../../../dataHook/cartDataHook';
+import { useGetCart } from '../../../dataHook/cartDataHook';
 import { useGetProducts } from '../../../dataHook/productDataHook';
-import { useCreateOrder, useCheckoutSummary } from '../../../dataHook/orderDataHook';
+import { useCheckoutSummary } from '../../../dataHook/orderDataHook';
 import { useGetPaymentMethods } from '../../../dataHook/paymentDataHook';
-import { useGetAddresses, useCreateAddress } from '../../../dataHook/addressDataHook';
+import { useGetAddresses } from '../../../dataHook/addressDataHook';
 import { useValidateVoucher } from '../../../dataHook/voucherDataHook';
 import { VoucherModal } from '../../components/customer/VoucherModal';
 import { Voucher, VoucherType } from '../../../models/ui_types/voucher';
@@ -34,7 +37,6 @@ export function CheckoutPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const stateItems = location.state?.items || [];
-  const fromCart = location.state?.fromCart ?? true; // fallback to true if undefined
 
   const { data: cartItems = [], isLoading: cartLoading } = useGetCart();
   const checkoutItems = stateItems.length > 0 ? stateItems : cartItems;
@@ -42,8 +44,6 @@ export function CheckoutPage() {
   const { data: products = [] } = useGetProducts();
   const { data: availablePaymentMethods = [] } = useGetPaymentMethods();
   const { data: savedAddresses = [] } = useGetAddresses();
-  const { mutate: createOrder, isPending: isCreating } = useCreateOrder();
-  const { mutate: clearCart } = useClearCart();
   const validateVoucher = useValidateVoucher();
 
   const [paymentMethodId, setPaymentMethodId] = useState('');
@@ -57,8 +57,8 @@ export function CheckoutPage() {
   const [isValidatingVoucher, setIsValidatingVoucher] = useState(false);
 
   const [shippingAddress, setShippingAddress] = useState({
-    province: '',
-    ward: '',
+    province: '', provinceCode: '',
+    ward: '', wardCode: '',
     detail: ''
   });
 
@@ -93,19 +93,22 @@ export function CheckoutPage() {
     items: checkoutItems.map((i: any) => ({ productId: i.productId, quantity: i.quantity }))
   }), [checkoutItems]);
 
-  const { data: summary } = useCheckoutSummary(checkoutSummaryParams);
+  const { data: summary, error: summaryError } = useCheckoutSummary(checkoutSummaryParams);
 
   const subtotal = summary?.subtotal || 0;
-  const shippingFee = summary?.shippingFee || 0;
+  const wardCode = isAddingNewAddress ? shippingAddress.wardCode : savedAddresses.find(address => address.id === selectedAddressId)?.wardCode;
+  const shippingQuote = useQuery({ queryKey: ['shipping-fee', wardCode], enabled: !!wardCode,
+    queryFn: () => api.get<{ fee: number }>(`/api/shipping/wards/${encodeURIComponent(wardCode!)}/fee`) });
+  const shippingFee = shippingQuote.data?.fee ?? 0;
   
   // Recalculate discount based on applied voucher
   const calculateDiscount = () => {
     if (!appliedVoucher) return 0;
     
     if (appliedVoucher.type === VoucherType.FIXED) {
-      return appliedVoucher.value;
+      return Math.min(subtotal, appliedVoucher.value);
     } else {
-      return (subtotal * appliedVoucher.value) / 100;
+      return Math.min(subtotal, Math.floor((subtotal * appliedVoucher.value) / 100));
     }
   };
 
@@ -127,6 +130,10 @@ export function CheckoutPage() {
   };
 
   const handleSelectVoucher = (voucher: Voucher) => {
+    if (subtotal < voucher.minOrderAmount) {
+      toast.error('Đơn hàng chưa đạt giá trị tối thiểu của mã giảm giá.');
+      return;
+    }
     setAppliedVoucher(voucher);
     setVoucherCode(voucher.code);
     setIsVoucherModalOpen(false);
@@ -144,92 +151,13 @@ export function CheckoutPage() {
     setShippingAddress(prev => ({ ...prev, [id]: value }));
   };
 
-  const { mutateAsync: createAddress } = useCreateAddress();
-  const { refetch: refetchAddresses } = useGetAddresses();
   
-  const handlePlaceOrder = async () => {
-    let finalAddressId = selectedAddressId;
-    
-    if (isAddingNewAddress) {
-      if (!shippingAddress.detail || !shippingAddress.province || !shippingAddress.ward) {
-        toast.error('Vui lòng điền đầy đủ thông tin giao hàng');
-        return;
-      }
-      
-      try {
-        // Step 1: Create the address
-        await createAddress({
-          province: shippingAddress.province,
-          ward: shippingAddress.ward,
-          detail: shippingAddress.detail,
-          isDefault: false
-        });
-        
-        // Step 2: Since BE doesn't return ID, fetch list and find the match
-        const { data: freshAddresses } = await refetchAddresses();
-        const found = freshAddresses?.find(a => 
-          a.province === shippingAddress.province && 
-          a.ward === shippingAddress.ward && 
-          a.detail === shippingAddress.detail
-        );
-        
-        if (found) {
-          finalAddressId = found.id;
-        } else {
-          throw new Error('Could not retrieve new address ID');
-        }
-      } catch (error) {
-        toast.error('Không thể lưu hoặc lấy địa chỉ giao hàng mới');
-        return;
-      }
-    }
-
-    if (!finalAddressId) {
-      toast.error('Vui lòng chọn hoặc thêm địa chỉ giao hàng');
-      return;
-    }
-
-    const productsWithQuantity: Record<string, number> = {};
-    cartWithDetails.forEach((item: any) => {
-      productsWithQuantity[item.productId] = item.quantity;
-    });
-
-    createOrder({
-      productsWithQuantity,
-      shippingAddressId: finalAddressId,
-      paymentMethodId: paymentMethodId,
-      voucherCode: voucherCode || undefined
-    }, {
-      onSuccess: (data: any) => {
-        const handleSuccess = () => {
-          if (data.checkoutUrl) {
-            // Redirect to Payment Gateway
-            window.location.href = data.checkoutUrl;
-          } else {
-            // COD or no payment gateway
-            toast.success('Đặt hàng thành công!');
-            navigate('/customer/order-success', { state: { orderId: data.id } });
-          }
-        };
-
-        if (fromCart) {
-          clearCart(undefined, {
-            onSuccess: handleSuccess
-          });
-        } else {
-          handleSuccess();
-        }
-      },
-      onError: (error: any) => {
-        console.error('Order creation error:', error);
-        toast.error(error.message || 'Đặt hàng thất bại');
-      }
-    });
-  };
+  const handlePlaceOrder = () => toast.info('Chức năng đặt hàng trực tuyến chưa khả dụng.');
 
   if (cartLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
+
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -237,6 +165,10 @@ export function CheckoutPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 pb-16 px-4 md:px-0">
+      <p role="status" className="rounded border p-3 text-sm">Đây là thông tin dự kiến. Chức năng đặt hàng trực tuyến chưa khả dụng; giỏ hàng vẫn được giữ nguyên.</p>
+      {summaryError && <p role="alert" className="text-destructive">{summaryError.message}</p>}
+      {shippingQuote.error && <p role="alert" className="text-destructive">{shippingQuote.error.message}</p>}
+
       <div className="flex items-center gap-4 px-1">
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="h-10 w-10 rounded-xl hover:bg-muted/50">
           <ChevronLeft className="h-5 w-5" />
@@ -315,28 +247,7 @@ export function CheckoutPage() {
                 </div>
               ) : (
                 <div className="grid gap-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="province" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Tỉnh / Thành phố</Label>
-                      <Input 
-                        id="province" 
-                        placeholder="Ví dụ: TP. Hồ Chí Minh" 
-                        value={shippingAddress.province} 
-                        onChange={handleInputChange} 
-                        className="h-11 rounded-xl border-border bg-background"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="ward" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Quận / Huyện / Phường</Label>
-                      <Input 
-                        id="ward" 
-                        placeholder="Ví dụ: Phường Bến Nghé" 
-                        value={shippingAddress.ward} 
-                        onChange={handleInputChange} 
-                        className="h-11 rounded-xl border-border bg-background"
-                      />
-                    </div>
-                  </div>
+                  <LocationFields value={shippingAddress} onChange={patch => setShippingAddress(previous => ({ ...previous, ...patch }))} />
                   <div className="space-y-1.5">
                     <Label htmlFor="detail" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Địa chỉ chi tiết</Label>
                     <Input 
@@ -511,9 +422,9 @@ export function CheckoutPage() {
               <Button 
                 className="w-full h-14 rounded-xl text-xs font-bold uppercase tracking-[0.2em] bg-primary text-primary-foreground hover:opacity-90 transition-all shadow-xl shadow-primary/10" 
                 onClick={handlePlaceOrder}
-                disabled={isCreating}
+                disabled title="Chưa có chức năng đặt hàng trực tuyến"
               >
-                {isCreating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
+                <ShieldCheck className="mr-2 h-4 w-4" />
                 Đặt hàng ngay
               </Button>
             </CardFooter>

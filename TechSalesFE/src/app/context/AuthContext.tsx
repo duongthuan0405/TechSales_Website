@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { AuthUser, UserRole } from '../../models/ui_types/user';
 import { authService } from '../../services/authService';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -13,12 +14,13 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Restore session by verifying token with the Backend on page init/refresh
   useEffect(() => {
-    const handleUnauthorized = () => setUser(null);
+    const handleUnauthorized = () => { setUser(null); queryClient.clear(); };
     window.addEventListener('techsales:unauthorized', handleUnauthorized);
     const restoreSession = async () => {
       try {
@@ -48,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     setUser(null);
+    queryClient.clear();
     await authService.logout();
   };
 

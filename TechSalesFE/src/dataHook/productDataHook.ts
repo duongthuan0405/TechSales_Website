@@ -20,9 +20,10 @@ export const useGetProducts = (params?: ProductQueryParams) => {
   });
 };
 
-export const useGetAdminProducts = (params?: { keyword?: string; categoryId?: string; brandId?: string; status?: ProductStatus; pageNumber?: number; pageSize?: number }) => {
+export const useGetAdminProducts = (params?: { keyword?: string; categoryId?: string; brandId?: string; status?: ProductStatus; pageNumber?: number; pageSize?: number }, enabled = true) => {
   return useQuery({
     queryKey: ['admin-products', params],
+    enabled,
     queryFn: () => productService.getAdminProducts(params),
   });
 };
@@ -92,8 +93,8 @@ export const useToggleProductStatus = () => {
 export const useUpdateInventory = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, value, type }: { id: string; value: number; type: 'ADD' | 'SET' }) => 
-      productService.updateInventory(id, value, type),
+    mutationFn: ({ id, serialNumbers }: { id: string; serialNumbers: string[] }) =>
+      productService.updateInventory(id, serialNumbers),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });

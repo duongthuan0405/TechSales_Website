@@ -1,3 +1,4 @@
+import { useDebouncedValue } from '../../../dataHook/useDebouncedValue';
 import { useState, useEffect } from 'react';
 import { formatCurrency } from '../../../utils/format';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
@@ -33,7 +34,7 @@ export function ProductCatalogPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   
   const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(searchTerm);
   
   const selectedCategoryId = searchParams.get('category') || 'all';
   const [minPrice, setMinPrice] = useState<string>('');
@@ -50,10 +51,6 @@ export function ProductCatalogPage() {
     setSearchParams(newParams);
   };
 
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(searchTerm), 500);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
 
   const { data: products = [], isLoading, isError } = useGetProducts({
     search: debouncedSearch,

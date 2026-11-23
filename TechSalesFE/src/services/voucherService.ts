@@ -1,80 +1,42 @@
 import { Voucher, VoucherType } from '../models/ui_types/voucher';
-import { vouchers } from '../data/mockData';
+import api, { ApiError } from '../api/apiClient';
 import { PagedResponse } from './userService';
 
-const delay = (ms = 40) => new Promise(resolve => setTimeout(resolve, ms));
+interface VoucherRecord extends Omit<Voucher, 'value' | 'maxUsage' | 'minOrderAmount' | 'createdAt'> {
+  value: number | null; maxUsage: number | null; minOrderAmount: number | null; createdAt: string | null;
+}
+interface VoucherPage { items: VoucherRecord[]; totalCount: number; pageNumber: number; pageSize: number; }
+const mapVoucher = (row: VoucherRecord): Voucher => ({ ...row, value: row.value ?? 0,
+  maxUsage: row.maxUsage ?? Number.MAX_SAFE_INTEGER, minOrderAmount: row.minOrderAmount ?? 0, createdAt: row.createdAt ?? '' });
 
 export const voucherService = {
   getVouchers: async (page = 1, pageSize = 20): Promise<PagedResponse<Voucher>> => {
-    await delay();
-    const totalCount = vouchers.length;
-    const startIndex = (page - 1) * pageSize;
-    const items = vouchers.slice(startIndex, startIndex + pageSize);
-
-    return {
-      items,
-      pageNumber: page,
-      pageSize,
-      totalCount,
-      totalPages: Math.ceil(totalCount / pageSize) || 1,
-    };
+    const data = await api.get<VoucherPage>(`/api/admin/vouchers?pageNumber=${page}&pageSize=${pageSize}`);
+    return { ...data, items: data.items.map(mapVoucher), totalPages: Math.ceil(data.totalCount / data.pageSize) };
   },
-
-  createVoucher: async (data: {
-    code: string;
-    type: VoucherType;
-    value: number;
-    maxUsage: number;
-    minOrderAmount: number;
-    startDate?: string;
-    endDate?: string;
-  }): Promise<Voucher> => {
-    await delay();
-    const newVoucher: Voucher = {
-      id: `v${Date.now()}`,
-      code: data.code.toUpperCase().trim(),
-      name: data.code.toUpperCase().trim(),
-      type: data.type,
-      value: Number(data.value),
-      maxUsage: Number(data.maxUsage) || 100,
-      usedCount: 0,
-      minOrderAmount: Number(data.minOrderAmount) || 0,
-      startDate: data.startDate || new Date().toISOString(),
-      endDate: data.endDate || new Date(Date.now() + 60 * 86400000).toISOString(),
-      isActive: true,
-      createdAt: new Date().toISOString(),
-    };
-
-    vouchers.unshift(newVoucher);
-    return newVoucher;
+  createVoucher: async (data: { code: string; type: VoucherType; value: number; maxUsage: number;
+    minOrderAmount: number; startDate?: string; endDate?: string }): Promise<Voucher> => {
+    return mapVoucher(await api.post<VoucherRecord>('/api/admin/vouchers', { ...data,
+      startDate: data.startDate ? new Date(data.startDate).toISOString() : null,
+      endDate: data.endDate ? new Date(data.endDate).toISOString() : null }));
   },
-
-  deleteVoucher: async (id: string): Promise<void> => {
-    await delay();
-    const index = vouchers.findIndex(v => v.id === id);
-    if (index !== -1) {
-      vouchers.splice(index, 1);
-    }
-  },
-
+  deleteVoucher: async (id: string): Promise<void> => { await api.delete(`/api/admin/vouchers/${encodeURIComponent(id)}`); },
   getAvailableVouchers: async (): Promise<Voucher[]> => {
-    await delay();
-    return vouchers.filter(v => v.isActive);
+    const result: Voucher[] = [];
+    for (let page = 1; ; page++) {
+      const data = await api.get<VoucherPage>(`/api/vouchers?pageNumber=${page}&pageSize=100`);
+      result.push(...data.items.map(mapVoucher));
+      if (!data.items.length || page * data.pageSize >= data.totalCount) return result;
+    }
   },
-
+  // Preview only. Final validation and consumption must be performed by the future Order API.
   validateVoucher: async (code: string, orderAmount: number): Promise<Voucher> => {
-    await delay();
-    const cleanCode = code.trim().toUpperCase();
-    const voucher = vouchers.find(v => v.code.toUpperCase() === cleanCode && v.isActive);
-
-    if (!voucher) {
-      throw new Error(`Invalid or expired voucher code: ${code}`);
-    }
-
-    if (orderAmount < voucher.minOrderAmount) {
-      throw new Error(`Minimum order of $${voucher.minOrderAmount} required to use this voucher`);
-    }
-
+    const voucher = (await voucherService.getAvailableVouchers()).find(item => item.code.toUpperCase() === code.trim().toUpperCase());
+    const now = Date.now();
+    if (!voucher || !voucher.isActive || voucher.usedCount >= voucher.maxUsage
+      || (voucher.startDate && Date.parse(voucher.startDate) > now)
+      || (voucher.endDate && Date.parse(voucher.endDate) < now)) throw new ApiError('Mã giảm giá không khả dụng.', 400);
+    if (orderAmount < voucher.minOrderAmount) throw new ApiError('Đơn hàng chưa đạt giá trị tối thiểu của mã giảm giá.', 400);
     return voucher;
   },
 };

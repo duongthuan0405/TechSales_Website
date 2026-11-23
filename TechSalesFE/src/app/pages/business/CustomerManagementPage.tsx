@@ -1,3 +1,5 @@
+import { useDebouncedValue } from '../../../dataHook/useDebouncedValue';
+import { useApiError } from '../../../dataHook/useApiError';
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import {
@@ -56,12 +58,14 @@ import { UserForm } from "../../components/business/UserForm";
 import { Separator } from "../../components/ui/separator";
 
 export function CustomerManagementPage() {
-  const { data: customers = [], isLoading } = useGetCustomers();
+  const { data: customers = [], isLoading, error: apiError } = useGetCustomers();
+  useApiError(apiError);
   const updateMutation = useUpdateUser();
   const createMutation = useCreateUser();
   const toggleStatusMutation = useToggleUserStatus();
 
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearch = useDebouncedValue(searchTerm);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | undefined>(undefined);
@@ -69,9 +73,9 @@ export function CustomerManagementPage() {
 
   const filteredCustomers = customers.filter((customer) => {
     return (
-      customer.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.phone.includes(searchTerm)
+      customer.fullName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      customer.email.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      customer.phone.includes(debouncedSearch)
     );
   });
 
@@ -103,7 +107,7 @@ export function CustomerManagementPage() {
               setSelectedUser(updated);
             }
           },
-          onError: () => toast.error("Failed to update account"),
+          onError: (error) => toast.error(error.message || "Failed to update account"),
         }
       );
     } else {
@@ -112,7 +116,7 @@ export function CustomerManagementPage() {
           toast.success("Customer account created");
           setIsFormOpen(false);
         },
-        onError: () => toast.error("Failed to create account"),
+        onError: (error) => toast.error(error.message || "Failed to create account"),
       });
     }
   };
@@ -126,7 +130,7 @@ export function CustomerManagementPage() {
         toast.success(`Account ${isBlocked ? 'blocked' : 'activated'} successfully`);
         if (selectedUser?.id === user.id) setSelectedUser(updated);
       },
-      onError: () => toast.error("Failed to update account status"),
+      onError: (error) => toast.error(error.message || "Failed to update account status"),
     });
   };
 

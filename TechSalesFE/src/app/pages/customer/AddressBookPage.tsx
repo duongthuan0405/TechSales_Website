@@ -1,250 +1,58 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { useGetAddresses, useCreateAddress, useUpdateAddress, useDeleteAddress, useSetDefaultAddress } from '../../../dataHook/addressDataHook';
+import { Address } from '../../../models/ui_types/address';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
-import { Label } from '../../components/ui/label';
 import { Modal } from '../../components/ui/modal';
-import { 
-  MapPin, 
-  Plus, 
-  Trash2, 
-  Edit3, 
-  Loader2,
-} from 'lucide-react';
+import { LocationFields } from '../../components/customer/LocationFields';
 import { toast } from 'sonner';
-import { 
-  useGetAddresses, 
-  useCreateAddress, 
-  useUpdateAddress, 
-  useDeleteAddress, 
-  useSetDefaultAddress 
-} from '../../../dataHook/addressDataHook';
-import { Address } from '../../../models/ui_types/address';
 
+const empty = { province: '', provinceCode: '', ward: '', wardCode: '', detail: '', isDefault: false };
 export function AddressBookPage() {
-  const { data: addresses = [], isLoading: isFetching } = useGetAddresses();
-  const { mutate: createAddress } = useCreateAddress();
-  const { mutate: updateAddress } = useUpdateAddress();
-  const { mutate: deleteAddress } = useDeleteAddress();
-  const { mutate: setDefaultAddress } = useSetDefaultAddress();
-
-  const [showModal, setShowModal] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [editingAddress, setEditingAddress] = useState<Address | null>(null);
-  
-  const [formData, setFormData] = useState({
-    province: '',
-    ward: '',
-    detail: '',
-    isDefault: false
-  });
-
-  const handleOpenModal = (address?: Address) => {
-    if (address) {
-      setEditingAddress(address);
-      setFormData({
-        province: address.province,
-        ward: address.ward,
-        detail: address.detail,
-        isDefault: address.isDefault
-      });
-    } else {
-      setEditingAddress(null);
-      setFormData({
-        province: '',
-        ward: '',
-        detail: '',
-        isDefault: false
-      });
-    }
-    setShowModal(true);
+  const addresses = useGetAddresses();
+  const create = useCreateAddress(); const update = useUpdateAddress();
+  const remove = useDeleteAddress(); const setDefault = useSetDefaultAddress();
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Address>();
+  const [form, setForm] = useState(empty);
+  const busy = create.isPending || update.isPending || remove.isPending || setDefault.isPending;
+  const start = (address?: Address) => {
+    setEditing(address); setForm(address ? { ...empty, ...address } : empty); setOpen(true);
   };
-
-  const handleDelete = (id: string) => {
-    if (confirm('Bạn có chắc chắn muốn xóa địa chỉ này?')) {
-      deleteAddress(id, {
-        onSuccess: () => toast.success('Đã xóa địa chỉ')
-      });
-    }
-  };
-
-  const handleSetDefault = (id: string) => {
-    setDefaultAddress(id, {
-      onSuccess: () => toast.success('Đã đặt làm địa chỉ mặc định')
-    });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    
-    const action = editingAddress 
-      ? () => updateAddress({ id: editingAddress.id, updates: formData }, {
-          onSuccess: () => {
-            toast.success('Cập nhật địa chỉ thành công');
-            setShowModal(false);
-          }
-        })
-      : () => createAddress(formData, {
-          onSuccess: () => {
-            toast.success('Đã thêm địa chỉ mới');
-            setShowModal(false);
-          }
-        });
-
-    action();
-    setIsSubmitting(false);
-  };
-
-  if (isFetching && addresses.length === 0) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  const showError = (error: Error) => toast.error(error.message);
+  return <div className="mx-auto max-w-4xl space-y-5">
+    <div className="flex items-center justify-between"><h1 className="text-2xl font-bold">Sổ địa chỉ</h1>
+      <Button onClick={() => start()} disabled={busy}>Thêm địa chỉ</Button></div>
+    {addresses.isPending && <p>Đang tải địa chỉ…</p>}
+    {addresses.error && <p role="alert" className="text-destructive">{addresses.error.message}</p>}
+    {addresses.data?.length === 0 && <p>Chưa có địa chỉ giao hàng.</p>}
+    {addresses.data?.map(address => <div key={address.id} className="space-y-3 rounded-xl border p-5">
+      <p>{address.detail}, {address.ward}, {address.province}</p>
+      {address.isDefault && <p className="text-sm font-semibold">Địa chỉ mặc định</p>}
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" disabled={busy} onClick={() => start(address)}>Sửa</Button>
+        {!address.isDefault && <Button variant="outline" disabled={busy} onClick={() => setDefault.mutate(address.id, { onError: showError })}>Đặt mặc định</Button>}
+        <Button variant="outline" disabled={busy} onClick={() => {
+          if (confirm('Xóa địa chỉ này?')) remove.mutate(address.id, { onError: showError });
+        }}>Xóa</Button>
       </div>
-    );
-  }
-
-  return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-12">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-1">
-        <div className="space-y-0.5">
-          <h1 className="text-2xl font-bold tracking-tight uppercase text-foreground">Sổ địa chỉ</h1>
-          <p className="text-sm text-muted-foreground font-medium">Quản lý địa chỉ giao hàng để đặt hàng nhanh chóng hơn.</p>
-        </div>
-        <Button onClick={() => handleOpenModal()} className="h-11 rounded-xl px-6 font-bold uppercase tracking-widest text-[10px] bg-primary text-primary-foreground shadow-md shadow-primary/10 transition-all">
-          <Plus className="mr-2 h-4 w-4" />
-          Thêm địa chỉ
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4">
-        {addresses.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center bg-muted/20 rounded-3xl border-2 border-dashed border-border/50">
-            <MapPin className="h-10 w-10 text-muted/30 mb-4" />
-            <h3 className="font-bold text-base text-muted-foreground uppercase tracking-tight">Chưa có địa chỉ nào</h3>
-            <p className="text-muted-foreground/60 text-xs mt-1 font-medium italic">Thêm địa chỉ để quá trình thanh toán diễn ra thuận tiện hơn.</p>
-          </div>
-        ) : (
-          addresses.map((address) => (
-            <Card key={address.id} className={`border-2 transition-all rounded-2xl overflow-hidden ${address.isDefault ? 'border-primary bg-muted/30' : 'border-border/40 hover:border-border/80 bg-card'}`}>
-              <CardContent className="p-5">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
-                  <div className="flex items-center gap-4">
-                    <div className={`h-11 w-11 rounded-xl flex items-center justify-center ${address.isDefault ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground/50'}`}>
-                      <MapPin className="h-5 w-5" />
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-3">
-                        <span className="font-bold text-sm uppercase tracking-tight text-foreground">Địa chỉ giao hàng</span>
-                        {address.isDefault && (
-                          <span className="bg-primary text-primary-foreground text-[8px] font-black px-2 py-0.5 rounded uppercase tracking-widest border-none">
-                            MẶC ĐỊNH
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-muted-foreground text-sm font-medium leading-relaxed tracking-tight">
-                        {address.detail}, {address.ward}, {address.province}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 self-end md:self-center">
-                    {!address.isDefault && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary hover:bg-muted"
-                        onClick={() => handleSetDefault(address.id)}
-                      >
-                        Đặt làm mặc định
-                      </Button>
-                    )}
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-9 w-9 text-muted-foreground hover:text-primary hover:bg-muted rounded-lg"
-                      onClick={() => handleOpenModal(address)}
-                    >
-                      <Edit3 className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg"
-                      onClick={() => handleDelete(address.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
-
-      {/* Add/Edit Address Modal */}
-      <Modal open={showModal} onOpenChange={setShowModal} title={editingAddress ? "Chỉnh sửa địa chỉ" : "Thêm địa chỉ mới"}>
-        <form onSubmit={handleSubmit} className="space-y-5 pt-4">
-          <div className="grid grid-cols-2 gap-4">
-             <div className="space-y-1.5">
-                <Label htmlFor="province" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Tỉnh / Thành phố</Label>
-                <Input 
-                  id="province" 
-                  placeholder="Ví dụ: TP. Hồ Chí Minh" 
-                  required 
-                  className="h-11 rounded-xl border-border bg-background"
-                  value={formData.province}
-                  onChange={(e) => setFormData(prev => ({ ...prev, province: e.target.value }))}
-                />
-             </div>
-             <div className="space-y-1.5">
-                <Label htmlFor="ward" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Quận / Huyện / Phường</Label>
-                <Input 
-                  id="ward" 
-                  placeholder="Ví dụ: Phường Bến Nghé" 
-                  required 
-                  className="h-11 rounded-xl border-border bg-background"
-                  value={formData.ward}
-                  onChange={(e) => setFormData(prev => ({ ...prev, ward: e.target.value }))}
-                />
-             </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="detail" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Địa chỉ chi tiết</Label>
-            <Input 
-              id="detail" 
-              placeholder="Số nhà, tên đường, tòa nhà..." 
-              required 
-              className="h-11 rounded-xl border-border bg-background"
-              value={formData.detail}
-              onChange={(e) => setFormData(prev => ({ ...prev, detail: e.target.value }))}
-            />
-          </div>
-
-          <div className="flex items-center gap-3 py-1 px-1">
-            <input 
-              type="checkbox" 
-              id="isDefault" 
-              className="h-4 w-4 rounded border-border text-primary focus:ring-primary cursor-pointer transition-all"
-              checked={formData.isDefault}
-              onChange={(e) => setFormData(prev => ({ ...prev, isDefault: e.target.checked }))}
-            />
-            <Label htmlFor="isDefault" className="text-xs font-bold uppercase tracking-widest text-muted-foreground cursor-pointer">Đặt làm mặc định</Label>
-          </div>
-
-          <div className="flex gap-3 pt-2">
-            <Button variant="outline" type="button" className="flex-1 h-11 rounded-xl text-[10px] font-bold uppercase tracking-widest border-border hover:bg-muted" onClick={() => setShowModal(false)}>
-              Hủy
-            </Button>
-            <Button type="submit" className="flex-1 h-11 rounded-xl text-[10px] font-bold uppercase tracking-widest bg-primary text-primary-foreground hover:opacity-90 shadow-md shadow-primary/10" disabled={isSubmitting}>
-              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              {editingAddress ? 'Cập nhật' : 'Thêm'}
-            </Button>
-          </div>
-        </form>
-      </Modal>
-    </div>
-  );
+    </div>)}
+    <Modal open={open} onOpenChange={setOpen} title={editing ? 'Sửa địa chỉ' : 'Thêm địa chỉ'}>
+      <form className="space-y-4" onSubmit={async event => {
+        event.preventDefault();
+        try {
+          if (editing) await update.mutateAsync({ id: editing.id, updates: form });
+          else await create.mutateAsync(form);
+          setOpen(false); toast.success('Đã lưu địa chỉ.');
+        } catch (error) { showError(error as Error); }
+      }}>
+        <LocationFields value={form} onChange={patch => setForm(previous => ({ ...previous, ...patch }))} />
+        <label className="block text-sm">Địa chỉ chi tiết<Input required value={form.detail}
+          onChange={event => setForm(previous => ({ ...previous, detail: event.target.value }))} /></label>
+        <label className="flex gap-2 text-sm"><input type="checkbox" checked={form.isDefault} disabled={!!editing?.isDefault}
+          onChange={event => setForm(previous => ({ ...previous, isDefault: event.target.checked }))} />Địa chỉ mặc định</label>
+        <Button disabled={busy || !form.wardCode} type="submit">{busy ? 'Đang lưu…' : 'Lưu địa chỉ'}</Button>
+      </form>
+    </Modal>
+  </div>;
 }

@@ -15,6 +15,9 @@ export const useCreateCategory = () => {
     mutationFn: (data: Omit<Category, 'id'>) => categoryService.createCategory(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
+      queryClient.invalidateQueries({ queryKey: ['product-lookups'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
     },
   });
 };
@@ -26,7 +29,9 @@ export const useUpdateCategory = () => {
       categoryService.updateCategory(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
-      queryClient.invalidateQueries({ queryKey: ['products'] }); // Products might have updated category names
+      queryClient.invalidateQueries({ queryKey: ['product-lookups'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
     },
   });
 };
@@ -38,7 +43,9 @@ export const useDeleteCategory = () => {
       categoryService.deleteCategory(id, replacementId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
-      queryClient.invalidateQueries({ queryKey: ['products'] }); // Products have migrated
+      queryClient.invalidateQueries({ queryKey: ['product-lookups'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
     },
   });
 };

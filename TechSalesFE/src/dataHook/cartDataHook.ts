@@ -11,9 +11,11 @@ export const useGetCart = () => {
 export const useAddToCart = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (productId: string) => cartService.addToCart(productId),
-    onSuccess: () => {
+    mutationFn: (input: string | { productId: string; quantity: number }) => typeof input === 'string'
+      ? cartService.addToCart(input) : cartService.addToCart(input.productId, input.quantity),
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['cart'] });
+      queryClient.invalidateQueries({ queryKey: ['checkout-summary'] });
     }
   });
 };
@@ -23,7 +25,7 @@ export const useUpdateCartQuantity = () => {
   return useMutation({
     mutationFn: ({ productId, quantity }: { productId: string, quantity: number }) => 
       cartService.updateQuantity(productId, quantity),
-    onSuccess: () => {
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['cart'] });
     }
   });
@@ -33,7 +35,7 @@ export const useRemoveFromCart = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (productId: string) => cartService.removeItem(productId),
-    onSuccess: () => {
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['cart'] });
     }
   });
@@ -43,7 +45,7 @@ export const useClearCart = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => cartService.clearCart(),
-    onSuccess: () => {
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['cart'] });
     }
   });

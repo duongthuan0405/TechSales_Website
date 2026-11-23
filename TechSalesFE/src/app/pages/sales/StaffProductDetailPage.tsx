@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { formatCurrency } from '../../../utils/format';
+import { ProductStatus } from '../../../models/ui_types/product';
 import { useParams, useNavigate } from 'react-router';
 import { 
   Star, 
@@ -37,7 +39,7 @@ export function StaffProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   
-  const { data: product, isLoading: isProductLoading, isError } = useGetProduct(id || '');
+  const { data: product, isLoading: isProductLoading, error, refetch } = useGetProduct(id || '');
   const { data: reviewData, isLoading: isReviewsLoading } = useGetProductReviews(id || '');
   const reviews = reviewData?.reviews || [];
   const { mutate: moderateReview } = useModerateReview();
@@ -46,13 +48,6 @@ export function StaffProductDetailPage() {
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
   const [confirmingMod, setConfirmingMod] = useState<{ id: string, status: ReviewStatus } | null>(null);
-
-  useEffect(() => {
-    if (isError) {
-      toast.error('Product not found in operational database');
-      navigate('/sales/products');
-    }
-  }, [isError, navigate]);
 
   const handleModerate = () => {
     if (!confirmingMod) return;
@@ -80,12 +75,20 @@ export function StaffProductDetailPage() {
     });
   };
 
-  if (isProductLoading || !product) {
+  if (isProductLoading) {
     return (
       <div className="flex h-[70vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
+  }
+
+  if (error || !product) {
+    return <div className="mx-auto max-w-6xl space-y-4 p-6">
+      <p role="alert" className="text-destructive">{error?.message || 'Không tìm thấy sản phẩm.'}</p>
+      <Button variant="outline" onClick={() => navigate(-1)}>Quay lại</Button>
+      <Button onClick={() => refetch()}>Thử lại</Button>
+    </div>;
   }
 
   return (
@@ -126,7 +129,7 @@ export function StaffProductDetailPage() {
           </div>
 
           <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-bold text-foreground tracking-tight">{formatCurrency(product.price)}</span>
+            <span className="text-4xl font-bold text-foreground tracking-tight">{product.priceIsUnset ? 'Chưa có giá' : formatCurrency(product.price)}</span>
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">VND</span>
           </div>
 
@@ -142,11 +145,11 @@ export function StaffProductDetailPage() {
                  </div>
                  <div>
                     <p className="text-[10px] font-bold uppercase tracking-widest text-primary">Catalog Status</p>
-                    <p className="text-xs font-black uppercase tracking-tight">Active for Fulfillment</p>
+                    <p className="text-xs font-black uppercase tracking-tight">{product.status === ProductStatus.ACTIVE ? 'Đang kinh doanh' : 'Ngừng kinh doanh'}</p>
                  </div>
               </div>
               <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-widest px-3 border-primary/30 text-primary">
-                {product.stock} Units In Reserve
+                {product.stock ?? 0} sản phẩm khả dụng
               </Badge>
             </div>
           </div>

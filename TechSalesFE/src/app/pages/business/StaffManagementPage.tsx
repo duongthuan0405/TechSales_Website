@@ -1,3 +1,5 @@
+import { useDebouncedValue } from '../../../dataHook/useDebouncedValue';
+import { useApiError } from '../../../dataHook/useApiError';
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import {
@@ -65,12 +67,14 @@ import { useAuth } from "../../context/AuthContext";
 
 export function StaffManagementPage() {
   const { user: currentUser } = useAuth();
-  const { data: staffMembers = [], isLoading } = useGetStaff();
+  const { data: staffMembers = [], isLoading, error: apiError } = useGetStaff();
+  useApiError(apiError);
   const updateMutation = useUpdateUser();
   const createMutation = useCreateUser();
   const toggleStatusMutation = useToggleUserStatus();
 
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearch = useDebouncedValue(searchTerm);
   const [roleFilter, setRoleFilter] = useState<string>("all");
   
   // Dialog states
@@ -81,8 +85,8 @@ export function StaffManagementPage() {
 
   const filteredStaff = staffMembers.filter((u) => {
     const matchesSearch = 
-      u.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchTerm.toLowerCase());
+      u.fullName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      u.email.toLowerCase().includes(debouncedSearch.toLowerCase());
     const matchesRole = roleFilter === "all" || u.role === roleFilter;
     return matchesSearch && matchesRole;
   });
@@ -115,7 +119,7 @@ export function StaffManagementPage() {
               setSelectedUser(updated);
             }
           },
-          onError: () => toast.error("Failed to update staff account"),
+          onError: (error) => toast.error(error.message || "Failed to update staff account"),
         }
       );
     } else {
@@ -124,7 +128,7 @@ export function StaffManagementPage() {
           toast.success("Staff account created");
           setIsFormOpen(false);
         },
-        onError: () => toast.error("Failed to create staff account"),
+        onError: (error) => toast.error(error.message || "Failed to create staff account"),
       });
     }
   };
@@ -142,7 +146,7 @@ export function StaffManagementPage() {
         toast.success(`Staff account ${isBlocked ? 'blocked' : 'activated'}`);
         if (selectedUser?.id === user.id) setSelectedUser(updated);
       },
-      onError: () => toast.error("Failed to update account status"),
+      onError: (error) => toast.error(error.message || "Failed to update account status"),
     });
   };
 

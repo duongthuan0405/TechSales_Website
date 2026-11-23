@@ -1,3 +1,4 @@
+import { useDebouncedValue } from '../../../dataHook/useDebouncedValue';
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
@@ -19,6 +20,7 @@ import { AuditLog } from '../../../models/ui_types/auditLog';
 export function SystemLogsPage() {
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebouncedValue(searchTerm);
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   
   const { data, isLoading } = useGetAuditLogs(page, 15);
@@ -46,9 +48,9 @@ export function SystemLogsPage() {
 
   const filteredLogs = logs.filter(log => {
     return (
-      log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.tableName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (log.userId && log.userId.toLowerCase().includes(searchTerm.toLowerCase()))
+      log.action.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      log.tableName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      (log.userId && log.userId.toLowerCase().includes(debouncedSearch.toLowerCase()))
     );
   });
 

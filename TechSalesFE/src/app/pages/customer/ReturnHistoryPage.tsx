@@ -1,3 +1,4 @@
+import { useDebouncedValue } from '../../../dataHook/useDebouncedValue';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { 
@@ -32,6 +33,7 @@ export function ReturnHistoryPage() {
   const { data: allReturns = [], isLoading } = useGetReturnRequests(user?.id);
 
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebouncedValue(searchQuery);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [selectedReturn, setSelectedReturn] = useState<ReturnRequest | null>(null);
 
@@ -79,7 +81,7 @@ export function ReturnHistoryPage() {
 
   const filteredReturns = allReturns.filter((item) => {
     const matchesStatus = statusFilter === 'ALL' || item.status === statusFilter;
-    const query = searchQuery.toLowerCase().trim();
+    const query = debouncedSearch.toLowerCase().trim();
     const matchesSearch =
       !query ||
       item.id.toLowerCase().includes(query) ||

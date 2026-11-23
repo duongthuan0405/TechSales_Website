@@ -1,3 +1,5 @@
+import { useDebouncedValue } from '../../../dataHook/useDebouncedValue';
+import { useApiError } from '../../../dataHook/useApiError';
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import {
@@ -26,34 +28,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/select";
-import { 
-  Search, 
-  Plus, 
-  Loader2, 
-  Tag, 
-  Edit, 
-  Trash2, 
+import {
+  Search,
+  Plus,
+  Loader2,
+  Tag,
+  Edit,
+  Trash2,
   AlertTriangle,
   FolderTree,
   ArrowRightLeft
 } from "lucide-react";
-import { 
-  useGetCategories, 
-  useCreateCategory, 
-  useUpdateCategory, 
-  useDeleteCategory 
+import {
+  useGetCategories,
+  useCreateCategory,
+  useUpdateCategory,
+  useDeleteCategory
 } from "../../../dataHook/categoryDataHook";
 import { Category } from "../../../models/ui_types/category";
 import { toast } from "sonner";
 import { Label } from "../../components/ui/label";
 
 export function CategoryManagementPage() {
-  const { data: categories = [], isLoading } = useGetCategories();
+  const { data: categories = [], isLoading, error: apiError } = useGetCategories();
+  useApiError(apiError);
   const createMutation = useCreateCategory();
   const updateMutation = useUpdateCategory();
   const deleteMutation = useDeleteCategory();
 
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearch = useDebouncedValue(searchTerm);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | undefined>(undefined);
@@ -66,7 +70,7 @@ export function CategoryManagementPage() {
   });
 
   const filteredCategories = categories.filter((cat) =>
-    cat.name.toLowerCase().includes(searchTerm.toLowerCase())
+    cat.name.toLowerCase().includes(debouncedSearch.toLowerCase())
   );
 
   const handleCreate = () => {
@@ -97,7 +101,7 @@ export function CategoryManagementPage() {
             toast.success("Category updated successfully");
             setIsFormOpen(false);
           },
-          onError: () => toast.error("Failed to update category"),
+          onError: (error) => toast.error(error.message || "Failed to update category"),
         }
       );
     } else {
@@ -106,7 +110,7 @@ export function CategoryManagementPage() {
           toast.success("Category created successfully");
           setIsFormOpen(false);
         },
-        onError: () => toast.error("Failed to create category"),
+        onError: (error) => toast.error(error.message || "Failed to create category"),
       });
     }
   };
@@ -120,7 +124,7 @@ export function CategoryManagementPage() {
             toast.success(`Category "${deletingCategory.name}" removed and products migrated.`);
             setIsDeleteOpen(false);
           },
-          onError: () => toast.error("Failed to delete category"),
+          onError: (error) => toast.error(error.message || "Failed to delete category"),
         }
       );
     } else {
@@ -198,11 +202,11 @@ export function CategoryManagementPage() {
                         <Button variant="ghost" size="icon" onClick={() => handleEdit(cat)}>
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => handleDeleteClick(cat)}
-                          disabled={categories.length <= 1} // Cannot delete if it's the only one
+                          disabled title="Chưa hỗ trợ xóa danh mục"
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
@@ -228,9 +232,9 @@ export function CategoryManagementPage() {
           <form onSubmit={handleFormSubmit} className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="name">Category Name</Label>
-              <Input 
-                id="name" 
-                value={formData.name} 
+              <Input
+                id="name"
+                value={formData.name}
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
                 placeholder="e.g. Laptops, Smartphones"
                 required
@@ -238,11 +242,11 @@ export function CategoryManagementPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="description">Description (Optional)</Label>
-              <Input 
-                id="description" 
-                value={formData.description} 
+              <Input
+                id="description" disabled placeholder="Chưa hỗ trợ mô tả danh mục"
+                value={formData.description}
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
-                placeholder="Briefly describe what goes here"
+
               />
             </div>
             <DialogFooter>
@@ -296,9 +300,9 @@ export function CategoryManagementPage() {
 
           <DialogFooter>
             <Button variant="ghost" onClick={() => setIsDeleteOpen(false)}>Cancel</Button>
-            <Button 
-              variant="destructive" 
-              onClick={confirmDelete} 
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
               disabled={!replacementId || deleteMutation.isPending}
             >
               {deleteMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Migrate & Delete"}

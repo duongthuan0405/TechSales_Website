@@ -1,3 +1,4 @@
+import { useDebouncedValue } from '../../../dataHook/useDebouncedValue';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
@@ -30,6 +31,7 @@ export function UserManagementPage() {
   const { mutate: toggleStatus, isPending: isToggling } = useToggleUserStatus();
   const createMutation = useCreateUser();
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebouncedValue(searchTerm);
   const [roleFilter, setRoleFilter] = useState('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
 
@@ -40,18 +42,18 @@ export function UserManagementPage() {
   }, [isError]);
 
   const handleToggleStatus = (id: string, currentStatus: any) => {
-    const action = currentStatus === 'ACTIVE' ? 'block' : 'unblock';
+    const action = currentStatus === 'BLOCKED' ? 'unblock' : 'block';
     if (window.confirm(`Are you sure you want to ${action} this user?`)) {
       toggleStatus({ id, status: currentStatus }, {
         onSuccess: () => toast.success(`User ${action}ed successfully`),
-        onError: () => toast.error(`Failed to ${action} user`)
+        onError: (error) => toast.error(error.message)
       });
     }
   };
 
   const filteredUsers = users.filter(user => {
-    const matchesSearch = user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = user.fullName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      user.email.toLowerCase().includes(debouncedSearch.toLowerCase());
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
     return matchesSearch && matchesRole;
   });

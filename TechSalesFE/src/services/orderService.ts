@@ -1,3 +1,7 @@
+import { paymentService } from './paymentService';
+import { productService } from './productService';
+import { voucherService } from './voucherService';
+import { ApiError } from '../api/apiClient';
 import { Order, OrderStatus, OrderItem, ProductUnit } from '../models/ui_types/order';
 import { orders, products, mockAddresses, paymentMethods, vouchers, mockCart, mockProductUnits } from '../data/mockData';
 import { VoucherType } from '../models/ui_types/voucher';
@@ -33,38 +37,21 @@ export const orderService = {
   },
 
   calculateCheckoutSummary: async (params: CheckoutPreviewParams): Promise<CheckoutSummary> => {
-    await delay(20);
+    const current = params.items.length ? await productService.getProducts() : [];
     let subtotal = 0;
     for (const item of params.items) {
-      const product = products.find(p => p.id === item.productId);
-      if (product) {
-        subtotal += product.price * item.quantity;
-      }
+      const product = current.find(product => product.id === item.productId);
+      if (!product || product.priceIsUnset) throw new ApiError('Có sản phẩm không khả dụng trong đơn hàng.', 400);
+      subtotal += product.price * item.quantity;
     }
-
     let discount = 0;
     if (params.couponCode) {
-      const code = params.couponCode.trim().toUpperCase();
-      const voucher = vouchers.find(v => v.code.toUpperCase() === code && v.isActive);
-      if (voucher && subtotal >= voucher.minOrderAmount) {
-        if (voucher.type === VoucherType.PERCENTAGE) {
-          discount = Math.round((subtotal * voucher.value) / 100);
-        } else {
-          discount = voucher.value;
-        }
-        discount = Math.min(discount, subtotal);
-      }
+      const voucher = await voucherService.validateVoucher(params.couponCode, subtotal);
+      discount = voucher.type === VoucherType.PERCENTAGE ? Math.floor(subtotal * voucher.value / 100) : voucher.value;
     }
-
-    const shippingFee = subtotal > 1500 || subtotal === 0 ? 0 : 25;
-    const total = Math.max(0, subtotal + shippingFee - discount);
-
-    return {
-      subtotal,
-      shippingFee,
-      total,
-      discount,
-    };
+    discount = Math.min(discount, subtotal);
+    // Shipping is quoted separately by the Shipping API once an address is selected.
+    return { subtotal, shippingFee: 0, discount, total: subtotal - discount };
   },
 
   createOrder: async (orderData: {
@@ -73,102 +60,7 @@ export const orderService = {
     paymentMethodId: string;
     voucherCode?: string;
   }): Promise<Order> => {
-    await delay();
-
-    let subtotal = 0;
-    const orderItems: OrderItem[] = [];
-    const orderId = `ORD-${Math.floor(100 + Math.random() * 900)}`;
-
-    for (const [productId, quantity] of Object.entries(orderData.productsWithQuantity)) {
-      const product = products.find(p => p.id === productId);
-      if (product) {
-        const itemPrice = product.price;
-        subtotal += itemPrice * quantity;
-        orderItems.push({
-          orderId,
-          productId,
-          productName: product.name,
-          imageUrl: product.imageUrl,
-          price: itemPrice,
-          quantity,
-        });
-
-        // Deduct inventory in RAM
-        product.stock = Math.max(0, (product.stock || 0) - quantity);
-      }
-    }
-
-    let discount = 0;
-    if (orderData.voucherCode) {
-      const voucher = vouchers.find(
-        v => v.code.toUpperCase() === orderData.voucherCode?.trim().toUpperCase() && v.isActive
-      );
-      if (voucher && subtotal >= voucher.minOrderAmount) {
-        if (voucher.type === VoucherType.PERCENTAGE) {
-          discount = Math.round((subtotal * voucher.value) / 100);
-        } else {
-          discount = voucher.value;
-        }
-        discount = Math.min(discount, subtotal);
-        voucher.usedCount = (voucher.usedCount || 0) + 1;
-      }
-    }
-
-    const shippingFee = subtotal > 1500 ? 0 : 25;
-    const totalAmount = Math.max(0, subtotal + shippingFee - discount);
-
-    // Look up address snapshot
-    const addr = mockAddresses.find(a => a.id === orderData.shippingAddressId) || mockAddresses[0];
-    const shippingAddressSnapshot = addr
-      ? `${addr.detail}, ${addr.ward}, ${addr.province}`
-      : '123 Tech Avenue, Ben Nghe Ward, Ho Chi Minh City';
-
-    // Look up payment method
-    const pm = paymentMethods.find(p => p.id === orderData.paymentMethodId) || paymentMethods[0];
-    const paymentMethodName = pm ? pm.name : 'Credit Card';
-
-    // Current user info
-    let customerName = 'Demo Customer';
-    let userId = 'u4';
-    try {
-      const rawUser = localStorage.getItem('tech_sales_user');
-      if (rawUser) {
-        const parsed = JSON.parse(rawUser);
-        if (parsed.name) customerName = parsed.name;
-        if (parsed.id) userId = parsed.id;
-      }
-    } catch {}
-
-    const newOrder: Order = {
-      id: orderId,
-      userId,
-      customerName,
-      status: OrderStatus.PENDING,
-      totalProductAmount: subtotal,
-      shippingFee,
-      discountAmount: discount,
-      totalAmount,
-      shippingAddressSnapshot,
-      paymentMethodId: orderData.paymentMethodId,
-      paymentMethodName,
-      createdAt: new Date().toISOString(),
-      items: orderItems,
-      payments: [
-        {
-          id: `pay-${Date.now()}`,
-          paymentMethodName,
-          status: 'PENDING',
-          amount: totalAmount,
-        },
-      ],
-    };
-
-    orders.unshift(newOrder);
-
-    // Clear cart in RAM after successful order
-    mockCart.length = 0;
-
-    return newOrder;
+    throw new ApiError('Chưa hỗ trợ đặt hàng trực tuyến. Giỏ hàng của bạn vẫn được giữ nguyên.', 501);
   },
 
   cancelOrder: async (id: string): Promise<void> => {
@@ -330,53 +222,12 @@ export const orderService = {
   },
 
   repay: async (id: string, _paymentMethodId?: string): Promise<string | null> => {
-    await delay();
-    const order = orders.find(o => o.id === id);
-    if (order) {
-      if (order.payments) {
-        order.payments.forEach(p => (p.status = 'SUCCESS'));
-      }
-      order.isPaymentFailed = false;
-    }
-    return null;
+    const pending = (await paymentService.getOrderPayments(id)).find(payment => payment.status === 'PENDING');
+    if (!pending) throw new ApiError('Không có giao dịch đang chờ thanh toán.', 404);
+    return paymentService.checkout(pending.id);
   },
 
-  updatePaymentMethod: async (orderId: string, paymentMethodId: string): Promise<Order> => {
-    await delay();
-    const order = orders.find(o => o.id === orderId);
-    if (!order) {
-      throw new Error(`Không tìm thấy đơn hàng #${orderId}`);
-    }
-    if (order.status !== OrderStatus.PENDING) {
-      throw new Error('Chỉ có thể thay đổi phương thức thanh toán khi đơn hàng chưa được duyệt (trạng thái Chờ xử lý).');
-    }
-    const pm = paymentMethods.find(p => p.id === paymentMethodId);
-    if (!pm) {
-      throw new Error('Phương thức thanh toán không hợp lệ');
-    }
-    order.paymentMethodId = pm.id;
-    order.paymentMethodName = pm.name;
-
-    if (order.payments && order.payments.length > 0) {
-      order.payments = order.payments.map(p => {
-        if (p.status !== 'SUCCESS') {
-          return {
-            ...p,
-            paymentMethodName: pm.name,
-            status: 'PENDING'
-          };
-        }
-        return p;
-      });
-    } else {
-      order.payments = [{
-        id: `pay-${Date.now()}`,
-        paymentMethodName: pm.name,
-        status: 'PENDING',
-        amount: order.totalAmount
-      }];
-    }
-    order.updatedAt = new Date().toISOString();
-    return { ...order };
+  updatePaymentMethod: async (orderId: string, paymentMethodId: string): Promise<void> => {
+    await paymentService.replaceOrderPayment(orderId, paymentMethodId);
   },
 };
