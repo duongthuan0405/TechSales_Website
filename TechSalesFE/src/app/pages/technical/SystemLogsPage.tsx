@@ -1,5 +1,6 @@
 import { useDebouncedValue } from '../../../dataHook/useDebouncedValue';
 import { useState } from 'react';
+import { useListUrlState } from '../../../dataHook/useListUrlState';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Badge } from '../../components/ui/badge';
@@ -18,8 +19,9 @@ import { useGetAuditLogs } from '../../../dataHook/auditDataHook';
 import { AuditLog } from '../../../models/ui_types/auditLog';
 
 export function SystemLogsPage() {
-  const [page, setPage] = useState(1);
-  const [searchTerm, setSearchTerm] = useState('');
+  const list = useListUrlState({ keyword: '' });
+  const { pageNumber: page, setPageNumber: setPage } = list;
+  const [searchTerm, setSearchTerm] = list.field('keyword');
   const debouncedSearch = useDebouncedValue(searchTerm);
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   
@@ -158,7 +160,7 @@ export function SystemLogsPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    onClick={() => setPage(Math.max(1, page - 1))}
                     disabled={page === 1}
                   >
                     <ArrowLeft className="h-4 w-4 mr-1" />
@@ -167,7 +169,7 @@ export function SystemLogsPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    onClick={() => setPage(Math.min(totalPages, page + 1))}
                     disabled={page >= totalPages}
                   >
                     Sau

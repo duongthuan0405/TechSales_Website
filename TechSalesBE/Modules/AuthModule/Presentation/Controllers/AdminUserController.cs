@@ -63,12 +63,12 @@ public sealed class AdminUserController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = RoleAccess.AccountWriters)]
+    [Authorize(Roles = RoleAccess.Administrators)]
     [ProducesResponseType(typeof(ApiSuccessResponse<CreateUser_UCOutput>), StatusCodes.Status201Created)]
     public async Task<IActionResult> Create(CreateUserRequestDto request, CancellationToken ct)
     {
 
-        CreateUser_UCOutput result = await _sender.Send(new CreateUser_UCInput(this.GetActorId(), request.Email, request.Password, request.Roles), ct);
+        CreateUser_UCOutput result = await _sender.Send(new CreateUser_UCInput(this.GetActorId(), request.Email, request.Password, request.Roles, request.FullName, request.Phone), ct);
         ApiSuccessResponse<CreateUser_UCOutput> response = new ApiSuccessResponse<CreateUser_UCOutput>(result, ResponseMessage.SuccessAccountCreated);
         return Created(string.Empty, response);
     }

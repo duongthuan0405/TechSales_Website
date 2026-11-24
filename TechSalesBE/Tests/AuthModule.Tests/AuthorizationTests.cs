@@ -9,6 +9,31 @@ using static AuthModule.Tests.AuthTestApp;
 namespace AuthModule.Tests;
 public sealed class AuthorizationTests
 {
+    [Theory]
+    [InlineData("/api/admin/users", UserRoleName.STAFF)]
+    [InlineData("/api/admin/users/staff", UserRoleName.STAFF)]
+    [InlineData("/api/admin/users/customers", UserRoleName.CUSTOMER)]
+    public async Task Directory_can_search_by_partial_phone_number(string path, string role)
+    {
+        await using var app = await AuthTestApp.CreateAsync();
+        await app.SeedUserAsync("phone-admin@example.com", UserRoleName.TECHNICAL_ADMIN);
+        var target = await app.SeedUserAsync("phone-target@example.com", role);
+        await app.SeedUserAsync("phone-other@example.com", role);
+        await app.DbAsync(async db =>
+        {
+            var profile = await db.UserProfiles.SingleAsync(p => p.UserId == target);
+            profile.PhoneNumber = "0905678912";
+            return await db.SaveChangesAsync();
+        });
+        var token = await app.LoginAsync("phone-admin@example.com");
+        var response = await ExpectAsync(await app.Client.SendAsync(app.Authorized(HttpMethod.Get,
+            path + "?keyword=56789&pageNumber=1&pageSize=1", token)), HttpStatusCode.OK);
+        var data = response.GetProperty("data");
+        Assert.Equal(1, data.GetProperty("totalCount").GetInt32());
+        var item = Assert.Single(data.GetProperty("items").EnumerateArray());
+        Assert.Equal(target.ToString(), item.GetProperty("id").GetString());
+    }
+
     [Fact]
     public async Task Technical_directory_pages_all_roles_and_applies_search_and_role_in_database()
     {
@@ -94,30 +119,35 @@ public sealed class AuthorizationTests
         await ExpectAsync(await app.Client.SendAsync(app.Authorized(HttpMethod.Get, "/api/admin/users/customers", token)), HttpStatusCode.OK);
         await ExpectAsync(await app.Client.SendAsync(app.Authorized(HttpMethod.Post, $"/api/admin/users/{customer}/lock", token, new { until = (string? )null })), HttpStatusCode.OK);
         await ExpectAsync(await app.Client.SendAsync(app.Authorized(HttpMethod.Post, $"/api/admin/users/{admin}/lock", token, new { until = (string? )null })), HttpStatusCode.Forbidden);
-        await ExpectAsync(await app.Client.SendAsync(app.Authorized(HttpMethod.Post, "/api/admin/users", token, new { email = "illegal@example.com", password = Password, roles = new[] { UserRoleName.TECHNICAL_ADMIN } })), HttpStatusCode.Forbidden);
+        await ExpectAsync(await app.Client.SendAsync(app.Authorized(HttpMethod.Post, "/api/admin/users", token, new { email = "illegal@example.com", password = Password, fullName = "Test User", phone = NextPhone(), roles = new[] { UserRoleName.TECHNICAL_ADMIN } })), HttpStatusCode.Forbidden);
         await ExpectAsync(await app.Client.SendAsync(app.Authorized(HttpMethod.Post, $"/api/admin/users/{customer}/unlock", token)), HttpStatusCode.OK);
     }
 
     [Fact]
-    public async Task Business_admin_can_manage_status_but_cannot_create_or_edit_account_details()
+    public async Task Business_admin_can_create_staff_and_manage_status_but_cannot_edit_account_details()
     {
         await using var app = await AuthTestApp.CreateAsync();
         await app.SeedUserAsync("business@example.com", UserRoleName.BUSINESS_ADMIN);
         var token = await app.LoginAsync("business@example.com");
         foreach (var role in new[]
         {
-            UserRoleName.STAFF,
             UserRoleName.CUSTOMER
         }
 
         )
         {
-            await ExpectAsync(await app.Client.SendAsync(app.Authorized(HttpMethod.Post, "/api/admin/users", token, new { email = role.Replace(" ", "") + "@example.com", password = Password, roles = new[] { role } })), HttpStatusCode.Forbidden);
+            await ExpectAsync(await app.Client.SendAsync(app.Authorized(HttpMethod.Post, "/api/admin/users", token, new { email = role.Replace(" ", "") + "@example.com", password = Password, fullName = "Test User", phone = NextPhone(), roles = new[] { role } })), HttpStatusCode.Forbidden);
         }
 
-        await ExpectAsync(await app.Client.SendAsync(app.Authorized(HttpMethod.Post, "/api/admin/users", token, new { email = "illegal@example.com", password = Password, roles = new[] { UserRoleName.TECHNICAL_ADMIN } })), HttpStatusCode.Forbidden);
-        await ExpectAsync(await app.Client.SendAsync(app.Authorized(HttpMethod.Post, "/api/admin/users", token, new { email = "illegal-business@example.com", password = Password, roles = new[] { UserRoleName.BUSINESS_ADMIN } })), HttpStatusCode.Forbidden);
-        await ExpectAsync(await app.Client.SendAsync(app.Authorized(HttpMethod.Post, "/api/admin/users", token, new { email = "illegal-mixed@example.com", password = Password, roles = new[] { UserRoleName.STAFF, UserRoleName.BUSINESS_ADMIN } })), HttpStatusCode.Forbidden);
+        var created = await ExpectAsync(await app.Client.SendAsync(app.Authorized(HttpMethod.Post, "/api/admin/users", token,
+            new { email = "new-staff@example.com", password = Password, fullName = "Test User", phone = NextPhone(), roles = new[] { UserRoleName.STAFF } })), HttpStatusCode.Created);
+        Assert.Equal(UserRoleName.STAFF, Assert.Single(created.GetProperty("data").GetProperty("roles").EnumerateArray()).GetString());
+        await ExpectAsync(await app.Client.SendAsync(app.Authorized(HttpMethod.Post, "/api/admin/users", token,
+            new { email = "mixed-staff-customer@example.com", password = Password, fullName = "Test User", phone = NextPhone(), roles = new[] { UserRoleName.STAFF, UserRoleName.CUSTOMER } })), HttpStatusCode.Forbidden);
+
+        await ExpectAsync(await app.Client.SendAsync(app.Authorized(HttpMethod.Post, "/api/admin/users", token, new { email = "illegal@example.com", password = Password, fullName = "Test User", phone = NextPhone(), roles = new[] { UserRoleName.TECHNICAL_ADMIN } })), HttpStatusCode.Forbidden);
+        await ExpectAsync(await app.Client.SendAsync(app.Authorized(HttpMethod.Post, "/api/admin/users", token, new { email = "illegal-business@example.com", password = Password, fullName = "Test User", phone = NextPhone(), roles = new[] { UserRoleName.BUSINESS_ADMIN } })), HttpStatusCode.Forbidden);
+        await ExpectAsync(await app.Client.SendAsync(app.Authorized(HttpMethod.Post, "/api/admin/users", token, new { email = "illegal-mixed@example.com", password = Password, fullName = "Test User", phone = NextPhone(), roles = new[] { UserRoleName.STAFF, UserRoleName.BUSINESS_ADMIN } })), HttpStatusCode.Forbidden);
         await ExpectAsync(await app.Client.SendAsync(app.Authorized(HttpMethod.Get, "/api/admin/users/staff", token)), HttpStatusCode.OK);
         await ExpectAsync(await app.Client.SendAsync(app.Authorized(HttpMethod.Get, "/api/admin/rbac/permissions", token)), HttpStatusCode.Forbidden);
         var target = await app.SeedUserAsync("readonly-target@example.com", UserRoleName.CUSTOMER);
@@ -215,7 +245,8 @@ public sealed class AuthorizationTests
     [Fact]
     public async Task Bootstrap_creates_only_the_configured_technical_admin()
     {
-        await using var app = await AuthTestApp.CreateAsync(new() { ["AUTH:Bootstrap:Email"] = "bootstrap@example.com", ["AUTH:Bootstrap:Password"] = Password });
+        await using var app = await AuthTestApp.CreateAsync(new() { ["AUTH:Bootstrap:Email"] = "bootstrap@example.com", ["AUTH:Bootstrap:Password"] = Password,
+            ["AUTH:Bootstrap:FullName"] = "Initial Administrator", ["AUTH:Bootstrap:Phone"] = NextPhone() });
         var token = await app.LoginAsync("bootstrap@example.com");
         await ExpectAsync(await app.Client.SendAsync(app.Authorized(HttpMethod.Get, "/api/admin/rbac/roles", token)), HttpStatusCode.OK);
         Assert.Equal(1, await app.DbAsync(db => db.Users.CountAsync()));

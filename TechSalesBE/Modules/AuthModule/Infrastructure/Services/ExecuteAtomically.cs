@@ -32,7 +32,9 @@ public sealed class ExecuteAtomically : IExecuteAtomically
         {
             await RollbackAsync();
             _db.ChangeTracker.Clear();
-            throw new BusinessException(BusinessExceptionCode.CONFLICT, BusinessExceptionMessage.DataConflict);
+            var postgres = (PostgresException)exception.InnerException!;
+            throw new BusinessException(BusinessExceptionCode.CONFLICT,
+                postgres.ConstraintName == "IX_UserProfile_PhoneNumber" ? BusinessExceptionMessage.PhoneAlreadyUsed : BusinessExceptionMessage.DataConflict);
         }
         catch
         {

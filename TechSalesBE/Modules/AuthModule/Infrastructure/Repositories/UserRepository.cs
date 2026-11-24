@@ -50,6 +50,10 @@ internal sealed class UserRepository : IUserRepository
         return user.Id;
     }
 
+    public Task<bool> PhoneExistsAsync(string phone, Guid? excludingUserId, CancellationToken cancellationToken) =>
+        _db.Users.AnyAsync(user => user.Id != excludingUserId && user.Profile != null
+            && user.Profile.PhoneNumber == phone, cancellationToken);
+
     public async Task UpdateAsync(User user, CancellationToken cancellationToken = default)
     {
         UserDbModel row = await _db.Users.Include(u => u.Profile).SingleAsync(u => u.Id == user.Id, cancellationToken);

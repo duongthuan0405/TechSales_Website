@@ -49,6 +49,8 @@ public sealed class VietnameseEmailTests
 
         if (hasFrontend)
         {
+            Assert.Contains("https://frontend.example.com/auth/verify-email?email=user%40example.com&token=123456", captured.Messages[0].TextBody);
+            Assert.Contains("https://frontend.example.com/auth/reset-password?email=user%40example.com&token=654321", captured.Messages[1].TextBody);
             Assert.Contains(">Xác nhận email</a>", captured.Messages[0].HtmlBody);
             Assert.Contains(">Đặt lại mật khẩu</a>", captured.Messages[1].HtmlBody);
         }

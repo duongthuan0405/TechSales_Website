@@ -3,6 +3,7 @@ namespace AuthModule.Application.Repositories;
 internal interface IUserRepository
 {
     Task<Guid> AddAsync(User user, CancellationToken cancellationToken = default);
+    Task<bool> PhoneExistsAsync(string phone, Guid? excludingUserId, CancellationToken cancellationToken);
     Task<User?> GetUserByEmailAsync(string email, CancellationToken cancellationToken = default, bool forUpdate = false);
     Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task UpdateAsync(User user, CancellationToken cancellationToken = default);

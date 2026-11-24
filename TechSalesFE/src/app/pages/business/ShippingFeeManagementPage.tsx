@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useListUrlState } from '../../../dataHook/useListUrlState';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Search } from 'lucide-react';
 import { toast } from 'sonner';
@@ -66,7 +67,8 @@ function ProvinceFeeRow({ province, hidden }: { province: Location; hidden: bool
 const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
 
 export function ShippingFeeManagementPage() {
-  const [search, setSearch] = useState('');
+  const list = useListUrlState({ keyword: '' });
+  const [search, setSearch] = list.field('keyword');
   const provinces = useQuery({ queryKey: ['provinces'], queryFn: addressService.getProvinces });
   const matches = (province: Location) => normalize(`${province.name ?? ''} ${province.code}`).includes(normalize(search.trim()));
   const count = provinces.data?.filter(matches).length ?? 0;

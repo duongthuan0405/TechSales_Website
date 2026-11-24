@@ -32,7 +32,7 @@ export function TopNav({ userName, userRole, userAvatar, onLogout }: TopNavProps
         </div>
       </div>
       <div className="flex items-center gap-6">
-        <NotificationDropdown />
+        {user ? <><NotificationDropdown />
         <div className="flex items-center gap-3 pl-4 border-l border-border/50">
           <div className="text-right">
             <div className="text-sm font-medium">{userName}</div>
@@ -49,6 +49,8 @@ export function TopNav({ userName, userRole, userAvatar, onLogout }: TopNavProps
         <Button variant="outline" size="sm" onClick={onLogout}>
           Đăng xuất
         </Button>
+        </> : <><Button variant="outline" size="sm" onClick={() => navigate('/auth/signup')}>Đăng ký</Button>
+          <Button size="sm" onClick={() => navigate('/auth/login')}>Đăng nhập</Button></>}
       </div>
     </div>
   );

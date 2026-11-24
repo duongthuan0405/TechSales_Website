@@ -56,7 +56,7 @@ public sealed class ProfileAndSecurityTests
         request.Content = form;
         await ExpectAsync(await app.Client.SendAsync(request), HttpStatusCode.BadRequest);
         var profile = await app.DbAsync(db => db.UserProfiles.SingleAsync());
-        Assert.Equal("", profile.FullName);
+        Assert.Equal("Test User", profile.FullName);
         Assert.Null(profile.AvatarUrl);
     }
 

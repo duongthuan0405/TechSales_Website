@@ -1,4 +1,5 @@
-﻿import { useForm } from 'react-hook-form';
+import { PasswordInput } from '../ui/password-input';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Loader2, Mail, Phone, CalendarDays, Fingerprint, ShieldCheck } from 'lucide-react';
@@ -42,6 +43,8 @@ interface UserFormProps {
 
 export function UserForm({ initialData, onSubmit, isLoading, forcedRole, currentUserRole }: UserFormProps) {
   const schema = initialData ? userSchema : userSchema.extend({
+    fullName: z.string().trim().min(1, 'Vui lòng nhập họ và tên.').max(150, 'Họ tên tối đa 150 ký tự.'),
+    phone: z.string().trim().regex(/^[0-9]{10,11}$/, 'Số điện thoại phải gồm 10–11 chữ số.'),
     password: z.string().min(8, 'Mật khẩu phải có ít nhất 8 ký tự.').max(256, 'Mật khẩu quá dài.'),
   });
   const form = useForm<UserFormValues>({
@@ -55,7 +58,7 @@ export function UserForm({ initialData, onSubmit, isLoading, forcedRole, current
   });
   const selectedRoles = form.watch('roles');
   const availableRoles = (Object.keys(roleNames) as UserRole[]).filter(role =>
-    currentUserRole === 'Technical Admin' || role === 'Staff' || role === 'Customer');
+    forcedRole ? role === forcedRole : currentUserRole === 'Technical Admin' || role === 'Staff' || role === 'Customer');
   return <Form {...form}>
     <form onSubmit={form.handleSubmit(data => onSubmit({ ...data, role: data.roles[0] }))} className="space-y-5">
       <fieldset disabled={isLoading} className="min-w-0 space-y-5">
@@ -85,12 +88,20 @@ export function UserForm({ initialData, onSubmit, isLoading, forcedRole, current
             </div>)}
           </dl>
         </>}
+        {!initialData && <div className="grid gap-4 sm:grid-cols-2">
+          <FormField control={form.control} name="fullName" render={({ field }) => <FormItem>
+            <FormLabel>Họ và tên</FormLabel><FormControl><Input {...field} required maxLength={150} autoComplete="name" disabled={isLoading} /></FormControl><FormMessage />
+          </FormItem>} />
+          <FormField control={form.control} name="phone" render={({ field }) => <FormItem>
+            <FormLabel>Số điện thoại</FormLabel><FormControl><Input {...field} required type="tel" autoComplete="tel" disabled={isLoading} /></FormControl><FormMessage />
+          </FormItem>} />
+        </div>}
         <FormField control={form.control} name="email" render={({ field }) => <FormItem>
           <FormLabel className="flex items-center gap-2"><Mail className="size-4 text-primary" />Địa chỉ email</FormLabel>
           <FormControl><Input type="email" placeholder="email@example.com" {...field} disabled={isLoading} /></FormControl><FormMessage />
         </FormItem>} />
         {!initialData && <FormField control={form.control} name="password" render={({ field }) => <FormItem>
-          <FormLabel>Mật khẩu tạm thời</FormLabel><FormControl><Input type="password" autoComplete="new-password" {...field} disabled={isLoading} /></FormControl>
+          <FormLabel>Mật khẩu tạm thời</FormLabel><FormControl><PasswordInput  autoComplete="new-password" {...field} disabled={isLoading} /></FormControl>
           <p className="text-xs text-muted-foreground">Cung cấp mật khẩu này cho chủ tài khoản để đăng nhập.</p><FormMessage />
         </FormItem>} />}
         <FormField control={form.control} name="roles" render={({ field }) => <FormItem>

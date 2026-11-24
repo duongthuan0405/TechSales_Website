@@ -1,3 +1,4 @@
+import { PasswordInput } from '../../components/ui/password-input';
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router';
 import { Button } from '../../components/ui/button';
@@ -64,9 +65,9 @@ export function LoginPage() {
                     Quên mật khẩu?
                   </Link>
                 </div>
-                <Input
+                <PasswordInput
                   id="password"
-                  type="password"
+                  
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -111,8 +112,8 @@ export function LoginPage() {
                   size="sm"
                   className="text-xs justify-start h-9"
                   onClick={() => {
-                    setEmail('techsale@gmail.com');
-                    setPassword('techsale@123');
+                    setEmail('staff@techsales.com');
+                    setPassword('staff@123');
                   }}
                 >
                   <span className="h-2 w-2 rounded-full bg-blue-500 mr-1.5 shrink-0" />
@@ -124,8 +125,8 @@ export function LoginPage() {
                   size="sm"
                   className="text-xs justify-start h-9"
                   onClick={() => {
-                    setEmail('business@techsales.com');
-                    setPassword('business@123');
+                    setEmail('businessadmin@techsales.com');
+                    setPassword('businessadmin@123');
                   }}
                 >
                   <span className="h-2 w-2 rounded-full bg-purple-500 mr-1.5 shrink-0" />
@@ -137,7 +138,7 @@ export function LoginPage() {
                   size="sm"
                   className="text-xs justify-start h-9"
                   onClick={() => {
-                    setEmail('techadmin@gmail.com');
+                    setEmail('techadmin@techsales.com');
                     setPassword('techadmin@123');
                   }}
                 >

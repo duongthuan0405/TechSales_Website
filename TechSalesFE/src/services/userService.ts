@@ -47,7 +47,7 @@ export const userService = {
     return user;
   },
   createUser: async (data: Omit<User, 'id' | 'createdAt'>): Promise<User> =>
-    mapUser(await api.post<UserRecord>('/api/admin/users', { email: data.email, password: data.password, roles: data.roles ?? [data.role] })),
+    mapUser(await api.post<UserRecord>('/api/admin/users', { email: data.email, password: data.password, roles: data.roles ?? [data.role], fullName: data.fullName.trim(), phone: data.phone.trim() })),
   updateUser: async (id: string, data: Partial<User>): Promise<User> => {
     const current = await userService.getUserById(id);
     const requestedRoles = data.roles ?? (data.role ? [data.role] : undefined);

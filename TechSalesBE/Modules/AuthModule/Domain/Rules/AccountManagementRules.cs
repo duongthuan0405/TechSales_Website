@@ -25,6 +25,13 @@ internal static class AccountManagementRules
             return;
         }
 
+        List<string> roles = requestedRoles.ToList();
+        if (HasRole(actor, AccountRoleNames.BUSINESS_ADMIN) && roles.Count > 0
+            && roles.All(role => role == AccountRoleNames.STAFF))
+        {
+            return;
+        }
+
         throw new DomainException(DomainExceptionCode.RULE_CANNOT_MANAGE_ACCOUNT, DomainExceptionMessage.CannotManageAccount);
     }
 

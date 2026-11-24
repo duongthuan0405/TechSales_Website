@@ -8,6 +8,8 @@ internal sealed class CreateUser_UCInput_Validator : AbstractValidator<CreateUse
 {
     public CreateUser_UCInput_Validator()
     {
+        RuleFor(x => x.FullName).Must(AuthRules.ValidFullName).WithMessage(BusinessExceptionMessage.FullNameInvalid);
+        RuleFor(x => x.Phone).Must(AuthRules.ValidPhone).WithMessage("Số điện thoại phải gồm 10–11 chữ số.");
         RuleFor(x => x.ActorId).NotEmpty();
         RuleFor(x => x.Email).Must(AuthRules.ValidEmail).WithMessage(BusinessExceptionMessage.EmailInputInvalid);
         RuleFor(x => x.Password).Must(AuthRules.ValidPassword).WithMessage(AuthRules.PasswordRequirementMessage);

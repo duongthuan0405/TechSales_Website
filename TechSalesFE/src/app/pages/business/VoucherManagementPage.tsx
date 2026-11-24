@@ -1,3 +1,4 @@
+import { useListUrlState } from '../../../dataHook/useListUrlState';
 import { ListPagination } from '../../components/ui/list-pagination';
 import { useApiError } from '../../../dataHook/useApiError';
 import { useState } from "react";
@@ -40,8 +41,8 @@ import { VoucherForm } from "../../components/business/VoucherForm";
 import { formatCurrency } from "../../../utils/format";
 
 export function VoucherManagementPage() {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const { pageNumber: page, setPageNumber: setPage, pageSize, setPageSize } = useListUrlState({});
+
   const { data: voucherData, isLoading, isFetching, error: apiError } = useGetVouchers(page, pageSize);
   useApiError(apiError);
   const createMutation = useCreateVoucher();
@@ -198,7 +199,7 @@ export function VoucherManagementPage() {
 
       <ListPagination pageNumber={page} pageSize={pageSize} totalCount={voucherData?.totalCount ?? 0}
         disabled={isFetching} onPageChange={setPage}
-        onPageSizeChange={size => { setPageSize(size); setPage(1); }} />
+        onPageSizeChange={setPageSize} />
 
       {/* Info Card */}
       <Card className="bg-primary/5 border-primary/20">

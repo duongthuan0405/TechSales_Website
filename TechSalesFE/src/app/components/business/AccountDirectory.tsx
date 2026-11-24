@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useListUrlState } from '../../../dataHook/useListUrlState';
+import { useState, ReactNode } from 'react';
 import { Eye, Loader2, Search, Mail, Phone, CalendarDays, Fingerprint, ShieldCheck } from 'lucide-react';
 import { User } from '../../../models/ui_types/user';
 import { formatDate } from '../../../utils/format';
@@ -32,11 +33,13 @@ function StatusBadge({ user }: { user: User }) {
   return <Badge variant="outline" className={`gap-1.5 font-medium ${statusColors[user.status] ?? ''}`}><span className="size-1.5 rounded-full bg-current" />{statuses[user.status] ?? user.status}</Badge>;
 }
 
-export function AccountDirectory({ title, kind }: { title: string; kind: 'customers' | 'staff' }) {
-  const [search, setSearch] = useState('');
+export function AccountDirectory({ title, kind, headerActions }: { title: string; kind: 'customers' | 'staff'; headerActions?: ReactNode }) {
+  const list = useListUrlState({ keyword: '' });
+  const { pageNumber, pageSize, setPageNumber, setPageSize } = list;
+  const [search, setSearch] = list.field('keyword');
   const keyword = useDebouncedValue(search).trim();
-  const [pageNumber, setPageNumber] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+
+
   const { data, isLoading, isFetching, error } = useAccountPage(kind, {
     pageNumber, pageSize, keyword, role: kind === 'staff' ? 'Staff' : undefined,
   });
@@ -45,9 +48,9 @@ export function AccountDirectory({ title, kind }: { title: string; kind: 'custom
   const selected = users.find(user => user.id === selectedId);
   const items = users;
   return <div className="space-y-6">
-    <div><h1 className="text-3xl font-bold">{title}</h1><p className="mt-2 text-muted-foreground">Xem hồ sơ và quản lý trạng thái tài khoản. Chỉnh sửa thông tin do quản trị kỹ thuật thực hiện.</p></div>
+    <div className="flex flex-wrap items-start justify-between gap-4"><div><h1 className="text-3xl font-bold">{title}</h1><p className="mt-2 text-muted-foreground">Xem hồ sơ và quản lý trạng thái tài khoản. Chỉnh sửa thông tin do quản trị kỹ thuật thực hiện.</p></div>{headerActions}</div>
     <div className="relative"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-      <Input className="h-11 pl-9" aria-label="Tìm tài khoản" placeholder="Tìm theo tên, email hoặc số điện thoại…" value={search} onChange={event => { setSearch(event.target.value); setPageNumber(1); }} /></div>
+      <Input className="h-11 pl-9" aria-label="Tìm tài khoản" placeholder="Tìm theo tên, email hoặc số điện thoại…" value={search} onChange={event => { setSearch(event.target.value); }} /></div>
     {error ? <p role="alert" className="text-destructive">{error.message}</p>
       : isLoading ? <div className="flex justify-center py-16"><Loader2 className="animate-spin" aria-label="Đang tải tài khoản" /></div>
       : <Card><CardContent className="pt-6"><Table><TableHeader><TableRow>
@@ -62,7 +65,7 @@ export function AccountDirectory({ title, kind }: { title: string; kind: 'custom
       </TableBody></Table></CardContent></Card>}
     <ListPagination pageNumber={pageNumber} pageSize={pageSize} totalCount={data?.totalCount ?? 0}
       disabled={isFetching || !!error || search.trim() !== keyword} onPageChange={setPageNumber}
-      onPageSizeChange={size => { setPageSize(size); setPageNumber(1); }} />
+      onPageSizeChange={setPageSize} />
     <Dialog open={!!selected} onOpenChange={open => { if (!open) setSelectedId(undefined); }}><DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
       <DialogHeader><DialogTitle>Thông tin tài khoản</DialogTitle><DialogDescription>Thông tin hồ sơ và trạng thái hiện tại.</DialogDescription></DialogHeader>
       {selected && <div className="space-y-5">

@@ -21,6 +21,7 @@ import {
 import { cn } from '../../utils/cn';
 
 interface SidebarProps {
+  guest?: boolean;
   role: 'Customer' | 'Staff' | 'Business Admin' | 'Technical Admin';
 }
 
@@ -70,8 +71,9 @@ const roleNavItems: Record<string, NavItem[]> = {
   ],
 };
 
-export function Sidebar({ role }: SidebarProps) {
-  const navItems = roleNavItems[role] || [];
+export function Sidebar({ role, guest = false }: SidebarProps) {
+  const items = roleNavItems[role] || [];
+  const navItems = guest ? items.filter(item => item.path === '/customer' || item.path === '/customer/products') : items;
 
   return (
     <div className="flex h-full w-64 flex-col border-r border-sidebar-border bg-sidebar">

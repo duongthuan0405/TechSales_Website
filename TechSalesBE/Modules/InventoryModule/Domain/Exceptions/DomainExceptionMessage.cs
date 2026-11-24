@@ -4,15 +4,15 @@ namespace InventoryModule.Domain.Exceptions;
 
 internal static class DomainExceptionMessage
 {
-    public const string InvalidProductId = "The product ID is invalid.";
-    public const string InvalidStockQuantity = "Available and reserved stock quantities must be zero or greater.";
-    public const string InvalidOperationQuantity = "The quantity must be greater than zero.";
-    public const string InsufficientAvailableStock = "There is not enough available stock.";
-    public const string InsufficientReservedStock = "There is not enough reserved stock.";
-    public const string StockQuantityLimitExceeded = "The stock quantity exceeds the allowed limit.";
+    public const string InvalidProductId = "Mã sản phẩm không hợp lệ.";
+    public const string InvalidStockQuantity = "Số lượng tồn khả dụng và số lượng giữ chỗ phải lớn hơn hoặc bằng 0.";
+    public const string InvalidOperationQuantity = "Số lượng phải lớn hơn 0.";
+    public const string InsufficientAvailableStock = "Số lượng tồn khả dụng không đủ.";
+    public const string InsufficientReservedStock = "Số lượng hàng giữ chỗ không đủ.";
+    public const string StockQuantityLimitExceeded = "Số lượng tồn kho vượt quá giới hạn cho phép.";
     public static readonly string InvalidSerialNumber =
-        $"Enter a serial number with at most {ProductUnitConstants.MaxSerialNumberLength} characters.";
-    public const string InvalidProductUnitStatus = "The product unit status is invalid.";
+        $"Vui lòng nhập số serial không rỗng, tối đa {ProductUnitConstants.MaxSerialNumberLength} ký tự.";
+    public const string InvalidProductUnitStatus = "Trạng thái thiết bị không hợp lệ.";
     public const string InvalidProductUnitTransition =
-        "The current status of the product unit does not allow this operation.";
+        "Trạng thái hiện tại của thiết bị không cho phép thực hiện thao tác này.";
 }

@@ -1,3 +1,4 @@
+import { useListUrlState } from '../../../dataHook/useListUrlState';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, PackagePlus } from 'lucide-react';
@@ -27,11 +28,14 @@ export function useRefreshStock() {
 export function ProductStockDialog({ product, onClose }: { product: Product; onClose: () => void }) {
   const { user } = useAuth();
   const canReceive = user?.role === 'Business Admin' || user?.role === 'Technical Admin';
-  const [search, setSearch] = useState('');
+  const list = useListUrlState({ keyword: '', status: 'all' }, 'stock.');
+  const { pageNumber, pageSize, setPageNumber, setPageSize } = list;
+  const [search, setSearch] = list.field('keyword');
+  const [status, setStatus] = list.field('status');
   const keyword = useDebouncedValue(search);
-  const [status, setStatus] = useState('all');
-  const [pageNumber, setPageNumber] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+
+
+
   const [receiving, setReceiving] = useState(false);
   const [damaging, setDamaging] = useState<InventoryUnit>();
   const refresh = useRefreshStock();
@@ -61,8 +65,8 @@ export function ProductStockDialog({ product, onClose }: { product: Product; onC
           {canReceive && <Button onClick={() => setReceiving(true)} disabled={busy}><PackagePlus className="mr-2 h-4 w-4" />Nhập kho</Button>}
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Input aria-label="Tìm serial" placeholder="Tìm serial…" value={search} onChange={event => { setSearch(event.target.value); setPageNumber(1); }} />
-          <Select value={status} onValueChange={value => { setStatus(value); setPageNumber(1); }}>
+          <Input aria-label="Tìm serial" placeholder="Tìm serial…" value={search} onChange={event => { setSearch(event.target.value); }} />
+          <Select value={status} onValueChange={value => { setStatus(value); }}>
             <SelectTrigger className="w-full" aria-label="Lọc trạng thái unit"><SelectValue /></SelectTrigger>
             <SelectContent><SelectItem value="all">Tất cả trạng thái</SelectItem>
               {Object.entries(statuses).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
@@ -78,7 +82,7 @@ export function ProductStockDialog({ product, onClose }: { product: Product; onC
             </TableRow>) : <TableRow><TableCell colSpan={3} className="py-10 text-center text-muted-foreground">Không tìm thấy unit phù hợp.</TableCell></TableRow>}</TableBody>
           </Table>}
         <ListPagination pageNumber={pageNumber} pageSize={pageSize} totalCount={units.data?.totalCount ?? 0} disabled={units.isFetching || search !== keyword || !!units.error}
-          onPageChange={setPageNumber} onPageSizeChange={size => { setPageSize(size); setPageNumber(1); }} />
+          onPageChange={setPageNumber} onPageSizeChange={setPageSize} />
       </DialogContent>
     </Dialog>
     <Dialog open={canReceive && receiving} onOpenChange={open => { if (!receive.isPending) setReceiving(open); }}><DialogContent><DialogHeader>

@@ -32,6 +32,8 @@ internal sealed class UpdateProfile_UCHandler : IRequestHandler<UpdateProfile_UC
             var today = DateOnly.FromDateTime(DateTime.UtcNow);
             // Validate all profile fields before writing a file.
             user.Profile.Update(input.FullName, input.Phone, input.AvatarUrl, input.DateOfBirth, today);
+            if (await _users.PhoneExistsAsync(user.Profile.PhoneNumber, user.Id, ct))
+                throw new BusinessException(BusinessExceptionCode.CONFLICT, BusinessExceptionMessage.PhoneAlreadyUsed);
             if (input.AvatarContent is not null)
             {
                 user.Profile.Update(null, null, await _avatars.SaveAsync(input.AvatarContent, input.AvatarContentType ?? "", input.AvatarLength, ct), null, today);

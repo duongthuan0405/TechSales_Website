@@ -1,4 +1,5 @@
 import { ListPagination } from '../../components/ui/list-pagination';
+import { useListUrlState } from '../../../dataHook/useListUrlState';
 import { useDebouncedValue } from '../../../dataHook/useDebouncedValue';
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
@@ -33,9 +34,10 @@ import {
   useCreateProduct, 
   useUpdateProduct,
   useToggleProductStatus,
-  useGetProductLookups
+  useGetProductLookups,
+  useGetProduct
 } from "../../../dataHook/productDataHook";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { Product, ProductStatus } from "../../../models/ui_types/product";
 import { ProductForm } from "../../components/business/ProductForm";
 import { ProductStockDialog } from '../../components/business/ProductStockDialog';
@@ -51,19 +53,30 @@ interface ProductManagementPageProps {
 
 export function ProductManagementPage({ readOnly = false }: ProductManagementPageProps) {
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState("");
+  const [urlParams, setUrlParams] = useSearchParams();
+  const stockProductId = urlParams.get('stockProduct') || '';
+  const stockProduct = useGetProduct(stockProductId);
+  const setAdjustingProduct = (product: Product | undefined) => setUrlParams(previous => {
+    const next = new URLSearchParams(previous);
+    if (product) next.set('stockProduct', product.id);
+    else next.delete('stockProduct');
+    for (const key of [...next.keys()]) if (key.startsWith('stock.')) next.delete(key);
+    return next;
+  });
+  const list = useListUrlState({ keyword: '', category: 'all', brand: 'all', minPrice: '', maxPrice: '',
+    sort: 'newest' as NonNullable<ProductQueryParams['sortBy']>, status: 'all' }, 'products.');
+  const { pageNumber, pageSize, setPageNumber, setPageSize } = list;
+  const [searchTerm, setSearchTerm] = list.field('keyword');
   const debouncedSearch = useDebouncedValue(searchTerm);
-  const [categoryFilter, setCategoryFilter] = useState("all");
-  const [brandFilter, setBrandFilter] = useState('all');
-  const [minPrice, setMinPrice] = useState('');
-  const [maxPrice, setMaxPrice] = useState('');
-  const [sortBy, setSortBy] = useState<ProductQueryParams['sortBy']>('newest');
+  const [categoryFilter, setCategoryFilter] = list.field('category');
+  const [brandFilter, setBrandFilter] = list.field('brand');
+  const [minPrice, setMinPrice] = list.field('minPrice');
+  const [maxPrice, setMaxPrice] = list.field('maxPrice');
+  const [sortBy, setSortBy] = list.field('sort');
   const debouncedMinPrice = useDebouncedValue(minPrice);
   const debouncedMaxPrice = useDebouncedValue(maxPrice);
   const filtersReady = searchTerm === debouncedSearch && minPrice === debouncedMinPrice && maxPrice === debouncedMaxPrice;
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [pageNumber, setPageNumber] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [statusFilter, setStatusFilter] = list.field('status');
   const { data: lookups } = useGetProductLookups();
   const { data: adminData, isLoading, isFetching, error: productsError } = useGetAdminProducts({
     pageNumber, pageSize, keyword: debouncedSearch || undefined,
@@ -85,7 +98,7 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | undefined>(undefined);
   const [isImportOpen, setIsImportOpen] = useState(false);
-  const [adjustingProduct, setAdjustingProduct] = useState<Product | undefined>(undefined);
+  const adjustingProduct = products.find(product => product.id === stockProductId) ?? stockProduct.data;
 
   const categories = [{ id: 'all', name: 'Tất cả danh mục' }, ...(lookups?.categories || [])];
   const filteredProducts = products;
@@ -178,14 +191,14 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
           <Input
             placeholder="Tìm sản phẩm theo tên hoặc hãng..."
             value={searchTerm}
-            onChange={(e) => { setSearchTerm(e.target.value); setPageNumber(1); }}
+            onChange={(e) => { setSearchTerm(e.target.value); }}
             className="h-11 w-full pl-9"
           />
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           <Select
             value={categoryFilter}
-            onValueChange={(value) => { setCategoryFilter(value); setPageNumber(1); }}
+            onValueChange={(value) => { setCategoryFilter(value); }}
           >
             <SelectTrigger className="h-11 w-full min-w-0" aria-label="Danh mục">
               <SelectValue placeholder="Tất cả danh mục" />
@@ -199,17 +212,17 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
             </SelectContent>
           </Select>
 
-          <Select value={brandFilter} onValueChange={value => { setBrandFilter(value); setPageNumber(1); }}>
+          <Select value={brandFilter} onValueChange={value => { setBrandFilter(value); }}>
             <SelectTrigger className="h-11 w-full min-w-0" aria-label="Hãng"><SelectValue placeholder="Tất cả hãng" /></SelectTrigger>
             <SelectContent><SelectItem value="all">Tất cả hãng</SelectItem>
               {lookups?.brands.map(brand => <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>)}
             </SelectContent>
           </Select>
           <Input type="number" min={0} step={1} aria-label="Giá từ (VND)" placeholder="Giá từ (VND)" className="h-11 w-full min-w-0" value={minPrice}
-            onChange={event => { setMinPrice(event.target.value); setPageNumber(1); }} />
+            onChange={event => { setMinPrice(event.target.value); }} />
           <Input type="number" min={0} step={1} aria-label="Giá đến (VND)" placeholder="Giá đến (VND)" className="h-11 w-full min-w-0" value={maxPrice}
-            onChange={event => { setMaxPrice(event.target.value); setPageNumber(1); }} />
-          <Select value={sortBy} onValueChange={value => { setSortBy(value as ProductQueryParams['sortBy']); setPageNumber(1); }}>
+            onChange={event => { setMaxPrice(event.target.value); }} />
+          <Select value={sortBy} onValueChange={value => { setSortBy(value as ProductQueryParams['sortBy']); }}>
             <SelectTrigger className="h-11 w-full min-w-0" aria-label="Sắp xếp sản phẩm"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="newest">Mới nhất</SelectItem>
@@ -221,7 +234,7 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
 
           <Select
             value={statusFilter}
-            onValueChange={(value) => { setStatusFilter(value); setPageNumber(1); }}
+            onValueChange={(value) => { setStatusFilter(value); }}
           >
             <SelectTrigger className="h-11 w-full min-w-0" aria-label="Trạng thái sản phẩm">
               <SelectValue placeholder="Tất cả trạng thái" />
@@ -234,7 +247,7 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
           </Select>
           <Button variant="outline" className="h-11 w-full sm:col-span-2 xl:col-span-3 xl:w-auto xl:justify-self-end" onClick={() => {
             setSearchTerm(''); setCategoryFilter('all'); setBrandFilter('all'); setMinPrice(''); setMaxPrice('');
-            setSortBy('newest'); setStatusFilter('all'); setPageNumber(1);
+            setSortBy('newest'); setStatusFilter('all');
           }}>Xóa lọc</Button>
         </div>
       </div>
@@ -336,8 +349,8 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
                           >
                             <Eye className="h-4 w-4 text-primary" />
                           </Button>
-                          <Button variant="outline" size="sm" aria-label={`Kho của ${product.name}`} onClick={event => { event.stopPropagation(); setAdjustingProduct(product); }}>
-                            <PackagePlus className="mr-1 h-4 w-4" />Kho
+                          <Button variant="outline" size="icon" title="Xem kho" aria-label={`Kho của ${product.name}`} onClick={event => { event.stopPropagation(); setAdjustingProduct(product); }}>
+                            <PackagePlus className="h-4 w-4" />
                           </Button>
                           {!readOnly && (
                             <>
@@ -384,7 +397,7 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
       {/* Form Dialog */}
       <ListPagination pageNumber={pageNumber} pageSize={pageSize} totalCount={adminData?.totalCount ?? 0}
         disabled={isFetching || !filtersReady || !!productsError} onPageChange={setPageNumber}
-        onPageSizeChange={size => { setPageSize(size); setPageNumber(1); }} />
+        onPageSizeChange={setPageSize} />
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -403,6 +416,7 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
       </Dialog>
 
       {adjustingProduct && <ProductStockDialog key={adjustingProduct.id} product={adjustingProduct} onClose={() => setAdjustingProduct(undefined)} />}
+      {stockProductId && stockProduct.error && <div role="alert" className="flex items-center gap-3 text-destructive"><span>{stockProduct.error.message}</span><Button variant="outline" onClick={() => setAdjustingProduct(undefined)}>Đóng kho</Button></div>}
       {!readOnly && isImportOpen && <StockImportDialog onClose={() => setIsImportOpen(false)} />}
     </div>
   );

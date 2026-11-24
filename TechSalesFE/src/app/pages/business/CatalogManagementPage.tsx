@@ -9,11 +9,7 @@ export function CatalogManagementPage() {
   const tab = requested === 'categories' || requested === 'brands' ? requested : 'products';
   return <div className="min-w-0 space-y-6">
     <h1 className="text-3xl font-bold tracking-tight">Quản lý sản phẩm</h1>
-    <Tabs value={tab} onValueChange={value => setParams(previous => {
-      const next = new URLSearchParams(previous);
-      next.set('tab', value);
-      return next;
-    })}>
+    <Tabs value={tab} onValueChange={value => setParams({ tab: value })}>
       <TabsList className="mb-4"><TabsTrigger value="products">Sản phẩm</TabsTrigger><TabsTrigger value="categories">Danh mục</TabsTrigger><TabsTrigger value="brands">Thương hiệu</TabsTrigger></TabsList>
       <TabsContent value="products"><ProductManagementPage /></TabsContent>
       <TabsContent value="categories"><CatalogLookupManagement key="categories" kind="categories" /></TabsContent>

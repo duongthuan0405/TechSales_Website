@@ -1,3 +1,4 @@
+import { PasswordInput } from '../../components/ui/password-input';
 import { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router';
 import { Button } from '../../components/ui/button';
@@ -102,9 +103,9 @@ export function ResetPasswordPage() {
                 <Label htmlFor="password">Mật khẩu mới</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
+                  <PasswordInput
                     id="password"
-                    type="password"
+                    
                     placeholder="••••••••"
                     className="pl-10"
                     value={password}
@@ -118,9 +119,9 @@ export function ResetPasswordPage() {
                 <Label htmlFor="confirmPassword">Xác nhận mật khẩu mới</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
+                  <PasswordInput
                     id="confirmPassword"
-                    type="password"
+                    
                     placeholder="••••••••"
                     className="pl-10"
                     value={confirmPassword}

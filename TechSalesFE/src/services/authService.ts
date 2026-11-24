@@ -30,6 +30,7 @@ export const authService = {
   },
   register: async (params: RegisterParams): Promise<void> => {
     await api.post('/api/auth/register', { email: params.email, password: params.password,
+      fullName: params.fullName.trim(), phone: params.phone.trim(),
       confirmPassword: params.confirmPassword ?? params.password });
   },
   resetPassword: async (email: string): Promise<void> => {

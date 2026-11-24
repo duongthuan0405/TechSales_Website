@@ -24,10 +24,31 @@ function backend(handler) {
   };
 }
 const productId = '11111111-1111-4111-8111-111111111111';
+test('expired password-change sessions emit unauthorized while forbidden responses retain the session', async () => {
+  backend(() => ({ status: 401 }));
+  const events = [];
+  window.dispatchEvent = event => events.push(event.type);
+  await assert.rejects(modules.auth.changePassword('old', 'new', 'new'), error => error.status === 401);
+  assert.equal(localStorage.getItem('token'), null);
+  assert.deepEqual(events, ['techsales:unauthorized']);
+  backend(() => ({ status: 403 }));
+  await assert.rejects(modules.user.getAccountPage('all', { pageNumber: 1, pageSize: 20 }), error => error.status === 403);
+  assert.equal(localStorage.getItem('token'), 'real-token');
+});
 test('account creation sends every selected role', async () => {
   backend(call => ({ id: 'u', ...JSON.parse(call.body), profile: { fullName: '', phone: '' } }));
-  await modules.user.createUser({ email: 'multi@example.com', password: 'Example-password1!', role: 'Staff', roles: ['Staff', 'Customer'] });
+  await modules.user.createUser({ fullName: 'Multiple Roles', phone: '0901234567', email: 'multi@example.com', password: 'Example-password1!', role: 'Staff', roles: ['Staff', 'Customer'] });
   assert.deepEqual(JSON.parse(calls[0].body).roles, ['Staff', 'Customer']);
+  assert.equal(JSON.parse(calls[0].body).fullName, 'Multiple Roles');
+  assert.equal(JSON.parse(calls[0].body).phone, '0901234567');
+});
+
+test('registration sends the initial profile with trimmed required name and phone', async () => {
+  backend(() => null);
+  await modules.auth.register({ email: 'new@example.com', fullName: ' New User ', phone: ' 0901234567 ', password: 'Example-password1!' });
+  const payload = JSON.parse(calls[0].body);
+  assert.equal(payload.fullName, 'New User');
+  assert.equal(payload.phone, '0901234567');
 });
 
 test('account editing assigns the full selected role set including additions and removals', async () => {

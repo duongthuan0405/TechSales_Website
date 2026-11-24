@@ -28,6 +28,7 @@ export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
+  const [cartError, setCartError] = useState('');
   const { data: product, isLoading: isProductLoading, isError } = useGetProduct(id || '');
   const { data: reviewData, isLoading: isReviewsLoading, error: reviewError } = useGetProductReviews(id || '');
   const reviews = reviewData?.reviews || [];
@@ -42,9 +43,16 @@ export function ProductDetailPage() {
 
   const handleAddToCart = () => {
     if (!product) return;
+    setCartError('');
     addToCart({ productId: product.id, quantity }, {
-      onSuccess: () => toast.success('Đã thêm vào giỏ hàng'),
-      onError: () => toast.error('Thêm vào giỏ hàng thất bại')
+      onSuccess: () => toast.success('Đã thêm vào giỏ hàng', {
+        action: { label: 'Xem giỏ hàng', onClick: () => navigate('/customer/cart') },
+      }),
+      onError: (error: Error) => {
+        const message = error.message || 'Thêm vào giỏ hàng thất bại';
+        setCartError(message);
+        toast.error(message);
+      }
     });
   };
 
@@ -128,13 +136,14 @@ export function ProductDetailPage() {
 
             <div className="flex gap-3">
               <Button 
+                type="button"
                 size="lg" 
                 className="h-12 flex-[2] rounded-xl text-xs font-bold bg-primary text-primary-foreground uppercase tracking-widest hover:opacity-90 transition-all"
                 onClick={handleAddToCart}
                 disabled={isAdding || product.stock === 0 || product.status === ProductStatus.DISCONTINUED}
               >
                 {isAdding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShoppingCart className="mr-2 h-4 w-4" />}
-                {product.status === ProductStatus.DISCONTINUED ? 'Không khả dụng' : 'Thêm vào giỏ hàng'}
+                {isAdding ? 'Đang thêm…' : product.status === ProductStatus.DISCONTINUED ? 'Ngừng kinh doanh' : product.stock === 0 ? 'Hết hàng' : 'Thêm vào giỏ hàng'}
               </Button>
               <Button 
                 size="lg" 
@@ -159,6 +168,9 @@ export function ProductDetailPage() {
                 Mua ngay
               </Button>
             </div>
+
+            {cartError && <p role="alert" className="text-sm text-destructive">{cartError}</p>}
+            {product.stock === 0 && <p className="text-sm text-muted-foreground">Sản phẩm đã hết hàng, hiện chưa thể thêm vào giỏ.</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">

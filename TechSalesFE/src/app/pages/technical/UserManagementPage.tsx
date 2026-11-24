@@ -1,3 +1,4 @@
+import { useListUrlState } from '../../../dataHook/useListUrlState';
 import { DeactivateUserButton } from '../../components/business/DeactivateUserButton';
 import { useDebouncedValue } from '../../../dataHook/useDebouncedValue';
 import { useState, useEffect } from 'react';
@@ -40,11 +41,14 @@ const statusLabels: Record<string, string> = {
 
 export function UserManagementPage() {
   const { user: currentUser } = useAuth();
-  const [roleFilter, setRoleFilter] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
+  const list = useListUrlState({ role: 'all', keyword: '' });
+  const { pageNumber, pageSize, setPageNumber, setPageSize } = list;
+  const [roleFilter, setRoleFilter] = list.field('role');
+  const [searchTerm, setSearchTerm] = list.field('keyword');
+
   const debouncedSearch = useDebouncedValue(searchTerm).trim();
-  const [pageNumber, setPageNumber] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+
+
   const { data, isLoading, isFetching, isError, error } = useAccountPage('all', {
     pageNumber, pageSize, role: roleFilter, keyword: debouncedSearch,
   });
@@ -94,13 +98,14 @@ export function UserManagementPage() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Tìm người dùng theo tên hoặc email..."
+            placeholder="Tìm theo tên, email hoặc số điện thoại…"
+            aria-label="Tìm người dùng theo tên, email hoặc số điện thoại"
             value={searchTerm}
-            onChange={(e) => { setSearchTerm(e.target.value); setPageNumber(1); }}
+            onChange={(e) => { setSearchTerm(e.target.value); }}
             className="pl-9"
           />
         </div>
-        <Select value={roleFilter} onValueChange={role => { setRoleFilter(role); setPageNumber(1); }}>
+        <Select value={roleFilter} onValueChange={role => { setRoleFilter(role); }}>
           <SelectTrigger className="w-full sm:w-[240px]" aria-label="Lọc theo vai trò">
             <SelectValue placeholder="Tất cả vai trò" />
           </SelectTrigger>
@@ -189,7 +194,7 @@ export function UserManagementPage() {
 
       <ListPagination pageNumber={pageNumber} pageSize={pageSize} totalCount={data?.totalCount ?? 0}
         disabled={isFetching || isError || searchTerm.trim() !== debouncedSearch} onPageChange={setPageNumber}
-        onPageSizeChange={size => { setPageSize(size); setPageNumber(1); }} />
+        onPageSizeChange={setPageSize} />
 
       {/* Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={open => { if (!createMutation.isPending && !updateMutation.isPending) setIsFormOpen(open); }}>

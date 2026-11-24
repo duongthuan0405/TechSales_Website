@@ -79,6 +79,7 @@ export function ChangePasswordPage({ embedded = false }: { embedded?: boolean })
                 />
                 <button 
                   type="button"
+                  aria-label={showPasswords.current ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} aria-pressed={showPasswords.current} disabled={isLoading}
                   onClick={() => toggleVisibility('current')}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
@@ -101,6 +102,7 @@ export function ChangePasswordPage({ embedded = false }: { embedded?: boolean })
                 />
                 <button 
                   type="button"
+                  aria-label={showPasswords.new ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} aria-pressed={showPasswords.new} disabled={isLoading}
                   onClick={() => toggleVisibility('new')}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
@@ -123,6 +125,7 @@ export function ChangePasswordPage({ embedded = false }: { embedded?: boolean })
                 />
                 <button 
                   type="button"
+                  aria-label={showPasswords.confirm ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} aria-pressed={showPasswords.confirm} disabled={isLoading}
                   onClick={() => toggleVisibility('confirm')}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >

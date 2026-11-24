@@ -1,4 +1,5 @@
 using AuthModule.Application.Messages;
+using AuthModule.Application.Exceptions;
 using AuthModule.Domain.Rules;
 using AuthModule.Application.Constants;
 using AuthModule.Application.Ports;
@@ -35,10 +36,13 @@ internal sealed class Register_UCHandler : IRequestHandler<Register_UCInput, Reg
         {
             var user = await _users.GetUserByEmailAsync(input.Email, ct, forUpdate: true);
             AuthWorkflowRules.EnsureCanRegister(user);
+            if (await _users.PhoneExistsAsync(input.Phone, user?.Id, ct))
+                throw new BusinessException(BusinessExceptionCode.CONFLICT, BusinessExceptionMessage.PhoneAlreadyUsed);
 
             if (user is null)
             {
                 user = User.Create(input.Email, _hasher.HashPassword(input.Password));
+                user.Profile.Update(input.FullName, input.Phone, null, null, DateOnly.FromDateTime(DateTime.UtcNow));
                 var customer = await _roles.GetByNameAsync(UserRoleName.CUSTOMER, ct) ?? throw new InvalidOperationException("Apply the Auth role migration first.");
                 user.Roles.Add(customer);
                 await _users.AddAsync(user, ct);
@@ -46,6 +50,7 @@ internal sealed class Register_UCHandler : IRequestHandler<Register_UCInput, Reg
             else
             {
                 user.ChangePassword(_hasher.HashPassword(input.Password), DateTimeOffset.UtcNow);
+                user.Profile.Update(input.FullName, input.Phone, null, null, DateOnly.FromDateTime(DateTime.UtcNow));
                 await _users.UpdateAsync(user, ct);
             }
 

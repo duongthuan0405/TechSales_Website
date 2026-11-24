@@ -44,7 +44,7 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
   }
   const payload = await response.json().catch(() => null);
   if (!response.ok || payload?.success === false) {
-    if (response.status === 401 && !endpoint.startsWith('/api/auth/')) {
+    if (response.status === 401 && endpoint !== '/api/auth/login') {
       localStorage.removeItem('token');
       localStorage.removeItem('tech_sales_user');
       window.dispatchEvent(new Event('techsales:unauthorized'));

@@ -8,27 +8,27 @@ internal static class BusinessExceptionMessage
 {
     public const string InvalidUnitPage = "Trang phải lớn hơn 0, số dòng mỗi trang từ 1 đến 100.";
     public const string InvalidUnitFilter = "Trạng thái thiết bị không hợp lệ.";
-    public const string ProductNotFound = "Không tìm thấy một hoặc nhiều sản phẩm trong Catalog.";
+    public const string ProductNotFound = "Không tìm thấy một hoặc nhiều sản phẩm trong danh mục sản phẩm.";
     public const string InvalidProductId = DomainExceptionMessage.InvalidProductId;
     public static readonly string InvalidSerialNumber = DomainExceptionMessage.InvalidSerialNumber;
-    public const string SerialNumbersRequired = "Specify at least one serial number.";
-    public const string DuplicateSerialNumbers = "Serial numbers must not be duplicated.";
-    public const string SerialNumberAlreadyExists = "One or more serial numbers are already registered for this product.";
-    public const string StockNotFound = "No inventory record was found for this product.";
-    public const string ProductUnitNotFound = "No product unit was found for this serial number.";
+    public const string SerialNumbersRequired = "Vui lòng nhập ít nhất một số serial.";
+    public const string DuplicateSerialNumbers = "Các số serial trong yêu cầu không được trùng nhau.";
+    public const string SerialNumberAlreadyExists = "Một hoặc nhiều số serial đã tồn tại trong kho của sản phẩm này.";
+    public const string StockNotFound = "Không tìm thấy thông tin tồn kho của sản phẩm này.";
+    public const string ProductUnitNotFound = "Không tìm thấy thiết bị có số serial này.";
     public const string InvalidManualStatus = "Trạng thái phải là DAMAGED (hỏng) hoặc IN_STOCK (trong kho).";
-    public const string ImportFileRequired = "Upload a non-empty Excel workbook.";
-    public const string InvalidImportFileType = "The import file must have the .xlsx extension.";
+    public const string ImportFileRequired = "Vui lòng tải lên một tệp Excel không rỗng.";
+    public const string InvalidImportFileType = "Tệp nhập kho phải có phần mở rộng .xlsx.";
     public static readonly string ImportFileTooLarge =
-        $"The import file must not exceed {StockImportLimits.MaxFileMegabytes} MiB.";
-    public const string InvalidImportWorkbook = "The file is not a readable .xlsx workbook.";
+        $"Tệp nhập kho không được vượt quá {StockImportLimits.MaxFileMegabytes} MiB.";
+    public const string InvalidImportWorkbook = "Không thể đọc tệp Excel .xlsx này.";
     public const string InvalidImportHeaders =
-        "Row 1 of the first worksheet must have ProductId and SerialNumber headers in columns A and B.";
-    public const string ImportRowsRequired = "The first worksheet must contain at least one stock row.";
+        "Dòng 1 của trang tính đầu tiên phải có tiêu đề ProductId và SerialNumber ở cột A và B.";
+    public const string ImportRowsRequired = "Trang tính đầu tiên phải có ít nhất một dòng dữ liệu nhập kho.";
     public static readonly string TooManyImportRows =
-        $"The first worksheet must not contain more than {StockImportLimits.MaxDataRows} stock rows.";
-    public const string InvalidImportRows = "The Excel workbook contains invalid stock rows.";
-    public const string UnexpectedImportColumn = "Only the ProductId and SerialNumber columns may contain data.";
-    public const string InvalidImportCell = "Enter a cell value. Formulas, errors, and unsupported cell types are not accepted.";
-    public const string DuplicateImportUnit = "This serial number is duplicated for the same product in the workbook.";
+        $"Trang tính đầu tiên không được vượt quá {StockImportLimits.MaxDataRows} dòng dữ liệu nhập kho.";
+    public const string InvalidImportRows = "Tệp Excel có dòng dữ liệu nhập kho không hợp lệ.";
+    public const string UnexpectedImportColumn = "Chỉ hai cột ProductId và SerialNumber được chứa dữ liệu.";
+    public const string InvalidImportCell = "Vui lòng nhập giá trị cho ô. Không chấp nhận công thức, ô lỗi hoặc kiểu ô không được hỗ trợ.";
+    public const string DuplicateImportUnit = "Số serial này bị trùng cho cùng một sản phẩm trong tệp Excel.";
 }

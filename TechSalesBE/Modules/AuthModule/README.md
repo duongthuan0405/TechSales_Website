@@ -1,5 +1,13 @@
 # AuthModule
 
+Đăng ký và tạo tài khoản bắt buộc nhận `fullName` (không trống, tối đa 150 ký tự)
+và `phone` (10–11 chữ số). Profile được tạo cùng User trong một transaction.
+`UserProfile.FullName`/`PhoneNumber` là NOT NULL; `IX_UserProfile_PhoneNumber` bảo đảm số điện thoại duy nhất.
+Trùng số điện thoại khi đăng ký, tạo hoặc cập nhật profile trả 409; giữ nguyên số của chính mình được phép.
+Migration `RequireUniqueProfilePhone` cần được áp dụng trước khi dùng bản mới.
+Kiểm tra/bổ sung profile cũ và xử lý số điện thoại trùng bằng dữ liệu thật trước migration; không tự xóa tài khoản hay điền số giả.
+Bootstrap tài khoản mới cũng cần `AUTH__Bootstrap__FullName` và `AUTH__Bootstrap__Phone`.
+
 `GET /api/admin/users` dành cho Technical Admin: lấy một trang người dùng của tất cả vai trò,
 hoặc lọc bằng `role`. Hỗ trợ `keyword`, `pageNumber`, `pageSize`; tìm kiếm và lọc trước khi đếm/phân trang.
 
@@ -40,7 +48,7 @@ Các request dùng camelCase JSON như BE cũ. Response thống nhất `{ succes
 |---|---|
 | Customer | Đọc/sửa hồ sơ của mình, đổi mật khẩu, đăng xuất. |
 | Staff | Thêm quyền xem, khóa và mở khóa Customer. Không quản lý Staff/admin. |
-| Business Admin | Xem Customer/Staff và quản lý trạng thái (khóa, mở khóa, ngừng hoạt động). Không tạo tài khoản hoặc sửa email/vai trò; không can thiệp tài khoản Admin. |
+| Business Admin | Tạo tài khoản chỉ có role Staff; xem Customer/Staff và quản lý trạng thái (khóa, mở khóa, ngừng hoạt động). Không sửa email/vai trò; không can thiệp tài khoản Admin. |
 | Technical Admin | Quản lý mọi tài khoản khác; đọc và thay đổi RBAC; tạo tài khoản với bất kỳ role nào trong bốn role. |
 
 Role dùng ID cố định từ BE cũ. Migration `SeedAuthRolesAndPermissions` thêm 4 role, 5 permission thuộc Auth và 11 liên kết RolePermission, không tạo lại bảng.

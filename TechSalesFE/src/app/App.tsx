@@ -56,7 +56,17 @@ function AppContent() {
         <Route path="/login" element={<Navigate to="/auth/login" replace />} />
         <Route path="/signup" element={<Navigate to="/auth/signup" replace />} />
         <Route path="/forgot-password" element={<Navigate to="/auth/forgot-password" replace />} />
-        <Route path="*" element={<Navigate to="/auth/login" replace />} />
+        <Route path="*" element={
+          <DashboardLayout role="Customer" userName="Khách" userRole="" onLogout={logout} guest>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/customer" element={<HomePage />} />
+              <Route path="/customer/products" element={<ProductCatalogPage />} />
+              <Route path="/customer/products/:id" element={<ProductDetailPage />} />
+              <Route path="*" element={<Navigate to="/auth/login" replace />} />
+            </Routes>
+          </DashboardLayout>
+        } />
       </Routes>
     );
   }

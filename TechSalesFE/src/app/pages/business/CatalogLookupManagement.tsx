@@ -1,3 +1,4 @@
+import { useListUrlState } from '../../../dataHook/useListUrlState';
 import { useState } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Edit, Loader2, Plus, Search } from 'lucide-react';
@@ -15,10 +16,12 @@ import { ListPagination } from '../../components/ui/list-pagination';
 
 export function CatalogLookupManagement({ kind }: { kind: 'brands' | 'categories' }) {
   const title = kind === 'brands' ? 'thương hiệu' : 'danh mục';
-  const [keyword, setKeyword] = useState('');
+  const list = useListUrlState({ keyword: '' }, kind + '.');
+  const { pageNumber, pageSize, setPageNumber, setPageSize } = list;
+  const [keyword, setKeyword] = list.field('keyword');
   const debouncedKeyword = useDebouncedValue(keyword);
-  const [pageNumber, setPageNumber] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+
+
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string>();
   const [name, setName] = useState('');
@@ -56,7 +59,7 @@ export function CatalogLookupManagement({ kind }: { kind: 'brands' | 'categories
     </div>
     <div className="relative">
       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-      <Input aria-label={`Tìm ${title}`} placeholder={`Tìm tên ${title}...`} className="pl-9" value={keyword} onChange={event => { setKeyword(event.target.value); setPageNumber(1); }} />
+      <Input aria-label={`Tìm ${title}`} placeholder={`Tìm tên ${title}...`} className="pl-9" value={keyword} onChange={event => { setKeyword(event.target.value); }} />
     </div>
     {error ? <div role="alert" className="space-y-2"><p className="text-destructive">{error.message}</p><Button variant="outline" onClick={() => refetch()}>Thử lại</Button></div>
       : isLoading ? <div className="flex h-40 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" aria-label="Đang tải" /></div>
@@ -68,7 +71,7 @@ export function CatalogLookupManagement({ kind }: { kind: 'brands' | 'categories
         </TableRow>) : <TableRow><TableCell colSpan={2} className="py-10 text-center text-muted-foreground">Không tìm thấy {title}.</TableCell></TableRow>}</TableBody>
       </Table></CardContent></Card>}
     <ListPagination pageNumber={pageNumber} pageSize={pageSize} totalCount={data?.totalCount ?? 0} disabled={isFetching || keyword !== debouncedKeyword}
-      onPageChange={setPageNumber} onPageSizeChange={size => { setPageSize(size); setPageNumber(1); }} />
+      onPageChange={setPageNumber} onPageSizeChange={setPageSize} />
     <Dialog open={open} onOpenChange={value => { if (!mutation.isPending) setOpen(value); }}>
       <DialogContent className="max-w-md"><DialogHeader>
         <DialogTitle>{editingId ? 'Sửa' : 'Thêm'} {title}</DialogTitle>
