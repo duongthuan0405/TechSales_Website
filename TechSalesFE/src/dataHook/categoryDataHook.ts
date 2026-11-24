@@ -1,5 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { categoryService } from '../services/categoryService';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { categoryService, CategoryQuery } from '../services/categoryService';
 import { Category } from '../models/ui_types/category';
 
 export const useGetCategories = () => {
@@ -9,12 +9,22 @@ export const useGetCategories = () => {
   });
 };
 
+export const useGetAdminCategories = (params: CategoryQuery, enabled = true) => useQuery({
+  queryKey: ['categories', 'admin', params],
+  queryFn: () => categoryService.getAdminCategories(params),
+  enabled,
+  placeholderData: keepPreviousData,
+});
+
 export const useCreateCategory = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: Omit<Category, 'id'>) => categoryService.createCategory(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
+      queryClient.invalidateQueries({ queryKey: ['product-lookups'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
     },
   });
 };
@@ -26,7 +36,9 @@ export const useUpdateCategory = () => {
       categoryService.updateCategory(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
-      queryClient.invalidateQueries({ queryKey: ['products'] }); // Products might have updated category names
+      queryClient.invalidateQueries({ queryKey: ['product-lookups'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
     },
   });
 };
@@ -38,7 +50,9 @@ export const useDeleteCategory = () => {
       categoryService.deleteCategory(id, replacementId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
-      queryClient.invalidateQueries({ queryKey: ['products'] }); // Products have migrated
+      queryClient.invalidateQueries({ queryKey: ['product-lookups'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
     },
   });
 };

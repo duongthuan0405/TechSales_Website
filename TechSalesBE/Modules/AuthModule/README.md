@@ -1,5 +1,19 @@
 # AuthModule
 
+Đăng ký và tạo tài khoản bắt buộc nhận `fullName` (không trống, tối đa 150 ký tự)
+và `phone` (10–11 chữ số). Profile được tạo cùng User trong một transaction.
+`UserProfile.FullName`/`PhoneNumber` là NOT NULL; `IX_UserProfile_PhoneNumber` bảo đảm số điện thoại duy nhất.
+Trùng số điện thoại khi đăng ký, tạo hoặc cập nhật profile trả 409; giữ nguyên số của chính mình được phép.
+Migration `RequireUniqueProfilePhone` cần được áp dụng trước khi dùng bản mới.
+Kiểm tra/bổ sung profile cũ và xử lý số điện thoại trùng bằng dữ liệu thật trước migration; không tự xóa tài khoản hay điền số giả.
+Bootstrap tài khoản mới cũng cần `AUTH__Bootstrap__FullName` và `AUTH__Bootstrap__Phone`.
+
+`GET /api/admin/users` dành cho Technical Admin: lấy một trang người dùng của tất cả vai trò,
+hoặc lọc bằng `role`. Hỗ trợ `keyword`, `pageNumber`, `pageSize`; tìm kiếm và lọc trước khi đếm/phân trang.
+
+Danh sách khách hàng và nhân viên hỗ trợ `pageNumber`, `pageSize` và `keyword`.
+Tìm kiếm theo tên, email hoặc số điện thoại tại database trước khi đếm và phân trang.
+
 Triển khai lại các chức năng tài khoản từ BE cũ theo Clean Architecture trong một project. Mỗi use case ở `Application/UseCases` có đủ `UCInput`, `UCOutput`, `UCHandler`, `UCInput_Validator`; controller gửi request qua MediatR. Repository map giữa Domain và DbModel, trả Entity về handler. Handler ánh xạ Entity trực tiếp thành UCOutput; các cấu trúc con và item danh sách được định nghĩa trong UCOutput của chính use case. Controller đưa dữ liệu kết quả vào response envelope, không ánh xạ qua View hoặc Response DTO trung gian. Không trả Entity/DbModel hoặc hash mật khẩu ra API.
 
 ## Chức năng và route
@@ -34,7 +48,7 @@ Các request dùng camelCase JSON như BE cũ. Response thống nhất `{ succes
 |---|---|
 | Customer | Đọc/sửa hồ sơ của mình, đổi mật khẩu, đăng xuất. |
 | Staff | Thêm quyền xem, khóa và mở khóa Customer. Không quản lý Staff/admin. |
-| Business Admin | Xem Customer/Staff; sửa, khóa/mở khóa Customer/Staff; tạo Staff hoặc Business Admin. Không sửa/khóa tài khoản admin ngang cấp hoặc Technical Admin. |
+| Business Admin | Tạo tài khoản chỉ có role Staff; xem Customer/Staff và quản lý trạng thái (khóa, mở khóa, ngừng hoạt động). Không sửa email/vai trò; không can thiệp tài khoản Admin. |
 | Technical Admin | Quản lý mọi tài khoản khác; đọc và thay đổi RBAC; tạo tài khoản với bất kỳ role nào trong bốn role. |
 
 Role dùng ID cố định từ BE cũ. Migration `SeedAuthRolesAndPermissions` thêm 4 role, 5 permission thuộc Auth và 11 liên kết RolePermission, không tạo lại bảng.
@@ -45,8 +59,11 @@ Giữ danh mục permission tại `Application/Constants/AuthPermission.cs`, d�
 
 | API | Role được truy cập |
 |---|---|
-| Xem khách hàng, khóa/mở khóa tài khoản | Staff, Business Admin, Technical Admin; rule nghiệp vụ tiếp tục giới hạn tài khoản đích |
-| Xem nhân sự, tạo/sửa tài khoản | Business Admin, Technical Admin |
+| Xem khách hàng | Staff, Business Admin, Technical Admin |
+| Khóa/mở khóa tài khoản | Staff, Business Admin, Technical Admin; rule nghiệp vụ giới hạn tài khoản đích |
+| Xem nhân sự | Business Admin, Technical Admin |
+| Tạo/sửa thông tin tài khoản | Technical Admin |
+| Ngừng hoạt động tài khoản | Business Admin (Customer/Staff), Technical Admin (tài khoản khác) |
 | Quản trị role/permission, phân công role | Technical Admin |
 | Hồ sơ cá nhân, đổi mật khẩu, đăng xuất | Người dùng đã xác thực |
 | Đăng ký, đăng nhập, xác nhận email, quên/đặt lại mật khẩu | Công khai |
@@ -101,3 +118,8 @@ dotnet test TechSalesBE/Tests/AuthModule.Tests/AuthModule.Tests.csproj
 ```
 
 Test HTTP dùng TestServer và SQLite riêng, không truy cập PostgreSQL/SMTP thật. Có kiểm tra model PostgreSQL khớp snapshot và sinh SQL migration offline. Row lock PostgreSQL và việc gửi SMTP thật cần kiểm tra trong môi trường tích hợp.
+
+## Ngừng hoạt động tài khoản
+
+POST /api/admin/users/{id}/deactivate cho hai Admin. Business Admin chỉ can thiệp Customer/Staff (kiểm tra mọi role của tài khoản đích); Technical Admin can thiệp tài khoản khác. Sửa thông tin dùng rule EnsureCanEdit riêng, chỉ Technical Admin. Cấm tự ngừng hoạt động, actor phải ACTIVE. Chuyển PENDING/ACTIVE/BLOCKED/INACTIVE sang INACTIVE, xóa thời hạn khóa và bộ đếm đăng nhập sai. Thực hiện trong transaction và khóa actor/target; yêu cầu lặp giữ INACTIVE. JWT được kiểm tra trạng thái hiện tại ở mỗi request nên token cũ bị từ chối sau khi ngừng hoạt động. Chưa có chức năng kích hoạt lại INACTIVE; mở khóa không kích hoạt lại trạng thái này. Không cần migration.
+

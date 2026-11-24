@@ -171,56 +171,35 @@ Customers can add additional shipping addresses.
 
 ## 3. Product Discovery & Browsing
 
-### 3.1 Search Products by Keyword
+### 3.1 Search and paginate products
 
-Customers can search products using keywords.
+- Search by keyword through GET /api/products.
+- The backend filters and sorts before pagination and returns items, totalCount, pageNumber and pageSize.
+- The frontend requests one page at a time and displays the server order without sorting or filtering product data locally.
+- Default page size is 20; supported page sizes are 1–100.
+- Keep keyword, category, brand, price range, sort order and page in the URL; refreshing preserves the selection.
+- Changing a filter or page size returns to page 1.
 
-#### Main Features
-- Search bar with autocomplete suggestions
-- Real-time keyword suggestions
-- Full-text product search
-- Paginated search results
+### 3.2 Filter products
 
-#### Search Capabilities
-- Product name
-- Product keywords
-- Related suggestions
+- Combine one category, one brand and optional minimum/maximum prices.
+- Category and brand options come from backend lookup lists.
+- Price bounds are inclusive, nonnegative integers in VND; minimum cannot exceed maximum.
+- Products without a price are excluded when a price bound is supplied.
+- Public browsing only includes active products.
 
----
+### 3.3 Sort products
 
-### 3.2 Filter Products by Category
-
-Customers can narrow product lists using categories.
-
-#### Main Features
-- Multi-category filtering
-- Add/remove filter dynamically
-- Real-time product list update
-- Sidebar filter navigation
-
-#### Supported Categories
-- Laptop
-- Smartphone
-- Accessories
-- Tablet
-- PC Components
+- Newest first (newest).
+- Price low to high (price_asc).
+- Price high to low (price_desc).
+- Highest average visible review rating first (rating); unrated products have score 0.
+- Hidden/deleted reviews do not contribute to ratings.
+- Unpriced products follow priced products for both price sorts.
+- Ties use creation date descending and product ID ascending for stable pagination.
+- All sorting and filtering happen in the backend.
 
 ---
-
-### 3.3 Sort Products by Price
-
-Customers can reorder product listings based on price.
-
-#### Sort Options
-- Price Low → High
-- Price High → Low
-
-#### Main Features
-- Dynamic sorting without page reload
-- Update UI instantly after sorting
-
----
-
 ### 3.4 View Product Details
 
 Customers can inspect detailed product information.

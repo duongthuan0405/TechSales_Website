@@ -1,7 +1,9 @@
-/**
- * Mock API Client cho TechSales FE (Demo In-RAM).
- * Lưu trữ và xử lý trực tiếp trên RAM thay vì gọi Backend.
- */
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
+
+export function apiAssetUrl(url?: string | null): string | undefined {
+  if (!url) return undefined;
+  return url.startsWith('/') ? `${apiBaseUrl}${url}` : url;
+}
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -29,17 +31,37 @@ export class ApiError extends Error {
   }
 }
 
-// In-RAM mock request handler
-async function mockApiRequest<T>(_endpoint: string, _options: RequestInit = {}): Promise<T> {
-  return {} as T;
+async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const headers = new Headers(options.headers);
+  const token = localStorage.getItem('token');
+  if (token && !token.startsWith('mock-token-')) headers.set('Authorization', `Bearer ${token}`);
+  if (options.body && !(options.body instanceof FormData)) headers.set('Content-Type', 'application/json');
+  let response: Response;
+  try {
+    response = await fetch(`${apiBaseUrl}${endpoint}`, { ...options, headers });
+  } catch {
+    throw new ApiError('Không kết nối được máy chủ. Vui lòng kiểm tra backend đang chạy.', 0);
+  }
+  const payload = await response.json().catch(() => null);
+  if (!response.ok || payload?.success === false) {
+    if (response.status === 401 && endpoint !== '/api/auth/login') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('tech_sales_user');
+      window.dispatchEvent(new Event('techsales:unauthorized'));
+    }
+    throw new ApiError(payload?.message || `Yêu cầu thất bại (${response.status}).`, response.status, payload?.errors ?? payload?.data);
+  }
+  return payload?.data as T;
 }
 
+const requestBody = (body?: unknown) => body instanceof FormData ? body : body === undefined ? undefined : JSON.stringify(body);
+
 export const api = {
-  get: <T>(endpoint: string) => mockApiRequest<T>(endpoint, { method: 'GET' }),
-  post: <T>(endpoint: string, body?: unknown) => mockApiRequest<T>(endpoint, { method: 'POST', body: JSON.stringify(body) }),
-  put: <T>(endpoint: string, body?: unknown) => mockApiRequest<T>(endpoint, { method: 'PUT', body: JSON.stringify(body) }),
-  patch: <T>(endpoint: string, body?: unknown) => mockApiRequest<T>(endpoint, { method: 'PATCH', body: JSON.stringify(body) }),
-  delete: <T>(endpoint: string) => mockApiRequest<T>(endpoint, { method: 'DELETE' }),
+  get: <T>(endpoint: string) => apiRequest<T>(endpoint, { method: 'GET' }),
+  post: <T>(endpoint: string, body?: unknown) => apiRequest<T>(endpoint, { method: 'POST', body: requestBody(body) }),
+  put: <T>(endpoint: string, body?: unknown) => apiRequest<T>(endpoint, { method: 'PUT', body: requestBody(body) }),
+  patch: <T>(endpoint: string, body?: unknown) => apiRequest<T>(endpoint, { method: 'PATCH', body: requestBody(body) }),
+  delete: <T>(endpoint: string) => apiRequest<T>(endpoint, { method: 'DELETE' }),
 };
 
 export default api;

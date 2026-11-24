@@ -1,4 +1,7 @@
-import { useState, useEffect } from 'react';
+import { ProductImageGallery } from '../../components/ProductImageGallery';
+import { useState } from 'react';
+import { formatCurrency } from '../../../utils/format';
+import { ProductStatus } from '../../../models/ui_types/product';
 import { useParams, useNavigate } from 'react-router';
 import { 
   Star, 
@@ -37,8 +40,8 @@ export function StaffProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   
-  const { data: product, isLoading: isProductLoading, isError } = useGetProduct(id || '');
-  const { data: reviewData, isLoading: isReviewsLoading } = useGetProductReviews(id || '');
+  const { data: product, isLoading: isProductLoading, error, refetch } = useGetProduct(id || '');
+  const { data: reviewData, isLoading: isReviewsLoading, error: reviewError } = useGetProductReviews(id || '');
   const reviews = reviewData?.reviews || [];
   const { mutate: moderateReview } = useModerateReview();
   const { mutate: replyToReview } = useReplyToReview();
@@ -46,13 +49,6 @@ export function StaffProductDetailPage() {
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
   const [confirmingMod, setConfirmingMod] = useState<{ id: string, status: ReviewStatus } | null>(null);
-
-  useEffect(() => {
-    if (isError) {
-      toast.error('Product not found in operational database');
-      navigate('/sales/products');
-    }
-  }, [isError, navigate]);
 
   const handleModerate = () => {
     if (!confirmingMod) return;
@@ -80,12 +76,20 @@ export function StaffProductDetailPage() {
     });
   };
 
-  if (isProductLoading || !product) {
+  if (isProductLoading) {
     return (
       <div className="flex h-[70vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
+  }
+
+  if (error || !product) {
+    return <div className="mx-auto max-w-6xl space-y-4 p-6">
+      <p role="alert" className="text-destructive">{error?.message || 'Không tìm thấy sản phẩm.'}</p>
+      <Button variant="outline" onClick={() => navigate(-1)}>Quay lại</Button>
+      <Button onClick={() => refetch()}>Thử lại</Button>
+    </div>;
   }
 
   return (
@@ -96,20 +100,12 @@ export function StaffProductDetailPage() {
         onClick={() => navigate(-1)}
       >
         <ChevronLeft className="mr-1 h-4 w-4" />
-        Return to Catalog
+        Quay lại danh sách sản phẩm
       </Button>
 
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 items-start">
         {/* Product Images */}
-        <div className="space-y-4">
-          <div className="aspect-square overflow-hidden rounded-2xl border border-border bg-card p-10">
-            <img 
-              src={product.imageUrl || ''} 
-              alt={product.name} 
-              className="h-full w-full object-contain grayscale opacity-90 transition-all duration-500 hover:grayscale-0 hover:opacity-100"
-            />
-          </div>
-        </div>
+        <ProductImageGallery key={product.id} product={product} />
 
         {/* Product Info */}
         <div className="space-y-6">
@@ -126,7 +122,7 @@ export function StaffProductDetailPage() {
           </div>
 
           <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-bold text-foreground tracking-tight">{formatCurrency(product.price)}</span>
+            <span className="text-4xl font-bold text-foreground tracking-tight">{product.priceIsUnset ? 'Chưa có giá' : formatCurrency(product.price)}</span>
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">VND</span>
           </div>
 
@@ -142,11 +138,11 @@ export function StaffProductDetailPage() {
                  </div>
                  <div>
                     <p className="text-[10px] font-bold uppercase tracking-widest text-primary">Catalog Status</p>
-                    <p className="text-xs font-black uppercase tracking-tight">Active for Fulfillment</p>
+                    <p className="text-xs font-black uppercase tracking-tight">{product.status === ProductStatus.ACTIVE ? 'Đang kinh doanh' : 'Ngừng kinh doanh'}</p>
                  </div>
               </div>
               <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-widest px-3 border-primary/30 text-primary">
-                {product.stock} Units In Reserve
+                {product.stock ?? 0} sản phẩm khả dụng
               </Badge>
             </div>
           </div>
@@ -202,7 +198,7 @@ export function StaffProductDetailPage() {
 
             <div className="flex-1 space-y-6">
               <h3 className="text-xl font-bold uppercase tracking-tight text-foreground">Customer Sentiment Feed</h3>
-              {isReviewsLoading ? (
+              {reviewError ? <p role="status" className="text-sm text-muted-foreground">{reviewError.message}</p> : isReviewsLoading ? (
                 <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
               ) : reviews.length === 0 ? (
                 <div className="py-12 text-center text-muted-foreground font-bold uppercase tracking-widest bg-muted/20 rounded-2xl border border-dashed border-border">
@@ -270,10 +266,10 @@ export function StaffProductDetailPage() {
                             />
                             <div className="flex gap-2">
                               <Button size="sm" className="h-8 px-4 rounded-lg text-[9px] font-bold uppercase tracking-widest" onClick={() => handleReply(rev.id)}>
-                                Send Reply
+                                Gửi phản hồi
                               </Button>
                               <Button variant="ghost" size="sm" className="h-8 px-4 rounded-lg text-[9px] font-bold uppercase tracking-widest" onClick={() => setReplyingTo(null)}>
-                                Cancel
+                                Hủy
                               </Button>
                             </div>
                           </div>
@@ -286,7 +282,7 @@ export function StaffProductDetailPage() {
                               onClick={() => setReplyingTo(rev.id)}
                             >
                               <MessageSquare className="h-3.5 w-3.5 mr-2" />
-                              {rev.responses?.length || 0 > 0 ? 'Reply Again' : 'Reply'}
+                              {rev.responses?.length || 0 > 0 ? 'Phản hồi thêm' : 'Phản hồi'}
                             </Button>
                             <Button 
                               variant="ghost" 
@@ -295,14 +291,14 @@ export function StaffProductDetailPage() {
                               onClick={() => setConfirmingMod({ id: rev.id, status: rev.status === ReviewStatus.VISIBLE ? ReviewStatus.HIDDEN : ReviewStatus.VISIBLE })}
                             >
                               {rev.status === ReviewStatus.VISIBLE ? (
-                                <><EyeOff className="h-3.5 w-3.5 mr-2" /> Hide</>
+                                <><EyeOff className="h-3.5 w-3.5 mr-2" /> Ẩn</>
                               ) : (
-                                <><Eye className="h-3.5 w-3.5 mr-2" /> Show</>
+                                <><Eye className="h-3.5 w-3.5 mr-2" /> Hiện</>
                               )}
                             </Button>
                             <Button variant="ghost" size="sm" className="h-8 px-4 rounded-lg text-[9px] font-bold uppercase tracking-widest text-destructive hover:bg-destructive/10">
                               <ShieldAlert className="h-3.5 w-3.5 mr-2" />
-                              Report
+                              Báo cáo
                             </Button>
                           </div>
                         )}
@@ -361,12 +357,12 @@ export function StaffProductDetailPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-6">
-            <AlertDialogCancel className="h-10 rounded-xl text-[10px] font-bold uppercase tracking-widest border-border">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="h-10 rounded-xl text-[10px] font-bold uppercase tracking-widest border-border">Hủy</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleModerate}
               className="h-10 rounded-xl text-[10px] font-bold uppercase tracking-widest text-white bg-primary hover:bg-primary/90"
             >
-              Update Status
+              Cập nhật trạng thái
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

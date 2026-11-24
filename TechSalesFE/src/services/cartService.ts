@@ -1,77 +1,41 @@
 import { CartItem } from '../models/ui_types/cart';
-import { mockCart, products } from '../data/mockData';
+import api, { apiAssetUrl } from '../api/apiClient';
 
-const delay = (ms = 40) => new Promise(resolve => setTimeout(resolve, ms));
-
-const enrichCartItems = (items: CartItem[]): CartItem[] => {
-  return items.map(item => {
-    const product = products.find(p => p.id === item.productId);
-    return {
-      ...item,
-      productName: product?.name || item.productName || 'Unknown Product',
-      price: product ? product.price : (item.price || 0),
-      imageUrl: product?.imageUrl || item.imageUrl || '',
-    };
-  });
-};
+interface CartResponse {
+  cartId: string;
+  items: { productId: string; quantity: number; createdAt: string; updatedAt: string;
+    product: { name: string; price: number | null; status: string;
+      images: { imageUrl: string; isPrimary: boolean }[] } | null }[];
+}
 
 export const cartService = {
   getCart: async (): Promise<CartItem[]> => {
-    await delay();
-    return enrichCartItems(mockCart);
+    const cart = await api.get<CartResponse>('/api/cart');
+    return cart.items.map(item => ({ cartId: cart.cartId, productId: item.productId,
+      quantity: item.quantity, createdAt: item.createdAt, updatedAt: item.updatedAt,
+      productName: item.product?.name ?? 'Sản phẩm không còn tồn tại',
+      price: item.product?.price ?? undefined,
+      unavailable: !item.product || item.product.status !== 'ACTIVE' || item.product.price === null,
+      imageUrl: apiAssetUrl(item.product?.images.find(image => image.isPrimary)?.imageUrl
+        ?? item.product?.images[0]?.imageUrl),
+    }));
   },
-
-  addToCart: async (productId: string): Promise<CartItem[]> => {
-    await delay();
-    const existing = mockCart.find(i => i.productId === productId);
-    const product = products.find(p => p.id === productId);
-
-    if (existing) {
-      existing.quantity += 1;
-      existing.updatedAt = new Date().toISOString();
-    } else {
-      mockCart.push({
-        cartId: 'user-cart',
-        productId,
-        quantity: 1,
-        productName: product?.name,
-        price: product?.price,
-        imageUrl: product?.imageUrl,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
-    }
-
-    return enrichCartItems(mockCart);
+  addToCart: async (productId: string, quantity = 1): Promise<CartItem[]> => {
+    await api.post('/api/cart/items', { productId, quantity });
+    return cartService.getCart();
   },
-
   updateQuantity: async (productId: string, quantity: number): Promise<CartItem[]> => {
-    await delay();
-    if (quantity < 1) {
-      return cartService.removeItem(productId);
-    }
-
-    const item = mockCart.find(i => i.productId === productId);
-    if (item) {
-      item.quantity = quantity;
-      item.updatedAt = new Date().toISOString();
-    }
-
-    return enrichCartItems(mockCart);
+    if (quantity < 1) return cartService.removeItem(productId);
+    await api.put(`/api/cart/items/${encodeURIComponent(productId)}`, { quantity });
+    return cartService.getCart();
   },
-
   removeItem: async (productId: string): Promise<CartItem[]> => {
-    await delay();
-    const index = mockCart.findIndex(i => i.productId === productId);
-    if (index !== -1) {
-      mockCart.splice(index, 1);
-    }
-
-    return enrichCartItems(mockCart);
+    await api.delete(`/api/cart/items/${encodeURIComponent(productId)}`);
+    return cartService.getCart();
   },
-
   clearCart: async (): Promise<void> => {
-    await delay();
-    mockCart.length = 0;
+    const items = await cartService.getCart();
+    // The API deletes individual items; remove only the current snapshot.
+    for (const item of items) await api.delete(`/api/cart/items/${encodeURIComponent(item.productId)}`);
   },
 };

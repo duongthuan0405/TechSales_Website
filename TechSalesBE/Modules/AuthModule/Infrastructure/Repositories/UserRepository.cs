@@ -50,6 +50,10 @@ internal sealed class UserRepository : IUserRepository
         return user.Id;
     }
 
+    public Task<bool> PhoneExistsAsync(string phone, Guid? excludingUserId, CancellationToken cancellationToken) =>
+        _db.Users.AnyAsync(user => user.Id != excludingUserId && user.Profile != null
+            && user.Profile.PhoneNumber == phone, cancellationToken);
+
     public async Task UpdateAsync(User user, CancellationToken cancellationToken = default)
     {
         UserDbModel row = await _db.Users.Include(u => u.Profile).SingleAsync(u => u.Id == user.Id, cancellationToken);
@@ -76,9 +80,16 @@ internal sealed class UserRepository : IUserRepository
         row.Profile.UpdatedAt = user.UpdatedAt;
     }
 
-    public async Task<(List<User> Items, int Count)> GetPageAsync(string[] roles, int page, int size, CancellationToken cancellationToken)
+    public async Task<(List<User> Items, int Count)> GetPageAsync(List<string> roles, int page, int size, CancellationToken cancellationToken, string? keyword = null)
     {
         var query = _db.Users.AsNoTracking().Where(u => u.UserRoles.Any(ur => roles.Contains(ur.Role.Name)));
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            string term = keyword.Trim().ToLower();
+            query = query.Where(u => u.Email.ToLower().Contains(term)
+                || (u.Profile != null && (u.Profile.FullName.ToLower().Contains(term)
+                    || u.Profile.PhoneNumber.Contains(term))));
+        }
         var count = await query.CountAsync(cancellationToken);
         var rows = await WithDetails(query.OrderBy(u => u.CreatedAt).ThenBy(u => u.Id).Skip((page - 1) * size).Take(size)).ToListAsync(cancellationToken);
         return (rows.Select(Map).ToList(), count);

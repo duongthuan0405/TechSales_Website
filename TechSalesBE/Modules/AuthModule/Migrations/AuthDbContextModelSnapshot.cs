@@ -385,6 +385,10 @@ namespace AuthModule.Migrations
 
                     b.HasKey("UserId");
 
+                    b.HasIndex("PhoneNumber")
+                        .IsUnique()
+                        .HasDatabaseName("IX_UserProfile_PhoneNumber");
+
                     b.ToTable("UserProfile", "identify_access");
                 });
 

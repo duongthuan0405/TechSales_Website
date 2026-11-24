@@ -17,7 +17,7 @@ public class ForgotPasswordEmailSender : IForgotPasswordEmailSender
         _configuration = configuration;
     }
 
-    private readonly string frontendPage = "reset-password";
+    private readonly string frontendPage = "auth/reset-password";
     private readonly string subject = EmailMessageContent.ResetSubject;
 
     public async Task Execute(string toEmail, string token, int expiredInMinutes, CancellationToken cancellationToken = default)

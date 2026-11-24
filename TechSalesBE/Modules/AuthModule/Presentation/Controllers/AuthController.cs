@@ -34,9 +34,9 @@ public sealed class AuthController : ControllerBase
     [ProducesResponseType(typeof(ApiSuccessResponse<Register_UCOutput>), StatusCodes.Status201Created)]
     public async Task<IActionResult> Register(RegisterRequestDto request, CancellationToken ct)
     {
-        Register_UCOutput result = await _sender.Send(new Register_UCInput(request.Email, request.Password, request.ConfirmPassword), ct);
+        Register_UCOutput result = await _sender.Send(new Register_UCInput(request.Email, request.Password, request.ConfirmPassword, request.FullName, request.Phone), ct);
         ApiSuccessResponse<Register_UCOutput> response = new ApiSuccessResponse<Register_UCOutput>(null, result.Message);
-        return Created(response.Message, response);
+        return StatusCode(StatusCodes.Status201Created, response);
     }
 
     [AllowAnonymous]

@@ -5,6 +5,7 @@ public static class ResponseMessage
     public const string SuccessAccount = "Lấy thông tin tài khoản thành công.";
     public const string SuccessAccountCreated = "Tạo tài khoản thành công.";
     public const string SuccessAccountLocked = "Khóa tài khoản thành công.";
+    public const string SuccessAccountDeactivated = "Ngừng hoạt động tài khoản thành công.";
     public const string SuccessAccountUnlocked = "Mở khóa tài khoản thành công.";
     public const string SuccessAccountUpdated = "Cập nhật tài khoản thành công.";
     public const string SuccessCustomers = "Lấy danh sách khách hàng thành công.";
@@ -21,4 +22,5 @@ public static class ResponseMessage
     public const string SuccessRoles = "Lấy danh sách vai trò thành công.";
     public const string SuccessRolesUpdated = "Cập nhật vai trò tài khoản thành công.";
     public const string SuccessStaff = "Lấy danh sách nhân viên thành công.";
+    public const string SuccessUsers = "Lấy danh sách người dùng thành công.";
 }

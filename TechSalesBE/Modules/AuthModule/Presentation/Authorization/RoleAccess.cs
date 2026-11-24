@@ -6,4 +6,6 @@ internal static class RoleAccess
 {
     public const string Administrators = AccountRoleNames.BUSINESS_ADMIN + "," + AccountRoleNames.TECHNICAL_ADMIN;
     public const string CustomerManagement = AccountRoleNames.STAFF + "," + Administrators;
+    public const string AccountWriters = AccountRoleNames.TECHNICAL_ADMIN;
+    public const string AccountStatusWriters = CustomerManagement;
 }

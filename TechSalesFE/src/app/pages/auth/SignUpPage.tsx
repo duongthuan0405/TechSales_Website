@@ -1,3 +1,4 @@
+import { PasswordInput } from '../../components/ui/password-input';
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router';
 import { Button } from '../../components/ui/button';
@@ -27,6 +28,12 @@ export function SignUpPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.fullName.trim() || formData.fullName.trim().length > 150) {
+      toast.error('Vui lòng nhập họ tên, tối đa 150 ký tự.'); return;
+    }
+    if (!/^[0-9]{10,11}$/.test(formData.phone.trim())) {
+      toast.error('Số điện thoại phải gồm 10–11 chữ số.'); return;
+    }
     if (formData.password !== formData.confirmPassword) {
       toast.error('Mật khẩu xác nhận không khớp');
       return;
@@ -124,9 +131,9 @@ export function SignUpPage() {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="password">Mật khẩu</Label>
-                  <Input
+                  <PasswordInput
                     id="password"
-                    type="password"
+
                     placeholder="••••••••"
                     value={formData.password}
                     onChange={handleChange}
@@ -135,9 +142,9 @@ export function SignUpPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">Xác nhận mật khẩu</Label>
-                  <Input
+                  <PasswordInput
                     id="confirmPassword"
-                    type="password"
+
                     placeholder="••••••••"
                     value={formData.confirmPassword}
                     onChange={handleChange}

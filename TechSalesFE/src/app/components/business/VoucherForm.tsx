@@ -20,15 +20,18 @@ import {
 } from "../ui/select";
 import { VoucherType } from "../../../models/ui_types/voucher";
 import { Loader2 } from "lucide-react";
+import { DatePicker } from '../ui/date-picker';
 
 const voucherSchema = z.object({
-  code: z.string().min(3, "Code must be at least 3 characters").max(20),
+  code: z.string().min(3, "Mã phải có ít nhất 3 ký tự.").max(20, 'Mã tối đa 20 ký tự.'),
   type: z.nativeEnum(VoucherType),
-  value: z.coerce.number().min(0.01, "Value must be greater than 0"),
-  maxUsage: z.coerce.number().int().min(1, "Max usage must be at least 1"),
-  minOrderAmount: z.coerce.number().min(0, "Min order amount cannot be negative"),
+  value: z.coerce.number().min(0.01, "Giá trị giảm phải lớn hơn 0."),
+  maxUsage: z.coerce.number().int('Số lượt sử dụng phải là số nguyên.').min(1, "Số lượt sử dụng tối thiểu là 1."),
+  minOrderAmount: z.coerce.number().min(0, "Giá trị đơn tối thiểu không được âm."),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
+}).refine(data => !data.startDate || !data.endDate || data.endDate >= data.startDate, {
+  message: 'Ngày kết thúc không được trước ngày bắt đầu.', path: ['endDate'],
 });
 
 type VoucherFormValues = z.infer<typeof voucherSchema>;
@@ -71,7 +74,7 @@ export function VoucherForm({ onSubmit, isLoading }: VoucherFormProps) {
           name="code"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Voucher Code</FormLabel>
+              <FormLabel>Mã giảm giá</FormLabel>
               <FormControl>
                 <Input placeholder="SUMMER2024" {...field} className="uppercase" />
               </FormControl>
@@ -80,22 +83,22 @@ export function VoucherForm({ onSubmit, isLoading }: VoucherFormProps) {
           )}
         />
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FormField
             control={form.control}
             name="type"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Discount Type</FormLabel>
+                <FormLabel>Loại giảm giá</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
+                      <SelectValue placeholder="Chọn loại" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value={VoucherType.FIXED}>Fixed Amount ($)</SelectItem>
-                    <SelectItem value={VoucherType.PERCENTAGE}>Percentage (%)</SelectItem>
+                    <SelectItem value={VoucherType.FIXED}>Số tiền (VND)</SelectItem>
+                    <SelectItem value={VoucherType.PERCENTAGE}>Phần trăm (%)</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -107,7 +110,7 @@ export function VoucherForm({ onSubmit, isLoading }: VoucherFormProps) {
             name="value"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Discount Value</FormLabel>
+                <FormLabel>Giá trị giảm</FormLabel>
                 <FormControl>
                   <Input type="number" step="0.01" {...field} />
                 </FormControl>
@@ -117,13 +120,13 @@ export function VoucherForm({ onSubmit, isLoading }: VoucherFormProps) {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FormField
             control={form.control}
             name="maxUsage"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Max Usage</FormLabel>
+                <FormLabel>Lượt sử dụng tối đa</FormLabel>
                 <FormControl>
                   <Input type="number" {...field} />
                 </FormControl>
@@ -136,7 +139,7 @@ export function VoucherForm({ onSubmit, isLoading }: VoucherFormProps) {
             name="minOrderAmount"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Min Order Amount</FormLabel>
+                <FormLabel>Giá trị đơn tối thiểu (VND)</FormLabel>
                 <FormControl>
                   <Input type="number" step="0.01" {...field} />
                 </FormControl>
@@ -146,15 +149,15 @@ export function VoucherForm({ onSubmit, isLoading }: VoucherFormProps) {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FormField
             control={form.control}
             name="startDate"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Start Date (Optional)</FormLabel>
+                <FormLabel>Ngày bắt đầu (tùy chọn)</FormLabel>
                 <FormControl>
-                  <Input type="date" {...field} />
+                  <DatePicker value={field.value ?? ''} onChange={field.onChange} placeholder="Chọn ngày bắt đầu" disabled={isLoading} clearable />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -165,9 +168,9 @@ export function VoucherForm({ onSubmit, isLoading }: VoucherFormProps) {
             name="endDate"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>End Date (Optional)</FormLabel>
+                <FormLabel>Ngày kết thúc (tùy chọn)</FormLabel>
                 <FormControl>
-                  <Input type="date" {...field} />
+                  <DatePicker value={field.value ?? ''} onChange={field.onChange} placeholder="Chọn ngày kết thúc" disabled={isLoading} clearable />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -178,7 +181,7 @@ export function VoucherForm({ onSubmit, isLoading }: VoucherFormProps) {
         <div className="flex justify-end pt-4">
           <Button type="submit" disabled={isLoading} className="w-full">
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Create Voucher
+            Tạo mã giảm giá
           </Button>
         </div>
       </form>

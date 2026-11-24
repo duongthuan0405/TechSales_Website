@@ -2,6 +2,8 @@ import { Search, User } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { NotificationDropdown } from './NotificationDropdown';
+import { useNavigate } from 'react-router';
+import { useAuth } from '../../context/AuthContext';
 
 interface TopNavProps {
   userName: string;
@@ -11,6 +13,12 @@ interface TopNavProps {
 }
 
 export function TopNav({ userName, userRole, userAvatar, onLogout }: TopNavProps) {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const profilePaths: Record<string, string> = {
+    Customer: '/customer/profile', Staff: '/sales/profile',
+    'Business Admin': '/business/profile', 'Technical Admin': '/technical/profile',
+  };
   return (
     <div className="flex h-16 items-center justify-between border-b border-border bg-background px-6">
       <div className="flex items-center gap-4 flex-1 max-w-xl">
@@ -24,13 +32,13 @@ export function TopNav({ userName, userRole, userAvatar, onLogout }: TopNavProps
         </div>
       </div>
       <div className="flex items-center gap-6">
-        <NotificationDropdown />
+        {user ? <><NotificationDropdown />
         <div className="flex items-center gap-3 pl-4 border-l border-border/50">
           <div className="text-right">
             <div className="text-sm font-medium">{userName}</div>
             <div className="text-xs text-muted-foreground">{userRole}</div>
           </div>
-          <button className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground overflow-hidden">
+          <button type="button" aria-label="Tài khoản cá nhân" title="Tài khoản cá nhân" onClick={() => navigate(profilePaths[user?.role ?? 'Customer'])} className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground overflow-hidden">
             {userAvatar ? (
               <img src={userAvatar} alt={userName} className="h-full w-full object-cover" />
             ) : (
@@ -41,6 +49,8 @@ export function TopNav({ userName, userRole, userAvatar, onLogout }: TopNavProps
         <Button variant="outline" size="sm" onClick={onLogout}>
           Đăng xuất
         </Button>
+        </> : <><Button variant="outline" size="sm" onClick={() => navigate('/auth/signup')}>Đăng ký</Button>
+          <Button size="sm" onClick={() => navigate('/auth/login')}>Đăng nhập</Button></>}
       </div>
     </div>
   );

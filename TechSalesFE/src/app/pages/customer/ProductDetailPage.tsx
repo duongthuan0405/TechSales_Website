@@ -1,3 +1,4 @@
+import { ProductImageGallery } from '../../components/ProductImageGallery';
 import { useState, useEffect } from 'react';
 import { formatCurrency } from '../../../utils/format';
 import { useParams, useNavigate } from 'react-router';
@@ -27,8 +28,9 @@ export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
+  const [cartError, setCartError] = useState('');
   const { data: product, isLoading: isProductLoading, isError } = useGetProduct(id || '');
-  const { data: reviewData, isLoading: isReviewsLoading } = useGetProductReviews(id || '');
+  const { data: reviewData, isLoading: isReviewsLoading, error: reviewError } = useGetProductReviews(id || '');
   const reviews = reviewData?.reviews || [];
   const { mutate: addToCart, isPending: isAdding } = useAddToCart();
 
@@ -41,9 +43,16 @@ export function ProductDetailPage() {
 
   const handleAddToCart = () => {
     if (!product) return;
-    addToCart(product.id, {
-      onSuccess: () => toast.success('Đã thêm vào giỏ hàng'),
-      onError: () => toast.error('Thêm vào giỏ hàng thất bại')
+    setCartError('');
+    addToCart({ productId: product.id, quantity }, {
+      onSuccess: () => toast.success('Đã thêm vào giỏ hàng', {
+        action: { label: 'Xem giỏ hàng', onClick: () => navigate('/customer/cart') },
+      }),
+      onError: (error: Error) => {
+        const message = error.message || 'Thêm vào giỏ hàng thất bại';
+        setCartError(message);
+        toast.error(message);
+      }
     });
   };
 
@@ -68,15 +77,7 @@ export function ProductDetailPage() {
 
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 items-start">
         {/* Product Images */}
-        <div className="space-y-4">
-          <div className="aspect-square overflow-hidden rounded-2xl border border-border bg-card p-10">
-            <img 
-              src={product.imageUrl || ''} 
-              alt={product.name} 
-              className="h-full w-full object-contain transition-transform duration-500 hover:scale-105"
-            />
-          </div>
-        </div>
+        <ProductImageGallery key={product.id} product={product} />
 
         {/* Product Info */}
         <div className="space-y-6">
@@ -135,13 +136,14 @@ export function ProductDetailPage() {
 
             <div className="flex gap-3">
               <Button 
+                type="button"
                 size="lg" 
                 className="h-12 flex-[2] rounded-xl text-xs font-bold bg-primary text-primary-foreground uppercase tracking-widest hover:opacity-90 transition-all"
                 onClick={handleAddToCart}
                 disabled={isAdding || product.stock === 0 || product.status === ProductStatus.DISCONTINUED}
               >
                 {isAdding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShoppingCart className="mr-2 h-4 w-4" />}
-                {product.status === ProductStatus.DISCONTINUED ? 'Không khả dụng' : 'Thêm vào giỏ hàng'}
+                {isAdding ? 'Đang thêm…' : product.status === ProductStatus.DISCONTINUED ? 'Ngừng kinh doanh' : product.stock === 0 ? 'Hết hàng' : 'Thêm vào giỏ hàng'}
               </Button>
               <Button 
                 size="lg" 
@@ -166,6 +168,9 @@ export function ProductDetailPage() {
                 Mua ngay
               </Button>
             </div>
+
+            {cartError && <p role="alert" className="text-sm text-destructive">{cartError}</p>}
+            {product.stock === 0 && <p className="text-sm text-muted-foreground">Sản phẩm đã hết hàng, hiện chưa thể thêm vào giỏ.</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -219,7 +224,7 @@ export function ProductDetailPage() {
 
             <div className="flex-1 space-y-6">
               <h3 className="text-xl font-bold uppercase tracking-tight text-foreground">Đánh giá gần đây</h3>
-              {isReviewsLoading ? (
+              {reviewError ? <p role="status" className="text-sm text-muted-foreground">{reviewError.message}</p> : isReviewsLoading ? (
                 <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
               ) : reviews.length === 0 ? (
                 <div className="py-12 text-center text-muted-foreground font-bold uppercase tracking-widest bg-muted/20 rounded-2xl border border-dashed border-border">

@@ -15,8 +15,10 @@ public sealed class AuthFlowsTests
     public async Task Register_verify_login_and_read_profile_without_leaking_secrets()
     {
         await using var app = await AuthTestApp.CreateAsync();
-        await ExpectAsync(await app.Client.PostAsJsonAsync("/api/auth/register", new
-            { email = " New@Example.com ", password = Password, confirmPassword = Password }), HttpStatusCode.Created);
+        var registration = await app.Client.PostAsJsonAsync("/api/auth/register", new
+            { email = " New@Example.com ", password = Password, confirmPassword = Password, fullName = "New User", phone = NextPhone() });
+        Assert.Null(registration.Headers.Location);
+        await ExpectAsync(registration, HttpStatusCode.Created);
         var row = await app.DbAsync(db => db.Users.Include(u => u.Profile).Include(u => u.UserRoles).ThenInclude(ur => ur.Role).SingleAsync());
         Assert.Equal("new@example.com", row.Email);
         Assert.Equal(UserStatus.PENDING, row.Status);
@@ -119,7 +121,7 @@ public sealed class AuthFlowsTests
     {
         await using var app = await AuthTestApp.CreateAsync();
         app.Mail.Fail = true;
-        await ExpectAsync(await app.Client.PostAsJsonAsync("/api/auth/register", new { email = "customer@example.com", password = Password, confirmPassword = Password }), HttpStatusCode.InternalServerError);
+        await ExpectAsync(await app.Client.PostAsJsonAsync("/api/auth/register", new { email = "customer@example.com", password = Password, confirmPassword = Password, fullName = "Test User", phone = NextPhone() }), HttpStatusCode.InternalServerError);
         Assert.Equal(0, await app.DbAsync(db => db.Users.CountAsync()));
         Assert.Equal(0, await app.DbAsync(db => db.UserOtps.CountAsync()));
     }
@@ -127,7 +129,7 @@ public sealed class AuthFlowsTests
     public async Task Expired_verification_code_does_not_activate_account()
     {
         await using var app = await AuthTestApp.CreateAsync();
-        await ExpectAsync(await app.Client.PostAsJsonAsync("/api/auth/register", new { email = "customer@example.com", password = Password, confirmPassword = Password }), HttpStatusCode.Created);
+        await ExpectAsync(await app.Client.PostAsJsonAsync("/api/auth/register", new { email = "customer@example.com", password = Password, confirmPassword = Password, fullName = "Test User", phone = NextPhone() }), HttpStatusCode.Created);
         await app.DbAsync(async db => { (await db.UserOtps.SingleAsync()).ExpiredAt = DateTimeOffset.UtcNow.AddMinutes(-1); return await db.SaveChangesAsync(); });
         await ExpectAsync(await app.Client.PostAsJsonAsync("/api/auth/verify-email", new { email = "customer@example.com", token = app.Mail.Verification["customer@example.com"] }), HttpStatusCode.BadRequest);
         Assert.Equal(UserStatus.PENDING, await app.DbAsync(db => db.Users.Select(u => u.Status).SingleAsync()));

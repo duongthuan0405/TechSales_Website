@@ -63,6 +63,13 @@ internal sealed class AuthBootstrapService : IHostedService
 
             string passwordHash = passwordHasher.HashPassword(password);
             User user = User.Create(email, passwordHash, verified: true);
+            string? fullName = _configuration["AUTH:Bootstrap:FullName"];
+            string? phone = _configuration["AUTH:Bootstrap:Phone"];
+            if (!AuthRules.ValidFullName(fullName) || !AuthRules.ValidPhone(phone))
+                throw new InvalidOperationException("Provide AUTH__Bootstrap__FullName and a valid AUTH__Bootstrap__Phone for the initial administrator profile.");
+            if (await users.PhoneExistsAsync(phone!, null, cancellationToken))
+                throw new InvalidOperationException("Bootstrap phone number is already used.");
+            user.Profile.Update(fullName, phone, null, null, DateOnly.FromDateTime(DateTime.UtcNow));
             user.Roles.Add(technicalAdminRole);
             await users.AddAsync(user, cancellationToken);
             return true;

@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="InventoryModule.Tests" />
     <ProjectReference Include="..\CommonModule\CommonModule.csproj" />
   </ItemGroup>
   <ItemGroup>

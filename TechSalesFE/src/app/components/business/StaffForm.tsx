@@ -22,9 +22,9 @@ import { User, UserRole, UserStatus } from "../../../models/ui_types/user";
 import { Loader2 } from "lucide-react";
 
 const staffSchema = z.object({
-  fullName: z.string().min(2, "Full name must be at least 2 characters"),
-  email: z.string().email("Invalid email address"),
-  phone: z.string().min(10, "Phone number must be at least 10 digits"),
+  fullName: z.string().min(2, "Họ và tên phải có ít nhất 2 ký tự."),
+  email: z.string().email("Địa chỉ email không hợp lệ."),
+  phone: z.string().min(10, "Số điện thoại phải có ít nhất 10 chữ số."),
   role: z.enum(['Staff', 'Business Admin', 'Technical Admin']),
   status: z.nativeEnum(UserStatus),
 });
@@ -57,7 +57,7 @@ export function StaffForm({ initialData, onSubmit, isLoading }: StaffFormProps) 
           name="fullName"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Full Name</FormLabel>
+              <FormLabel>Họ và tên</FormLabel>
               <FormControl>
                 <Input placeholder="John Doe" {...field} />
               </FormControl>
@@ -71,7 +71,7 @@ export function StaffForm({ initialData, onSubmit, isLoading }: StaffFormProps) 
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email Address</FormLabel>
+              <FormLabel>Địa chỉ email</FormLabel>
               <FormControl>
                 <Input placeholder="john@techsales.com" {...field} disabled={!!initialData} />
               </FormControl>
@@ -85,7 +85,7 @@ export function StaffForm({ initialData, onSubmit, isLoading }: StaffFormProps) 
           name="phone"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Phone Number</FormLabel>
+              <FormLabel>Số điện thoại</FormLabel>
               <FormControl>
                 <Input placeholder="+1 (555) 000-0000" {...field} />
               </FormControl>
@@ -100,17 +100,17 @@ export function StaffForm({ initialData, onSubmit, isLoading }: StaffFormProps) 
             name="role"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Role</FormLabel>
+                <FormLabel>Vai trò</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select role" />
+                      <SelectValue placeholder="Chọn vai trò" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="Staff">Sales Staff</SelectItem>
-                    <SelectItem value="Business Admin">Business Admin</SelectItem>
-                    <SelectItem value="Technical Admin">Technical Admin</SelectItem>
+                    <SelectItem value="Staff">Nhân viên bán hàng</SelectItem>
+                    <SelectItem value="Business Admin">Quản trị kinh doanh</SelectItem>
+                    <SelectItem value="Technical Admin">Quản trị kỹ thuật</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -123,17 +123,17 @@ export function StaffForm({ initialData, onSubmit, isLoading }: StaffFormProps) 
             name="status"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Status</FormLabel>
+                <FormLabel>Trạng thái</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
+                      <SelectValue placeholder="Chọn trạng thái" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value={UserStatus.ACTIVE}>Active</SelectItem>
-                    <SelectItem value={UserStatus.BLOCKED}>Blocked</SelectItem>
-                    <SelectItem value={UserStatus.PENDING}>Pending</SelectItem>
+                    <SelectItem value={UserStatus.ACTIVE}>Đang hoạt động</SelectItem>
+                    <SelectItem value={UserStatus.BLOCKED}>Đã khóa</SelectItem>
+                    <SelectItem value={UserStatus.PENDING}>Chờ xác minh</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -145,7 +145,7 @@ export function StaffForm({ initialData, onSubmit, isLoading }: StaffFormProps) 
         <div className="flex justify-end gap-2 pt-4">
           <Button type="submit" disabled={isLoading} className="w-full">
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {initialData ? "Update Staff Member" : "Add Staff Member"}
+            {initialData ? "Cập nhật nhân viên" : "Thêm nhân viên"}
           </Button>
         </div>
       </form>

@@ -1,3 +1,4 @@
+import { useDebouncedValue } from '../../../dataHook/useDebouncedValue';
 import { useState } from 'react';
 import { 
   RotateCcw, 
@@ -62,6 +63,7 @@ export function ReturnManagementPage() {
   const { mutate: submitInspection, isPending: isSubmittingInspection } = useSubmitInspectionAndRefund();
 
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebouncedValue(searchTerm);
   const [statusFilter, setStatusFilter] = useState('ALL');
 
   // Selected Return for Full Processing
@@ -95,10 +97,10 @@ export function ReturnManagementPage() {
   // Filtered Returns
   const filteredReturns = returns.filter((item) => {
     const matchesSearch = 
-      item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.orderId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.productName.toLowerCase().includes(searchTerm.toLowerCase());
+      item.id.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      item.orderId.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      item.customerName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      item.productName.toLowerCase().includes(debouncedSearch.toLowerCase());
 
     const matchesStatus = statusFilter === 'ALL' || item.status === statusFilter;
     return matchesSearch && matchesStatus;

@@ -38,8 +38,11 @@ internal sealed class CreateUser_UCHandler : IRequestHandler<CreateUser_UCInput,
 
             User? existingUser = await _users.GetUserByEmailAsync(input.Email, ct);
             AuthWorkflowRules.EnsureEmailAvailable(existingUser, null);
+            if (await _users.PhoneExistsAsync(input.Phone, null, ct))
+                throw new BusinessException(BusinessExceptionCode.CONFLICT, BusinessExceptionMessage.PhoneAlreadyUsed);
 
             var user = User.Create(input.Email, _hasher.HashPassword(input.Password), verified: true);
+            user.Profile.Update(input.FullName, input.Phone, null, null, DateOnly.FromDateTime(DateTime.UtcNow));
             foreach (var name in input.Roles)
             {
                 user.Roles.Add(await _roles.GetByNameAsync(name, ct) ?? throw new BusinessException(BusinessExceptionCode.BAD_REQUEST, BusinessExceptionMessage.RoleUnknown));

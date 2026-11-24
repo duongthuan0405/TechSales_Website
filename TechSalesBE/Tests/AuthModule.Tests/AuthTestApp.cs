@@ -143,6 +143,9 @@ internal sealed class AuthTestApp : IAsyncDisposable
         return await sender.Send(input);
     }
 
+    private static int _phoneSequence;
+    internal static string NextPhone() => "0" + Interlocked.Increment(ref _phoneSequence).ToString("D9");
+
     internal async Task<Guid> SeedUserAsync(string email, string role, bool active = true)
     {
         using var scope = _app.Services.CreateScope();
@@ -152,6 +155,8 @@ internal sealed class AuthTestApp : IAsyncDisposable
         return await provider.GetRequiredService<IExecuteAtomically>().ExecuteAtomicallyAsync(async () =>
         {
             var user = User.Create(email, provider.GetRequiredService<IPasswordHasher>().HashPassword(Password), active);
+            user.Profile.FullName = "Test User";
+            user.Profile.PhoneNumber = NextPhone();
             user.Roles.Add(assigned!);
             await users.AddAsync(user);
             return user.Id;

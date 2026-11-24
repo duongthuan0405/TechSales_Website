@@ -1,3 +1,6 @@
+import { UnavailableFeature } from './components/UnavailableFeature';
+import { ShippingFeeManagementPage } from './pages/business/ShippingFeeManagementPage';
+
 import { Routes, Route, Navigate, useNavigate } from 'react-router';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LoginPage } from './pages/auth/LoginPage';
@@ -10,27 +13,15 @@ import { ProductCatalogPage } from './pages/customer/ProductCatalogPage';
 import { ProductDetailPage } from './pages/customer/ProductDetailPage';
 import { HomePage } from './pages/customer/HomePage';
 import { ShoppingCartPage } from './pages/customer/ShoppingCartPage';
-import { OrderHistoryPage } from './pages/customer/OrderHistoryPage';
 import { CheckoutPage } from './pages/customer/CheckoutPage';
-import { OrderSuccessPage } from './pages/customer/OrderSuccessPage';
-import { OrderDetailPage } from './pages/customer/OrderDetailPage';
-import { ReturnHistoryPage } from './pages/customer/ReturnHistoryPage';
 import { ProfilePage } from './pages/customer/ProfilePage';
-import { ChangePasswordPage } from './pages/customer/ChangePasswordPage';
+
 import { AddressBookPage } from './pages/customer/AddressBookPage';
-import { OrderManagementPage } from './pages/sales/OrderManagementPage';
-import { OrderManagementDetailPage } from './pages/sales/OrderManagementDetailPage';
-import { ReturnManagementPage } from './pages/sales/ReturnManagementPage';
-import { RepairManagementPage } from './pages/sales/RepairManagementPage';
-import { RepairRequestPage } from './pages/customer/RepairRequestPage';
-import { ReviewManagementPage } from './pages/sales/ReviewManagementPage';
 import { StaffProductDetailPage } from './pages/sales/StaffProductDetailPage';
 import { CustomerManagementPage } from './pages/business/CustomerManagementPage';
 import { StaffManagementPage } from './pages/business/StaffManagementPage';
-import { BusinessDashboardPage } from './pages/business/BusinessDashboardPage';
 import { ProductManagementPage } from './pages/business/ProductManagementPage';
-import { CategoryManagementPage } from './pages/business/CategoryManagementPage';
-import { ReportsPage } from './pages/business/ReportsPage';
+import { CatalogManagementPage } from './pages/business/CatalogManagementPage';
 import { VoucherManagementPage } from './pages/business/VoucherManagementPage';
 import { TechnicalDashboardPage } from './pages/technical/TechnicalDashboardPage';
 import { UserManagementPage } from './pages/technical/UserManagementPage';
@@ -38,7 +29,6 @@ import { SystemLogsPage } from './pages/technical/SystemLogsPage';
 import { Button } from './components/ui/button';
 import { Toaster } from 'sonner';
 import { Loader2 } from 'lucide-react';
-import { SalesDashboardPage } from './pages/sales/salesdashboardpage';
 
 function AppContent() {
   const { user, isLoading, logout } = useAuth();
@@ -66,7 +56,17 @@ function AppContent() {
         <Route path="/login" element={<Navigate to="/auth/login" replace />} />
         <Route path="/signup" element={<Navigate to="/auth/signup" replace />} />
         <Route path="/forgot-password" element={<Navigate to="/auth/forgot-password" replace />} />
-        <Route path="*" element={<Navigate to="/auth/login" replace />} />
+        <Route path="*" element={
+          <DashboardLayout role="Customer" userName="Khách" userRole="" onLogout={logout} guest>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/customer" element={<HomePage />} />
+              <Route path="/customer/products" element={<ProductCatalogPage />} />
+              <Route path="/customer/products/:id" element={<ProductDetailPage />} />
+              <Route path="*" element={<Navigate to="/auth/login" replace />} />
+            </Routes>
+          </DashboardLayout>
+        } />
       </Routes>
     );
   }
@@ -111,13 +111,13 @@ function AppContent() {
             <Route path="/customer/products/:id" element={<ProductDetailPage />} />
             <Route path="/customer/cart" element={<ShoppingCartPage />} />
             <Route path="/customer/checkout" element={<CheckoutPage />} />
-            <Route path="/customer/order-success" element={<OrderSuccessPage />} />
-            <Route path="/customer/orders" element={<OrderHistoryPage />} />
-            <Route path="/customer/orders/:id" element={<OrderDetailPage />} />
-            <Route path="/customer/returns" element={<ReturnHistoryPage />} />
-            <Route path="/customer/repairs" element={<RepairRequestPage />} />
+            <Route path="/customer/order-success" element={<UnavailableFeature title="Đặt hàng" />} />
+            <Route path="/customer/orders" element={<UnavailableFeature title="Quản lý đơn hàng" />} />
+            <Route path="/customer/orders/:id" element={<UnavailableFeature title="Chi tiết đơn hàng" />} />
+            <Route path="/customer/returns" element={<UnavailableFeature title="Yêu cầu hoàn trả" />} />
+            <Route path="/customer/repairs" element={<UnavailableFeature title="Sửa chữa" />} />
             <Route path="/customer/profile" element={<ProfilePage />} />
-            <Route path="/customer/change-password" element={<ChangePasswordPage />} />
+            <Route path="/customer/change-password" element={<Navigate to="/customer/profile" replace />} />
             <Route path="/customer/addresses" element={<AddressBookPage />} />
           </>
         )}
@@ -125,30 +125,37 @@ function AppContent() {
         {/* Sales Routes */}
         {user.role === 'Staff' && (
           <>
-            <Route path="/sales" element={<SalesDashboardPage />} />
-            <Route path="/sales/orders" element={<OrderManagementPage />} />
-            <Route path="/sales/orders/:id" element={<OrderManagementDetailPage />} />
-            <Route path="/sales/returns" element={<ReturnManagementPage />} />
-            <Route path="/sales/repairs" element={<RepairManagementPage />} />
-            <Route path="/sales/reviews" element={<ReviewManagementPage />} />
+            <Route path="/sales" element={<UnavailableFeature title="Tổng quan" />} />
+            <Route path="/sales/profile" element={<ProfilePage />} />
+            <Route path="/sales/change-password" element={<Navigate to="/sales/profile" replace />} />
+            <Route path="/sales/inventory" element={<Navigate to="/sales/products" replace />} />
+            <Route path="/sales/orders" element={<UnavailableFeature title="Quản lý đơn hàng" />} />
+            <Route path="/sales/orders/:id" element={<UnavailableFeature title="Chi tiết đơn hàng" />} />
+            <Route path="/sales/returns" element={<UnavailableFeature title="Quản lý hoàn trả" />} />
+            <Route path="/sales/repairs" element={<UnavailableFeature title="Quản lý sửa chữa" />} />
+            <Route path="/sales/reviews" element={<UnavailableFeature title="Quản lý đánh giá" />} />
             <Route path="/sales/products" element={<ProductManagementPage readOnly={true} />} />
             <Route path="/sales/products/:id" element={<StaffProductDetailPage />} />
+            <Route path="/sales/customers" element={<CustomerManagementPage />} />
           </>
         )}
 
         {/* Business Routes */}
         {user.role === 'Business Admin' && (
           <>
-            <Route path="/business" element={<BusinessDashboardPage />} />
-            <Route path="/business/products" element={<ProductManagementPage />} />
-            <Route path="/business/categories" element={<CategoryManagementPage />} />
+            <Route path="/business" element={<UnavailableFeature title="Tổng quan" />} />
+            <Route path="/business/products" element={<CatalogManagementPage />} />
+            <Route path="/business/shipping-fees" element={<ShippingFeeManagementPage />} />
+            <Route path="/business/inventory" element={<Navigate to="/business/products" replace />} />
+            <Route path="/business/categories" element={<Navigate to="/business/products?tab=categories" replace />} />
             <Route path="/business/products/:id" element={<StaffProductDetailPage />} />
             <Route path="/business/customers" element={<CustomerManagementPage />} />
             <Route path="/business/staff" element={<StaffManagementPage />} />
             <Route path="/business/vouchers" element={<VoucherManagementPage />} />
-            <Route path="/business/reports" element={<ReportsPage />} />
-            <Route path="/business/orders/:id" element={<OrderManagementDetailPage readOnly={true} />} />
+            <Route path="/business/reports" element={<UnavailableFeature title="Báo cáo" />} />
+            <Route path="/business/orders/:id" element={<UnavailableFeature title="Chi tiết đơn hàng" />} />
             <Route path="/business/profile" element={<ProfilePage />} />
+            <Route path="/business/change-password" element={<Navigate to="/business/profile" replace />} />
           </>
         )}
 
@@ -156,6 +163,13 @@ function AppContent() {
         {user.role === 'Technical Admin' && (
           <>
             <Route path="/technical" element={<TechnicalDashboardPage />} />
+            <Route path="/technical/profile" element={<ProfilePage />} />
+            <Route path="/technical/change-password" element={<Navigate to="/technical/profile" replace />} />
+            <Route path="/business/categories" element={<Navigate to="/business/products?tab=categories" replace />} />
+            <Route path="/business/products" element={<CatalogManagementPage />} />
+            <Route path="/business/shipping-fees" element={<ShippingFeeManagementPage />} />
+            <Route path="/business/inventory" element={<Navigate to="/business/products" replace />} />
+            <Route path="/business/products/:id" element={<StaffProductDetailPage />} />
             <Route path="/technical/users" element={<UserManagementPage />} />
             <Route path="/technical/logs" element={<SystemLogsPage />} />
           </>

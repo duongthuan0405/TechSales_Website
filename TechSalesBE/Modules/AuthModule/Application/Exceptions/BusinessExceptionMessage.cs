@@ -4,6 +4,7 @@ namespace AuthModule.Application.Exceptions;
 
 public static class BusinessExceptionMessage
 {
+    public const string PhoneAlreadyUsed = "Số điện thoại đã được sử dụng.";
     public const string AccessDenied = "Bạn không có quyền thực hiện thao tác này.";
     public const string AccountInactive = "Tài khoản chưa được kích hoạt hoặc đã bị vô hiệu hóa.";
     public const string AccountLocked = "Tài khoản đang bị khóa.";
