@@ -6,6 +6,8 @@ namespace InventoryModule.Application.Exceptions;
 
 internal static class BusinessExceptionMessage
 {
+    public const string InvalidUnitPage = "Trang phải lớn hơn 0, số dòng mỗi trang từ 1 đến 100.";
+    public const string InvalidUnitFilter = "Trạng thái thiết bị không hợp lệ.";
     public const string ProductNotFound = "Không tìm thấy một hoặc nhiều sản phẩm trong Catalog.";
     public const string InvalidProductId = DomainExceptionMessage.InvalidProductId;
     public static readonly string InvalidSerialNumber = DomainExceptionMessage.InvalidSerialNumber;
@@ -14,7 +16,7 @@ internal static class BusinessExceptionMessage
     public const string SerialNumberAlreadyExists = "One or more serial numbers are already registered for this product.";
     public const string StockNotFound = "No inventory record was found for this product.";
     public const string ProductUnitNotFound = "No product unit was found for this serial number.";
-    public const string InvalidManualStatus = "The status must be " + nameof(ProductUnitStatus.DAMAGED) + ".";
+    public const string InvalidManualStatus = "Trạng thái phải là DAMAGED (hỏng) hoặc IN_STOCK (trong kho).";
     public const string ImportFileRequired = "Upload a non-empty Excel workbook.";
     public const string InvalidImportFileType = "The import file must have the .xlsx extension.";
     public static readonly string ImportFileTooLarge =

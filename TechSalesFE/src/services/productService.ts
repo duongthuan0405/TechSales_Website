@@ -3,13 +3,19 @@ import api, { ApiError, apiAssetUrl } from '../api/apiClient';
 
 export interface ProductQueryParams {
   search?: string; categoryIds?: string; minPrice?: number; maxPrice?: number; brand?: string; brandId?: string;
-  sortBy?: 'price_asc' | 'price_desc' | 'rating' | 'newest'; limit?: number;
+  sortBy?: 'price_asc' | 'price_desc' | 'rating' | 'newest'; limit?: number; pageNumber?: number; pageSize?: number;
 }
 export interface ProductLookup { id: string; name: string; }
+export interface AdminProductQuery {
+  keyword?: string; categoryId?: string; brandId?: string; status?: ProductStatus;
+  pageNumber?: number; pageSize?: number; minPrice?: number; maxPrice?: number;
+  sortBy?: ProductQueryParams['sortBy'];
+}
 interface ProductRecord {
   id: string; name: string; description: string; price: number | null; status: ProductStatus;
   brandId: string; brandName?: string; categoryId: string; categoryName?: string;
   createdAt: string; updatedAt?: string;
+  rating?: number; reviewsCount?: number;
   inventory?: { quantity: number; reservedQuantity: number };
   images: { id: string; imageUrl: string; isPrimary: boolean }[];
 }
@@ -29,6 +35,7 @@ const mapProduct = (row: ProductRecord, lookups: { brands: ProductLookup[]; cate
   categoryName: row.categoryName ?? lookups.categories.find(category => category.id === row.categoryId)?.name,
   createdAt: row.createdAt, updatedAt: row.updatedAt,
   stock: row.inventory?.quantity,
+  rating: row.rating ?? 0, reviewsCount: row.reviewsCount ?? 0,
   imageUrl: apiAssetUrl(row.images.find(image => image.isPrimary)?.imageUrl ?? row.images[0]?.imageUrl),
   images: row.images.map(image => apiAssetUrl(image.imageUrl)!),
   imageDetails: row.images.map(image => ({ ...image, imageUrl: apiAssetUrl(image.imageUrl)! })),
@@ -53,24 +60,28 @@ const lookups = async () => {
 
 export const productService = {
   getLookups: lookups,
+  getProductPage: async (params: ProductQueryParams = {}) => {
+    const page = await api.get<ProductPage>(`/api/products?${query({
+      pageNumber: params.pageNumber ?? 1, pageSize: params.pageSize ?? 20,
+      keyword: params.search, categoryId: params.categoryIds, brandId: params.brandId,
+      minPrice: params.minPrice, maxPrice: params.maxPrice, sortBy: params.sortBy,
+    })}`);
+    return { ...page, items: page.items.map(row => mapProduct(row, page)) };
+  },
   getProducts: async (params?: ProductQueryParams): Promise<Product[]> => {
     let pageNumber = 1;
     let result: Product[] = [];
     while (true) {
-      const page = await api.get<ProductPage>(`/api/products?${query({ pageNumber, pageSize: 100, keyword: params?.search, categoryId: params?.categoryIds, brandId: params?.brandId })}`);
+      const page = await api.get<ProductPage>(`/api/products?${query({ pageNumber, pageSize: params?.limit ? Math.min(params.limit, 100) : 100, keyword: params?.search, categoryId: params?.categoryIds, brandId: params?.brandId,
+        minPrice: params?.minPrice, maxPrice: params?.maxPrice, sortBy: params?.sortBy })}`);
       result.push(...page.items.map(row => mapProduct(row, page)));
-      if (page.items.length === 0 || pageNumber * page.pageSize >= page.totalCount) break;
+      if (page.items.length === 0 || pageNumber * page.pageSize >= page.totalCount || (params?.limit && result.length >= params.limit)) break;
       pageNumber += 1;
     }
-    if (params?.brand && params.brand !== 'all') result = result.filter(product => product.brand === params.brand);
-    if (params?.minPrice !== undefined) result = result.filter(product => product.price >= params.minPrice!);
-    if (params?.maxPrice !== undefined) result = result.filter(product => product.price <= params.maxPrice!);
-    if (params?.sortBy === 'price_asc') result.sort((a, b) => a.price - b.price);
-    if (params?.sortBy === 'price_desc') result.sort((a, b) => b.price - a.price);
     if (params?.limit) result = result.slice(0, params.limit);
     return result;
   },
-  getAdminProducts: async (params?: { keyword?: string; categoryId?: string; brandId?: string; status?: ProductStatus; pageNumber?: number; pageSize?: number }) => {
+  getAdminProducts: async (params?: AdminProductQuery) => {
     const page = await api.get<ProductPage>(`/api/admin/products?${query(params || {})}`);
     return { ...page, items: page.items.map(row => mapProduct(row, page)) };
   },

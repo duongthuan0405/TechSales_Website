@@ -122,7 +122,8 @@ internal sealed class ProductTestApp : IAsyncDisposable
         References = references;
     }
 
-    public static async Task<ProductTestApp> CreateAsync(bool useDatabaseReferences = false, ProductInventoryFake? inventory = null)
+    public static async Task<ProductTestApp> CreateAsync(bool useDatabaseReferences = false, ProductInventoryFake? inventory = null,
+        ProductRatingsFake? ratings = null)
     {
         SqliteConnection connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
@@ -137,6 +138,7 @@ internal sealed class ProductTestApp : IAsyncDisposable
         });
         CatalogRegistration.RegisterModule(builder.Services, builder.Configuration);
         builder.Services.AddSingleton<IProductInventory>(inventory ?? new ProductInventoryFake());
+        builder.Services.AddSingleton<IProductRatings>(ratings ?? new ProductRatingsFake());
         TestProductReferenceData references = new TestProductReferenceData();
         if (!useDatabaseReferences)
         {

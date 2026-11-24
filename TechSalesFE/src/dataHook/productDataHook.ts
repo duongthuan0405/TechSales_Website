@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { productService, ProductQueryParams } from '../services/productService';
+import { productService, ProductQueryParams, AdminProductQuery } from '../services/productService';
 import { Product, ProductStatus } from '../models/ui_types/product';
 
 export const useGetProductLookups = () => useQuery({
@@ -20,7 +20,13 @@ export const useGetProducts = (params?: ProductQueryParams) => {
   });
 };
 
-export const useGetAdminProducts = (params?: { keyword?: string; categoryId?: string; brandId?: string; status?: ProductStatus; pageNumber?: number; pageSize?: number }, enabled = true) => {
+export const useGetProductPage = (params: ProductQueryParams, enabled = true) => useQuery({
+  queryKey: ['products', 'page', params],
+  queryFn: () => productService.getProductPage(params),
+  enabled,
+});
+
+export const useGetAdminProducts = (params?: AdminProductQuery, enabled = true) => {
   return useQuery({
     queryKey: ['admin-products', params],
     enabled,
@@ -96,6 +102,8 @@ export const useUpdateInventory = () => {
     mutationFn: ({ id, serialNumbers }: { id: string; serialNumbers: string[] }) =>
       productService.updateInventory(id, serialNumbers),
     onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['inventory-units'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-product-picker'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       queryClient.invalidateQueries({ queryKey: ['product', variables.id] });

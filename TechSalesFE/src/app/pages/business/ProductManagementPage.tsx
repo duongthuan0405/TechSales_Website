@@ -38,10 +38,12 @@ import {
 import { useNavigate } from "react-router";
 import { Product, ProductStatus } from "../../../models/ui_types/product";
 import { ProductForm } from "../../components/business/ProductForm";
-import { StockAdjustmentForm } from "../../components/business/StockAdjustmentForm";
-import { useUpdateInventory } from "../../../dataHook/productDataHook";
+import { ProductStockDialog } from '../../components/business/ProductStockDialog';
+import { StockImportDialog } from '../../components/business/StockImportDialog';
+
 import { toast } from "sonner";
 import { formatCurrency } from "../../../utils/format";
+import { ProductQueryParams } from '../../../services/productService';
 
 interface ProductManagementPageProps {
   readOnly?: boolean;
@@ -52,6 +54,13 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebouncedValue(searchTerm);
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [brandFilter, setBrandFilter] = useState('all');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+  const [sortBy, setSortBy] = useState<ProductQueryParams['sortBy']>('newest');
+  const debouncedMinPrice = useDebouncedValue(minPrice);
+  const debouncedMaxPrice = useDebouncedValue(maxPrice);
+  const filtersReady = searchTerm === debouncedSearch && minPrice === debouncedMinPrice && maxPrice === debouncedMaxPrice;
   const [statusFilter, setStatusFilter] = useState("all");
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -59,22 +68,26 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
   const { data: adminData, isLoading, isFetching, error: productsError } = useGetAdminProducts({
     pageNumber, pageSize, keyword: debouncedSearch || undefined,
     categoryId: categoryFilter === 'all' ? undefined : categoryFilter,
+    brandId: brandFilter === 'all' ? undefined : brandFilter,
+    minPrice: debouncedMinPrice === '' ? undefined : Number(debouncedMinPrice),
+    maxPrice: debouncedMaxPrice === '' ? undefined : Number(debouncedMaxPrice),
+    sortBy,
     status: statusFilter === 'all' ? undefined : statusFilter as ProductStatus,
-  }, searchTerm === debouncedSearch);
+  }, filtersReady);
   const products = adminData?.items || [];
   const createMutation = useCreateProduct();
   const updateMutation = useUpdateProduct();
   const toggleStatusMutation = useToggleProductStatus();
-  const updateInventoryMutation = useUpdateInventory();
+
 
   
   // Dialog states
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | undefined>(undefined);
-  const [isStockOpen, setIsStockOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [adjustingProduct, setAdjustingProduct] = useState<Product | undefined>(undefined);
 
-  const categories = [{ id: 'all', name: 'All Categories' }, ...(lookups?.categories || [])];
+  const categories = [{ id: 'all', name: 'Tất cả danh mục' }, ...(lookups?.categories || [])];
   const filteredProducts = products;
 
   const mapStockToVariant = (stock: number): "success" | "warning" | "danger" | "default" => {
@@ -84,9 +97,9 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
   };
 
   const getStockLabel = (stock: number) => {
-    if (stock === 0) return "Out of Stock";
-    if (stock < 20) return "Low Stock";
-    return "In Stock";
+    if (stock === 0) return "Hết hàng";
+    if (stock < 20) return "Sắp hết hàng";
+    return "Còn hàng";
   };
 
   const mapStatusToVariant = (status: ProductStatus): "success" | "secondary" | "outline" | "default" => {
@@ -141,59 +154,41 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
     });
   };
 
-  const handleAdjustStock = (product: Product, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setAdjustingProduct(product);
-    setIsStockOpen(true);
-  };
-
-  const onStockSubmit = (data: { serialNumbers: string[] }) => {
-    if (!adjustingProduct) return;
-    updateInventoryMutation.mutate(
-      { id: adjustingProduct.id, ...data },
-      {
-        onSuccess: () => {
-          toast.success("Stock adjusted successfully");
-          setIsStockOpen(false);
-        },
-        onError: (error) => toast.error(error.message),
-      }
-    );
-  };
-
   return (
     <div className="space-y-6">
       {productsError && <p role="alert" className="text-destructive">{productsError.message}</p>}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Product Management</h1>
-          <p className="text-muted-foreground">Manage your product catalog, inventory and status</p>
+          <h2 className="text-xl font-semibold">Sản phẩm</h2>
+          <p className="text-muted-foreground">Quản lý thông tin sản phẩm, tồn kho và trạng thái</p>
         </div>
+        <div className="flex flex-wrap gap-2">{!readOnly && <Button variant="outline" onClick={() => setIsImportOpen(true)}>Nhập kho cho nhiều sản phẩm</Button>}
         {!readOnly && (
           <Button onClick={handleCreate}>
             <Plus className="mr-2 h-4 w-4" />
-            Add Product
+            Thêm sản phẩm
           </Button>
         )}
+        </div>
       </div>
 
-      <div className="flex flex-col gap-4 sm:flex-row">
+      <div className="flex flex-col gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search products by name or brand..."
+            placeholder="Tìm sản phẩm theo tên hoặc hãng..."
             value={searchTerm}
             onChange={(e) => { setSearchTerm(e.target.value); setPageNumber(1); }}
-            className="pl-9"
+            className="h-11 w-full pl-9"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           <Select
             value={categoryFilter}
             onValueChange={(value) => { setCategoryFilter(value); setPageNumber(1); }}
           >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="All Categories" />
+            <SelectTrigger className="h-11 w-full min-w-0" aria-label="Danh mục">
+              <SelectValue placeholder="Tất cả danh mục" />
             </SelectTrigger>
             <SelectContent>
               {categories.map((cat) => (
@@ -204,53 +199,77 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
             </SelectContent>
           </Select>
 
+          <Select value={brandFilter} onValueChange={value => { setBrandFilter(value); setPageNumber(1); }}>
+            <SelectTrigger className="h-11 w-full min-w-0" aria-label="Hãng"><SelectValue placeholder="Tất cả hãng" /></SelectTrigger>
+            <SelectContent><SelectItem value="all">Tất cả hãng</SelectItem>
+              {lookups?.brands.map(brand => <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Input type="number" min={0} step={1} aria-label="Giá từ (VND)" placeholder="Giá từ (VND)" className="h-11 w-full min-w-0" value={minPrice}
+            onChange={event => { setMinPrice(event.target.value); setPageNumber(1); }} />
+          <Input type="number" min={0} step={1} aria-label="Giá đến (VND)" placeholder="Giá đến (VND)" className="h-11 w-full min-w-0" value={maxPrice}
+            onChange={event => { setMaxPrice(event.target.value); setPageNumber(1); }} />
+          <Select value={sortBy} onValueChange={value => { setSortBy(value as ProductQueryParams['sortBy']); setPageNumber(1); }}>
+            <SelectTrigger className="h-11 w-full min-w-0" aria-label="Sắp xếp sản phẩm"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Mới nhất</SelectItem>
+              <SelectItem value="price_asc">Giá: Thấp đến Cao</SelectItem>
+              <SelectItem value="price_desc">Giá: Cao đến Thấp</SelectItem>
+              <SelectItem value="rating">Đánh giá cao nhất</SelectItem>
+            </SelectContent>
+          </Select>
+
           <Select
             value={statusFilter}
             onValueChange={(value) => { setStatusFilter(value); setPageNumber(1); }}
           >
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="All Status" />
+            <SelectTrigger className="h-11 w-full min-w-0" aria-label="Trạng thái sản phẩm">
+              <SelectValue placeholder="Tất cả trạng thái" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value={ProductStatus.ACTIVE}>Active</SelectItem>
-              <SelectItem value={ProductStatus.DISCONTINUED}>Discontinued</SelectItem>
+              <SelectItem value="all">Tất cả trạng thái</SelectItem>
+              <SelectItem value={ProductStatus.ACTIVE}>Đang kinh doanh</SelectItem>
+              <SelectItem value={ProductStatus.DISCONTINUED}>Ngừng kinh doanh</SelectItem>
             </SelectContent>
           </Select>
+          <Button variant="outline" className="h-11 w-full sm:col-span-2 xl:col-span-3 xl:w-auto xl:justify-self-end" onClick={() => {
+            setSearchTerm(''); setCategoryFilter('all'); setBrandFilter('all'); setMinPrice(''); setMaxPrice('');
+            setSortBy('newest'); setStatusFilter('all'); setPageNumber(1);
+          }}>Xóa lọc</Button>
         </div>
       </div>
 
-      {isLoading ? (
+      {isLoading || !filtersReady ? (
         <div className="flex h-64 items-center justify-center">
           <div className="flex flex-col items-center gap-2">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-muted-foreground font-medium">Loading products...</p>
+            <p className="text-muted-foreground font-medium">Đang tải sản phẩm…</p>
           </div>
         </div>
       ) : filteredProducts.length === 0 ? (
         <Card className="flex h-64 flex-col items-center justify-center text-center">
           <PackageSearch className="h-12 w-12 text-muted-foreground mb-4" />
-          <p className="text-xl font-semibold">No products found</p>
-          <p className="text-muted-foreground">Try adjusting your filters or search term</p>
+          <p className="text-xl font-semibold">Không tìm thấy sản phẩm</p>
+          <p className="text-muted-foreground">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
         </Card>
       ) : (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg font-medium">
-              Products List ({adminData?.totalCount ?? 0})
+              Danh sách sản phẩm ({adminData?.totalCount ?? 0})
             </CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[300px]">Product</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Brand</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>Stock</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="w-[300px]">Sản phẩm</TableHead>
+                  <TableHead>Danh mục</TableHead>
+                  <TableHead>Hãng</TableHead>
+                  <TableHead>Giá</TableHead>
+                  <TableHead>Tồn kho</TableHead>
+                  <TableHead>Trạng thái</TableHead>
+                  <TableHead className="text-right">Thao tác</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -292,7 +311,7 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
                       </TableCell>
                       <TableCell>
                         {product.stock === undefined ? <span className="text-muted-foreground">—</span> : <div className="flex flex-col gap-1">
-                          <span className="text-sm font-medium">{product.stock} units</span>
+                          <span className="text-sm font-medium">{product.stock} thiết bị</span>
                           <Badge variant={stockVariant as any} className="w-fit text-[10px] px-1.5 py-0">
                             {getStockLabel(product.stock)}
                           </Badge>
@@ -300,7 +319,7 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
                       </TableCell>
                       <TableCell>
                         <Badge variant={mapStatusToVariant(product.status) as any}>
-                          {product.status}
+                          {product.status === ProductStatus.ACTIVE ? 'Đang kinh doanh' : 'Ngừng kinh doanh'}
                         </Badge>
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()} className="text-right">
@@ -313,9 +332,12 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
                               const basePath = readOnly ? '/sales' : '/business';
                               navigate(`${basePath}/products/${product.id}`);
                             }}
-                            title="View Details"
+                            title="Xem chi tiết"
                           >
                             <Eye className="h-4 w-4 text-primary" />
+                          </Button>
+                          <Button variant="outline" size="sm" aria-label={`Kho của ${product.name}`} onClick={event => { event.stopPropagation(); setAdjustingProduct(product); }}>
+                            <PackagePlus className="mr-1 h-4 w-4" />Kho
                           </Button>
                           {!readOnly && (
                             <>
@@ -326,18 +348,9 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
                                   e.stopPropagation();
                                   handleEdit(product);
                                 }}
-                                title="Edit Product"
+                                title="Sửa sản phẩm"
                               >
                                 <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                onClick={(e) => handleAdjustStock(product, e)}
-                                title="Adjust Stock"
-                                disabled={product.stock === undefined}
-                              >
-                                <PackagePlus className="h-4 w-4 text-orange-500" />
                               </Button>
                               {(
                                 <Button 
@@ -370,14 +383,14 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
 
       {/* Form Dialog */}
       <ListPagination pageNumber={pageNumber} pageSize={pageSize} totalCount={adminData?.totalCount ?? 0}
-        disabled={isFetching || searchTerm !== debouncedSearch} onPageChange={setPageNumber}
+        disabled={isFetching || !filtersReady || !!productsError} onPageChange={setPageNumber}
         onPageSizeChange={size => { setPageSize(size); setPageNumber(1); }} />
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{editingProduct ? "Edit Product" : "Add New Product"}</DialogTitle>
+            <DialogTitle>{editingProduct ? "Sửa sản phẩm" : "Thêm sản phẩm mới"}</DialogTitle>
             <DialogDescription>
-              Fill in the details below to {editingProduct ? "update the" : "create a new"} product.
+              Nhập thông tin để {editingProduct ? "cập nhật" : "thêm mới"} sản phẩm.
             </DialogDescription>
           </DialogHeader>
           <ProductForm 
@@ -389,24 +402,8 @@ export function ProductManagementPage({ readOnly = false }: ProductManagementPag
         </DialogContent>
       </Dialog>
 
-      {/* Stock Adjustment Dialog */}
-      <Dialog open={isStockOpen} onOpenChange={setIsStockOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Stock Adjustment</DialogTitle>
-            <DialogDescription>
-              Modify inventory for <span className="font-bold text-foreground">{adjustingProduct?.name}</span>.
-            </DialogDescription>
-          </DialogHeader>
-          {adjustingProduct && (
-            <StockAdjustmentForm 
-              product={adjustingProduct} 
-              onSubmit={onStockSubmit}
-              isLoading={updateInventoryMutation.isPending}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      {adjustingProduct && <ProductStockDialog key={adjustingProduct.id} product={adjustingProduct} onClose={() => setAdjustingProduct(undefined)} />}
+      {!readOnly && isImportOpen && <StockImportDialog onClose={() => setIsImportOpen(false)} />}
     </div>
   );
 }

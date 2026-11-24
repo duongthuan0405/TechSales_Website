@@ -1,187 +1,113 @@
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "../ui/form";
-import { Input } from "../ui/input";
-import { Button } from "../ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
-import { User, UserRole, UserStatus } from "../../../models/ui_types/user";
-import { Loader2 } from "lucide-react";
+﻿import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Loader2, Mail, Phone, CalendarDays, Fingerprint, ShieldCheck } from 'lucide-react';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
+import { Input } from '../ui/input';
+import { Button } from '../ui/button';
+import { Checkbox } from '../ui/checkbox';
+import { Badge } from '../ui/badge';
+import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
+import { User, UserRole, UserStatus } from '../../../models/ui_types/user';
+import { formatDate } from '../../../utils/format';
 
+const roleNames: Record<UserRole, string> = {
+  Staff: 'Nhân viên bán hàng', Customer: 'Khách hàng',
+  'Business Admin': 'Quản trị kinh doanh', 'Technical Admin': 'Quản trị kỹ thuật',
+};
+const statusNames: Record<UserStatus, string> = {
+  ACTIVE: 'Đang hoạt động', BLOCKED: 'Đã khóa', PENDING: 'Chờ xác minh', INACTIVE: 'Ngừng hoạt động',
+};
+const statusColors: Record<UserStatus, string> = {
+  ACTIVE: 'border-emerald-200 bg-emerald-500/10 text-emerald-700',
+  BLOCKED: 'border-amber-200 bg-amber-500/10 text-amber-700',
+  PENDING: 'border-blue-200 bg-blue-500/10 text-blue-700',
+  INACTIVE: 'border-slate-200 bg-slate-500/10 text-slate-600',
+};
+const roleSchema = z.enum(['Staff', 'Customer', 'Business Admin', 'Technical Admin']);
 const userSchema = z.object({
-  fullName: z.string(),
-  email: z.string().email("Invalid email address"),
-  phone: z.string(),
-  role: z.enum(['Staff', 'Customer', 'Business Admin', 'Technical Admin']),
-  status: z.nativeEnum(UserStatus),
-  password: z.string().min(6, "Password must be at least 6 characters").optional(),
+  fullName: z.string(), phone: z.string(), status: z.nativeEnum(UserStatus),
+  email: z.string().trim().email('Địa chỉ email không hợp lệ.'),
+  roles: z.array(roleSchema).min(1, 'Chọn ít nhất một vai trò.').max(4),
+  password: z.string().optional(),
 });
-
 type UserFormValues = z.infer<typeof userSchema>;
-
 interface UserFormProps {
   initialData?: User;
-  onSubmit: (data: UserFormValues) => void;
+  onSubmit: (data: UserFormValues & { role: UserRole }) => void;
   isLoading?: boolean;
   forcedRole?: UserRole;
   currentUserRole?: UserRole;
 }
 
 export function UserForm({ initialData, onSubmit, isLoading, forcedRole, currentUserRole }: UserFormProps) {
+  const schema = initialData ? userSchema : userSchema.extend({
+    password: z.string().min(8, 'Mật khẩu phải có ít nhất 8 ký tự.').max(256, 'Mật khẩu quá dài.'),
+  });
   const form = useForm<UserFormValues>({
-    resolver: zodResolver(userSchema),
+    resolver: zodResolver(schema),
     defaultValues: {
-      fullName: initialData?.fullName || "",
-      email: initialData?.email || "",
-      phone: initialData?.phone || "",
-      role: forcedRole || initialData?.role || 'Staff',
-      status: initialData?.status || UserStatus.ACTIVE,
-      password: "TemporaryPassword123!",
+      fullName: initialData?.fullName || '', phone: initialData?.phone || '',
+      email: initialData?.email || '', status: initialData?.status || UserStatus.ACTIVE,
+      roles: forcedRole ? [forcedRole] : initialData?.roles?.length ? [...initialData.roles] : [initialData?.role || 'Staff'],
+      password: '',
     },
   });
-
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="fullName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Full Name</FormLabel>
-              <FormControl>
-                <Input placeholder="Chủ tài khoản tự cập nhật hồ sơ" {...field} disabled />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email Address</FormLabel>
-                <FormControl>
-                  <Input placeholder="john@example.com" {...field}  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="phone"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Phone Number</FormLabel>
-                <FormControl>
-                  <Input placeholder="Chủ tài khoản tự cập nhật hồ sơ" {...field} disabled />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        {!initialData && (
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Temporary Password</FormLabel>
-                <FormControl>
-                  <Input type="text" placeholder="TemporaryPassword123!" {...field} />
-                </FormControl>
-                <p className="text-[10px] text-muted-foreground italic">
-                  Give this password to the new staff member so they can sign in.
-                </p>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
-
-        <div className="grid grid-cols-2 gap-4">
-          {!forcedRole && <FormField
-            control={form.control}
-            name="role"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Role</FormLabel>
-                <Select 
-                  onValueChange={field.onChange} 
-                  defaultValue={field.value}
-                  disabled={!!forcedRole}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select role" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="Staff">Sales Staff</SelectItem>
-                    <SelectItem value="Customer">Customer</SelectItem>
-                    {currentUserRole === 'Technical Admin' && (
-                      <>
-                        <SelectItem value="Business Admin">Business Admin</SelectItem>
-                        <SelectItem value="Technical Admin">Technical Admin</SelectItem>
-                      </>
-                    )}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />}
-
-          <FormField
-            control={form.control}
-            name="status"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Status (dùng nút khóa/mở khóa trong danh sách)</FormLabel>
-                <Select disabled onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={UserStatus.ACTIVE}>Active</SelectItem>
-                    <SelectItem value={UserStatus.BLOCKED}>Blocked</SelectItem>
-                    <SelectItem value={UserStatus.PENDING}>Pending</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="flex justify-end gap-2 pt-4">
-          <Button type="submit" disabled={isLoading} className="w-full">
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {initialData ? "Update Account" : "Create Account"}
-          </Button>
-        </div>
-      </form>
-    </Form>
-  );
+  const selectedRoles = form.watch('roles');
+  const availableRoles = (Object.keys(roleNames) as UserRole[]).filter(role =>
+    currentUserRole === 'Technical Admin' || role === 'Staff' || role === 'Customer');
+  return <Form {...form}>
+    <form onSubmit={form.handleSubmit(data => onSubmit({ ...data, role: data.roles[0] }))} className="space-y-5">
+      <fieldset disabled={isLoading} className="min-w-0 space-y-5">
+        {initialData && <>
+          <div className="flex flex-wrap items-center gap-4 rounded-xl border border-primary/10 bg-primary/5 p-5">
+            <Avatar className="size-20 border-4 border-background shadow-sm">
+              <AvatarImage src={initialData.avatarUrl} alt={initialData.fullName || initialData.email} className="object-cover" />
+              <AvatarFallback className="bg-primary/10 font-semibold text-primary">{(initialData.fullName.trim() || initialData.email).split(/\s+/).slice(-2).map(word => word[0]).join('').toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1 space-y-2">
+              <h2 className="break-words text-xl font-bold">{initialData.fullName || 'Chưa cập nhật họ tên'}</h2>
+              <div className="flex flex-wrap gap-2">
+                {selectedRoles.map(role => <Badge key={role} variant="outline" className="gap-1 bg-background"><ShieldCheck className="size-3.5 text-primary" />{roleNames[role]}</Badge>)}
+                <Badge variant="outline" className={`gap-1.5 font-medium ${statusColors[initialData.status]}`}><span className="size-1.5 rounded-full bg-current" />{statusNames[initialData.status]}</Badge>
+              </div>
+            </div>
+          </div>
+          <dl className="grid gap-3 sm:grid-cols-2">
+            {[
+              { label: 'Số điện thoại', value: initialData.phone || 'Chưa cập nhật', Icon: Phone },
+              { label: 'Ngày sinh', value: initialData.dateOfBirth ? formatDate(initialData.dateOfBirth) : 'Chưa cập nhật', Icon: CalendarDays },
+              { label: 'Ngày tham gia', value: formatDate(initialData.createdAt), Icon: CalendarDays },
+              { label: 'Mã tài khoản', value: initialData.id, Icon: Fingerprint },
+            ].map(({ label, value, Icon }) => <div key={label} className="min-w-0 rounded-xl border bg-muted/20 p-4">
+              <dt className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground"><Icon className="size-4 text-primary/70" />{label}</dt>
+              <dd className="break-words text-sm font-semibold">{value}</dd>
+            </div>)}
+          </dl>
+        </>}
+        <FormField control={form.control} name="email" render={({ field }) => <FormItem>
+          <FormLabel className="flex items-center gap-2"><Mail className="size-4 text-primary" />Địa chỉ email</FormLabel>
+          <FormControl><Input type="email" placeholder="email@example.com" {...field} disabled={isLoading} /></FormControl><FormMessage />
+        </FormItem>} />
+        {!initialData && <FormField control={form.control} name="password" render={({ field }) => <FormItem>
+          <FormLabel>Mật khẩu tạm thời</FormLabel><FormControl><Input type="password" autoComplete="new-password" {...field} disabled={isLoading} /></FormControl>
+          <p className="text-xs text-muted-foreground">Cung cấp mật khẩu này cho chủ tài khoản để đăng nhập.</p><FormMessage />
+        </FormItem>} />}
+        <FormField control={form.control} name="roles" render={({ field }) => <FormItem>
+          <FormLabel>Vai trò</FormLabel><p className="text-xs text-muted-foreground">Có thể chọn nhiều vai trò cho một tài khoản.</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {availableRoles.map(role => <label key={role} className={`flex cursor-pointer items-center gap-3 rounded-xl border p-4 text-sm font-medium ${field.value.includes(role) ? 'border-primary/40 bg-primary/5' : 'bg-muted/20'}`}>
+              <Checkbox checked={field.value.includes(role)} disabled={isLoading || !!forcedRole}
+                onCheckedChange={checked => field.onChange(checked === true ? [...new Set([...field.value, role])] : field.value.filter(item => item !== role))} />
+              {roleNames[role]}
+            </label>)}
+          </div><FormMessage />
+        </FormItem>} />
+        {initialData && <p className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">Hồ sơ cá nhân do chủ tài khoản cập nhật. Trạng thái thay đổi qua xác minh email, khóa, mở khóa hoặc ngừng hoạt động.</p>}
+      </fieldset>
+      <div className="flex justify-end border-t pt-4"><Button type="submit" disabled={isLoading}>
+        {isLoading && <Loader2 className="mr-2 size-4 animate-spin" />}{initialData ? 'Lưu thay đổi' : 'Tạo tài khoản'}
+      </Button></div>
+    </form>
+  </Form>;
 }

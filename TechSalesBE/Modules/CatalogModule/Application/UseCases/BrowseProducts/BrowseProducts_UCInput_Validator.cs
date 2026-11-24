@@ -9,6 +9,10 @@ internal sealed class BrowseProducts_UCInput_Validator : AbstractValidator<Brows
 {
     public BrowseProducts_UCInput_Validator()
     {
+        RuleFor(input => input).Must(input => ProductBrowseRules.ValidPriceRange(input.MinPrice, input.MaxPrice))
+            .WithMessage(BusinessExceptionMessage.InvalidPriceRange);
+        RuleFor(input => input.SortBy).Must(ProductBrowseRules.ValidSort)
+            .WithMessage(BusinessExceptionMessage.InvalidProductSort);
         RuleFor(input => input.PageNumber).InclusiveBetween(1, ProductPagination.MaximumPageNumber)
             .WithMessage(BusinessExceptionMessage.PaginationInvalid);
         RuleFor(input => input.PageSize).InclusiveBetween(1, ProductPagination.MaximumPageSize)

@@ -25,7 +25,7 @@ public sealed partial class InventoryHttpTests
     public async Task AcceptsTheDamageTargetWithoutCaseSensitivity()
     {
         var id = Guid.NewGuid();
-        Ok(await Receive(id, ["D"], _app.Staff), "Stock received.");
+        Ok(await Receive(id, ["D"], _app.BusinessAdmin), "Stock received.");
         var response = await Damage(id, "D", "damaged", _app.TechnicalAdmin);
         Ok(response, "Product unit status updated.");
         Assert.Equal("DAMAGED", response.Data.GetProperty("status").GetString());
@@ -36,8 +36,8 @@ public sealed partial class InventoryHttpTests
     public async Task RejectsUnsupportedOrMissingTargets()
     {
         var id = Guid.NewGuid();
-        Ok(await Receive(id, ["D"], _app.Staff), "Stock received.");
-        foreach (var status in new string?[] { "IN_STOCK", "RESERVED", "SOLD", " DAMAGED ", "", null })
+        Ok(await Receive(id, ["D"], _app.BusinessAdmin), "Stock received.");
+        foreach (var status in new string?[] { "RESERVED", "SOLD", " DAMAGED ", "", null })
         {
             Error(await Damage(id, "D", status, _app.Staff), 400, "BAD_REQUEST", "Status");
         }
@@ -49,7 +49,7 @@ public sealed partial class InventoryHttpTests
     public async Task RejectsInvalidSerials()
     {
         var id = Guid.NewGuid();
-        Ok(await Receive(id, ["D"], _app.Staff), "Stock received.");
+        Ok(await Receive(id, ["D"], _app.BusinessAdmin), "Stock received.");
         foreach (var serial in new string?[] { null, "", " ", "A\0", Repeat("😀", 101) })
         {
             Error(await Damage(id, serial, "DAMAGED", _app.Staff), 400, "BAD_REQUEST", "SerialNumber");
@@ -69,7 +69,7 @@ public sealed partial class InventoryHttpTests
     public async Task MatchesTheProductIdAndSerialTogether()
     {
         var one = Guid.NewGuid();
-        Ok(await Receive(one, ["R1", "R2"], _app.Staff), "Stock received.");
+        Ok(await Receive(one, ["R1", "R2"], _app.BusinessAdmin), "Stock received.");
         var id = Guid.NewGuid();
         await SeedStock(id, 4, 0);
         Error(await Damage(id, "R1", "DAMAGED", _app.Staff), 404, "NOT_FOUND", message: "No product unit was found for this serial number.");
@@ -139,7 +139,7 @@ public sealed partial class InventoryHttpTests
     public async Task RejectsUnauthorizedAndForbiddenStatusChanges()
     {
         var one = Guid.NewGuid();
-        Ok(await Receive(one, ["R1", "R2"], _app.Staff), "Stock received.");
+        Ok(await Receive(one, ["R1", "R2"], _app.BusinessAdmin), "Stock received.");
         await AssertRestrictedAsync(credential => Damage(one, "R1", "DAMAGED", credential));
         Assert.Equal("IN_STOCK", await Status(one, "R1"));
         Assert.Equal((2, (int?)0), await Stock(one));
@@ -149,7 +149,7 @@ public sealed partial class InventoryHttpTests
     public async Task HandlesInvalidRoutesAndRequestBodies()
     {
         var one = Guid.NewGuid();
-        Ok(await Receive(one, ["R1", "R2"], _app.Staff), "Stock received.");
+        Ok(await Receive(one, ["R1", "R2"], _app.BusinessAdmin), "Stock received.");
         Error(await Damage(Guid.Empty, "D", "DAMAGED", _app.Staff), 400, "BAD_REQUEST", "ProductId");
         Assert.Equal(404, (await _app.SendAsync(HttpMethod.Patch, "/api/inventory/not-a-uuid/units/status", _app.Staff, new { serialNumber = "D", status = "DAMAGED" })).Code);
         Error(await _app.SendAsync(HttpMethod.Patch, DamagePath(one), _app.Staff, new StringContent("{", Encoding.UTF8, "application/json")), 400, "BAD_REQUEST");

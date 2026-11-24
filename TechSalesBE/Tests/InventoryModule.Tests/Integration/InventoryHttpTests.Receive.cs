@@ -9,7 +9,7 @@ public sealed partial class InventoryHttpTests
     public async Task CreatesStockAndRegistersOneUnitPerSerial()
     {
         var one = Guid.NewGuid();
-        var response = await Receive(one, ["R1", "R2"], _app.Staff);
+        var response = await Receive(one, ["R1", "R2"], _app.BusinessAdmin);
         Ok(response, "Stock received.");
         Assert.Equal(one, response.Data.GetProperty("productId").GetGuid());
         Assert.Equal(2, response.Data.GetProperty("receivedQuantity").GetInt32());
@@ -28,7 +28,7 @@ public sealed partial class InventoryHttpTests
         {
             Guid id = Guid.NewGuid();
             await SeedStock(id, 10, reserved);
-            Ok(await Receive(id, ["R1", "R2"], _app.Staff), "Stock received.");
+            Ok(await Receive(id, ["R1", "R2"], _app.BusinessAdmin), "Stock received.");
             Assert.Equal((12, reserved), await Stock(id));
         }
     }
@@ -38,7 +38,7 @@ public sealed partial class InventoryHttpTests
     {
         var two = Guid.NewGuid();
         var one = Guid.NewGuid();
-        Ok(await Receive(one, ["R1", "R2"], _app.Staff), "Stock received.");
+        Ok(await Receive(one, ["R1", "R2"], _app.BusinessAdmin), "Stock received.");
         Ok(await Receive(two, ["R1"], _app.BusinessAdmin), "Stock received.");
         Assert.Equal(2, await UnitCount(one));
         Assert.Equal("IN_STOCK", await Status(one, "R1"));
@@ -51,7 +51,7 @@ public sealed partial class InventoryHttpTests
         var none = Guid.NewGuid();
         foreach (object body in new object[] { new { }, new { serialNumbers = (string[]?)null }, new { serialNumbers = Array.Empty<string>() } })
         {
-            Error(await _app.SendAsync(HttpMethod.Post, ReceivePath(none), _app.Staff, body), 400, "BAD_REQUEST", "SerialNumbers");
+            Error(await _app.SendAsync(HttpMethod.Post, ReceivePath(none), _app.BusinessAdmin, body), 400, "BAD_REQUEST", "SerialNumbers");
         }
         Assert.True(await Stock(none) == null, "invalid lists write no stock");
     }
@@ -62,10 +62,10 @@ public sealed partial class InventoryHttpTests
         var none = Guid.NewGuid();
         foreach (string? invalid in new string?[] { null, "", "  ", "ABC\0", Repeat("😀", 101) })
         {
-            Error(await Receive(none, [invalid], _app.Staff), 400, "BAD_REQUEST", "SerialNumbers[0]");
+            Error(await Receive(none, [invalid], _app.BusinessAdmin), 400, "BAD_REQUEST", "SerialNumbers[0]");
         }
         var edge = Guid.NewGuid();
-        Ok(await Receive(edge, [Repeat("😀", 100), "  MiXeD  "], _app.Staff), "Stock received.");
+        Ok(await Receive(edge, [Repeat("😀", 100), "  MiXeD  "], _app.BusinessAdmin), "Stock received.");
         Assert.Equal("IN_STOCK", await Status(edge, "  MiXeD  "));
     }
 
@@ -73,26 +73,26 @@ public sealed partial class InventoryHttpTests
     public async Task UsesOrdinalComparisonToFindDuplicateSerials()
     {
         var none = Guid.NewGuid();
-        Error(await Receive(none, ["repeat", "repeat"], _app.Staff), 400, "BAD_REQUEST", "SerialNumbers");
+        Error(await Receive(none, ["repeat", "repeat"], _app.BusinessAdmin), 400, "BAD_REQUEST", "SerialNumbers");
         Assert.True(await Stock(none) == null, "rejection before write");
         var edge = Guid.NewGuid();
-        Ok(await Receive(edge, ["MiXeD", "mixed"], _app.Staff), "Stock received.");
+        Ok(await Receive(edge, ["MiXeD", "mixed"], _app.BusinessAdmin), "Stock received.");
         Assert.Equal(2, await UnitCount(edge));
     }
 
     [InventoryPostgresFact(DisplayName = "INV-REC-07 DistinguishesMalformedAndEmptyProductIds")]
     public async Task DistinguishesMalformedAndEmptyProductIds()
     {
-        Error(await Receive(Guid.Empty, ["R"], _app.Staff), 400, "BAD_REQUEST", "ProductId");
-        Assert.Equal(404, (await _app.SendAsync(HttpMethod.Post, "/api/inventory/not-a-uuid/receive", _app.Staff, new { serialNumbers = new[] { "R" } })).Code);
+        Error(await Receive(Guid.Empty, ["R"], _app.BusinessAdmin), 400, "BAD_REQUEST", "ProductId");
+        Assert.Equal(404, (await _app.SendAsync(HttpMethod.Post, "/api/inventory/not-a-uuid/receive", _app.BusinessAdmin, new { serialNumbers = new[] { "R" } })).Code);
     }
 
     [InventoryPostgresFact(DisplayName = "INV-REC-08 RollsBackTheWholeBatchWhenOneSerialExists")]
     public async Task RollsBackTheWholeBatchWhenOneSerialExists()
     {
         var one = Guid.NewGuid();
-        Ok(await Receive(one, ["R1", "R2"], _app.Staff), "Stock received.");
-        Error(await Receive(one, ["R-NEW", "R1"], _app.Staff), 409, "CONFLICT");
+        Ok(await Receive(one, ["R1", "R2"], _app.BusinessAdmin), "Stock received.");
+        Error(await Receive(one, ["R-NEW", "R1"], _app.BusinessAdmin), 409, "CONFLICT");
         Assert.Equal((2, (int?)0), await Stock(one));
         Assert.True(await Status(one, "R-NEW") == null, "new serial rolled back");
     }
@@ -101,8 +101,8 @@ public sealed partial class InventoryHttpTests
     public async Task RepeatingAReceiptLeavesStockUnchanged()
     {
         var one = Guid.NewGuid();
-        Ok(await Receive(one, ["R1", "R2"], _app.Staff), "Stock received.");
-        Error(await Receive(one, ["R1", "R2"], _app.Staff), 409, "CONFLICT");
+        Ok(await Receive(one, ["R1", "R2"], _app.BusinessAdmin), "Stock received.");
+        Error(await Receive(one, ["R1", "R2"], _app.BusinessAdmin), 409, "CONFLICT");
         Assert.Equal((2, (int?)0), await Stock(one));
         Assert.Equal(2, await UnitCount(one));
     }
@@ -115,8 +115,8 @@ public sealed partial class InventoryHttpTests
         await using var db = await _app.OpenInventoryAsync();
         await using var blocker = await db.BeginTransactionAsync();
         await InventoryTestApp.ExecuteAsync(db, """SELECT 1 FROM inventory."Invetory" WHERE "ProductId"=$1 FOR UPDATE""", [id], blocker);
-        var first = Receive(id, ["A", "B"], _app.Staff);
-        var second = Receive(id, ["C", "D", "E"], _app.Staff);
+        var first = Receive(id, ["A", "B"], _app.BusinessAdmin);
+        var second = Receive(id, ["C", "D", "E"], _app.BusinessAdmin);
         await _app.WaitForLockAsync();
         await blocker.CommitAsync();
         foreach (var response in await Task.WhenAll(first, second))
@@ -132,7 +132,7 @@ public sealed partial class InventoryHttpTests
     {
         var id = Guid.NewGuid();
         await SeedStock(id, int.MaxValue, 0);
-        Error(await Receive(id, ["R"], _app.Staff), 422, "INVENTORY.STOCK_QUANTITY_LIMIT_EXCEEDED");
+        Error(await Receive(id, ["R"], _app.BusinessAdmin), 422, "INVENTORY.STOCK_QUANTITY_LIMIT_EXCEEDED");
         Assert.Equal((int.MaxValue, (int?)0), await Stock(id));
         Assert.Equal(0, await UnitCount(id));
     }
@@ -149,8 +149,8 @@ public sealed partial class InventoryHttpTests
     public async Task RejectsInvalidJsonAndUnsupportedMediaTypes()
     {
         var none = Guid.NewGuid();
-        Error(await _app.SendAsync(HttpMethod.Post, ReceivePath(none), _app.Staff, new StringContent("{", Encoding.UTF8, "application/json")), 400, "BAD_REQUEST");
-        Assert.Equal(415, (await _app.SendAsync(HttpMethod.Post, ReceivePath(none), _app.Staff, new StringContent("plain", Encoding.UTF8, "text/plain"))).Code);
+        Error(await _app.SendAsync(HttpMethod.Post, ReceivePath(none), _app.BusinessAdmin, new StringContent("{", Encoding.UTF8, "application/json")), 400, "BAD_REQUEST");
+        Assert.Equal(415, (await _app.SendAsync(HttpMethod.Post, ReceivePath(none), _app.BusinessAdmin, new StringContent("plain", Encoding.UTF8, "text/plain"))).Code);
         Assert.True(await Stock(none) == null, "invalid HTTP body no writes");
     }
 
@@ -159,7 +159,7 @@ public sealed partial class InventoryHttpTests
     {
         var id = Guid.NewGuid();
         await SeedStock(id, -1, 0);
-        Error(await Receive(id, ["R"], _app.Staff), 422, "INVENTORY.INVALID_STOCK_QUANTITY");
+        Error(await Receive(id, ["R"], _app.BusinessAdmin), 422, "INVENTORY.INVALID_STOCK_QUANTITY");
         Assert.Equal((-1, (int?)0), await Stock(id));
         Assert.Equal(0, await UnitCount(id));
     }
@@ -169,7 +169,7 @@ public sealed partial class InventoryHttpTests
     {
         var id = Guid.NewGuid();
         await SeedStock(id, int.MaxValue - 1, 0);
-        Ok(await Receive(id, ["EDGE"], _app.Staff), "Stock received.");
+        Ok(await Receive(id, ["EDGE"], _app.BusinessAdmin), "Stock received.");
         Assert.Equal((int.MaxValue, (int?)0), await Stock(id));
         Assert.Equal(1, await UnitCount(id));
     }
@@ -179,7 +179,7 @@ public sealed partial class InventoryHttpTests
     {
         var id = Guid.NewGuid();
         await SeedUnit(id, "EXISTS", "IN_STOCK");
-        Error(await Receive(id, ["EXISTS", "NOT-WRITTEN"], _app.Staff), 409, "CONFLICT");
+        Error(await Receive(id, ["EXISTS", "NOT-WRITTEN"], _app.BusinessAdmin), 409, "CONFLICT");
         Assert.True(await Stock(id) == null, "new stock rolled back on conflict");
         Assert.Equal(1, await UnitCount(id));
         Assert.True(await Status(id, "NOT-WRITTEN") == null, "new serial rolled back");

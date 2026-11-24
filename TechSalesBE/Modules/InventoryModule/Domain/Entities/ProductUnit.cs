@@ -41,6 +41,12 @@ internal sealed class ProductUnit
         ChangeStatus(ProductUnitStatus.DAMAGED);
     }
 
+    public void RestoreToStock()
+    {
+        ProductUnitRules.EnsureManualRestoration(Status);
+        ChangeStatus(ProductUnitStatus.IN_STOCK);
+    }
+
     private void ChangeStatus(ProductUnitStatus targetStatus)
     {
         ProductUnitRules.EnsureTransition(Status, targetStatus);

@@ -140,7 +140,7 @@ export function SystemLogsPage() {
                           onClick={() => setSelectedLog(log)}
                         >
                           <Eye className="h-4 w-4 mr-1 text-primary" />
-                          Inspect
+                          Xem chi tiết
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -162,7 +162,7 @@ export function SystemLogsPage() {
                     disabled={page === 1}
                   >
                     <ArrowLeft className="h-4 w-4 mr-1" />
-                    Previous
+                    Trước
                   </Button>
                   <Button
                     variant="outline"
@@ -170,7 +170,7 @@ export function SystemLogsPage() {
                     onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                     disabled={page >= totalPages}
                   >
-                    Next
+                    Sau
                     <ArrowRight className="h-4 w-4 ml-1" />
                   </Button>
                 </div>
@@ -249,7 +249,7 @@ export function SystemLogsPage() {
           )}
 
           <DialogFooter>
-            <Button onClick={() => setSelectedLog(null)}>Close Inspection</Button>
+            <Button onClick={() => setSelectedLog(null)}>Đóng chi tiết</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

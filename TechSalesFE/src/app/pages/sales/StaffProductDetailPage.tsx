@@ -1,3 +1,4 @@
+import { ProductImageGallery } from '../../components/ProductImageGallery';
 import { useState } from 'react';
 import { formatCurrency } from '../../../utils/format';
 import { ProductStatus } from '../../../models/ui_types/product';
@@ -40,7 +41,7 @@ export function StaffProductDetailPage() {
   const navigate = useNavigate();
   
   const { data: product, isLoading: isProductLoading, error, refetch } = useGetProduct(id || '');
-  const { data: reviewData, isLoading: isReviewsLoading } = useGetProductReviews(id || '');
+  const { data: reviewData, isLoading: isReviewsLoading, error: reviewError } = useGetProductReviews(id || '');
   const reviews = reviewData?.reviews || [];
   const { mutate: moderateReview } = useModerateReview();
   const { mutate: replyToReview } = useReplyToReview();
@@ -99,20 +100,12 @@ export function StaffProductDetailPage() {
         onClick={() => navigate(-1)}
       >
         <ChevronLeft className="mr-1 h-4 w-4" />
-        Return to Catalog
+        Quay lại danh sách sản phẩm
       </Button>
 
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 items-start">
         {/* Product Images */}
-        <div className="space-y-4">
-          <div className="aspect-square overflow-hidden rounded-2xl border border-border bg-card p-10">
-            <img 
-              src={product.imageUrl || ''} 
-              alt={product.name} 
-              className="h-full w-full object-contain grayscale opacity-90 transition-all duration-500 hover:grayscale-0 hover:opacity-100"
-            />
-          </div>
-        </div>
+        <ProductImageGallery key={product.id} product={product} />
 
         {/* Product Info */}
         <div className="space-y-6">
@@ -205,7 +198,7 @@ export function StaffProductDetailPage() {
 
             <div className="flex-1 space-y-6">
               <h3 className="text-xl font-bold uppercase tracking-tight text-foreground">Customer Sentiment Feed</h3>
-              {isReviewsLoading ? (
+              {reviewError ? <p role="status" className="text-sm text-muted-foreground">{reviewError.message}</p> : isReviewsLoading ? (
                 <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
               ) : reviews.length === 0 ? (
                 <div className="py-12 text-center text-muted-foreground font-bold uppercase tracking-widest bg-muted/20 rounded-2xl border border-dashed border-border">
@@ -273,10 +266,10 @@ export function StaffProductDetailPage() {
                             />
                             <div className="flex gap-2">
                               <Button size="sm" className="h-8 px-4 rounded-lg text-[9px] font-bold uppercase tracking-widest" onClick={() => handleReply(rev.id)}>
-                                Send Reply
+                                Gửi phản hồi
                               </Button>
                               <Button variant="ghost" size="sm" className="h-8 px-4 rounded-lg text-[9px] font-bold uppercase tracking-widest" onClick={() => setReplyingTo(null)}>
-                                Cancel
+                                Hủy
                               </Button>
                             </div>
                           </div>
@@ -289,7 +282,7 @@ export function StaffProductDetailPage() {
                               onClick={() => setReplyingTo(rev.id)}
                             >
                               <MessageSquare className="h-3.5 w-3.5 mr-2" />
-                              {rev.responses?.length || 0 > 0 ? 'Reply Again' : 'Reply'}
+                              {rev.responses?.length || 0 > 0 ? 'Phản hồi thêm' : 'Phản hồi'}
                             </Button>
                             <Button 
                               variant="ghost" 
@@ -298,14 +291,14 @@ export function StaffProductDetailPage() {
                               onClick={() => setConfirmingMod({ id: rev.id, status: rev.status === ReviewStatus.VISIBLE ? ReviewStatus.HIDDEN : ReviewStatus.VISIBLE })}
                             >
                               {rev.status === ReviewStatus.VISIBLE ? (
-                                <><EyeOff className="h-3.5 w-3.5 mr-2" /> Hide</>
+                                <><EyeOff className="h-3.5 w-3.5 mr-2" /> Ẩn</>
                               ) : (
-                                <><Eye className="h-3.5 w-3.5 mr-2" /> Show</>
+                                <><Eye className="h-3.5 w-3.5 mr-2" /> Hiện</>
                               )}
                             </Button>
                             <Button variant="ghost" size="sm" className="h-8 px-4 rounded-lg text-[9px] font-bold uppercase tracking-widest text-destructive hover:bg-destructive/10">
                               <ShieldAlert className="h-3.5 w-3.5 mr-2" />
-                              Report
+                              Báo cáo
                             </Button>
                           </div>
                         )}
@@ -364,12 +357,12 @@ export function StaffProductDetailPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-6">
-            <AlertDialogCancel className="h-10 rounded-xl text-[10px] font-bold uppercase tracking-widest border-border">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="h-10 rounded-xl text-[10px] font-bold uppercase tracking-widest border-border">Hủy</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleModerate}
               className="h-10 rounded-xl text-[10px] font-bold uppercase tracking-widest text-white bg-primary hover:bg-primary/90"
             >
-              Update Status
+              Cập nhật trạng thái
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -6,4 +6,5 @@ internal static class RoleAccess
     private const string BusinessAdmin = "Business Admin";
     private const string TechnicalAdmin = "Technical Admin";
     public const string StockManagers = Staff + "," + BusinessAdmin + "," + TechnicalAdmin;
+    public const string StockReceivers = BusinessAdmin + "," + TechnicalAdmin;
 }

@@ -21,10 +21,12 @@ public sealed class ProductQueryController : ControllerBase
     [HttpGet("api/products")]
     [AllowAnonymous]
     public async Task<IActionResult> Browse(int pageNumber = 1, int pageSize = 20, string? keyword = null,
-        Guid? categoryId = null, Guid? brandId = null, CancellationToken cancellationToken = default)
+        Guid? categoryId = null, Guid? brandId = null, CancellationToken cancellationToken = default,
+        long? minPrice = null, long? maxPrice = null, string sortBy = "newest")
     {
         BrowseProducts_UCOutput output = await _sender.Send(new BrowseProducts_UCInput(false,
-            pageNumber, pageSize, keyword, categoryId, BrandId: brandId), cancellationToken);
+            pageNumber, pageSize, keyword, categoryId, BrandId: brandId,
+            MinPrice: minPrice, MaxPrice: maxPrice, SortBy: sortBy), cancellationToken);
         return Ok(new ApiSuccessResponse<BrowseProducts_UCOutput>(output, ResponseMessage.ProductsListed));
     }
 
@@ -41,10 +43,12 @@ public sealed class ProductQueryController : ControllerBase
     [Authorize(Roles = RoleAccess.Readers)]
     public async Task<IActionResult> BrowseForManagement(int pageNumber = 1, int pageSize = 20,
         string? keyword = null, Guid? categoryId = null, string? status = null, Guid? brandId = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default, long? minPrice = null, long? maxPrice = null,
+        string sortBy = "newest")
     {
         BrowseProducts_UCOutput output = await _sender.Send(new BrowseProducts_UCInput(true,
-            pageNumber, pageSize, keyword, categoryId, status, BrandId: brandId), cancellationToken);
+            pageNumber, pageSize, keyword, categoryId, status, BrandId: brandId,
+            MinPrice: minPrice, MaxPrice: maxPrice, SortBy: sortBy), cancellationToken);
         return Ok(new ApiSuccessResponse<BrowseProducts_UCOutput>(output, ResponseMessage.ProductsListed));
     }
 

@@ -45,18 +45,16 @@ public sealed class AccountBusinessRulesTests
     [Theory]
     [InlineData("Staff")]
     [InlineData("Customer")]
-    public async Task Business_admin_can_create_customer_and_staff_when_called_without_controller(string role)
+    public async Task Business_admin_cannot_create_customer_or_staff_when_called_without_controller(string role)
     {
         await using AuthTestApp app = await AuthTestApp.CreateAsync();
         Guid actorId = await app.SeedUserAsync("business@example.com", UserRoleName.BUSINESS_ADMIN);
         CreateUser_UCInput input = new CreateUser_UCInput(
             actorId, "staff@example.com", Password, new string[] { role });
 
-        CreateUser_UCOutput output = await app.SendAsync(input);
-
-        Assert.Equal("staff@example.com", output.Email);
-        Assert.Equal(role, Assert.Single(output.Roles));
-        Assert.Equal(2, await app.DbAsync(db => db.Users.CountAsync()));
+        BusinessException error = await Assert.ThrowsAsync<BusinessException>(() => app.SendAsync(input));
+        Assert.Equal(BusinessExceptionCode.FORBIDDEN, error.Code);
+        Assert.Equal(1, await app.DbAsync(db => db.Users.CountAsync()));
     }
 
     [Fact]

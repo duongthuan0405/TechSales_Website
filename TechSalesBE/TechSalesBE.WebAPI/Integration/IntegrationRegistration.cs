@@ -8,6 +8,7 @@ internal static class IntegrationRegistration
     internal static IServiceCollection RegisterModule(IServiceCollection services)
     {
         services.AddScoped<IAuthEmailAdapter, AuthEmailAdapter>();
+        services.AddScoped<CatalogModule.Application.Ports.IProductRatings, ProductRatingsAdapter>();
         services.AddScoped<IOrderOwnershipPort, OrderOwnershipAdapter>();
         services.AddScoped<IRepairOwnershipPort, RepairOwnershipAdapter>();
         services.AddScoped<IPaymentAmountPort, PaymentAmountAdapter>();

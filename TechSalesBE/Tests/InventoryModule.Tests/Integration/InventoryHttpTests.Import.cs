@@ -12,7 +12,7 @@ public sealed partial class InventoryHttpTests
         var x2 = Guid.NewGuid();
         byte[] baseWorkbook = Workbook(DataRow(2, x1, "000042") + DataRow(3, x1, "SN-A002") + DataRow(4, x2, "SN-B001"));
         await SeedStock(x1, 10, 3);
-        var response = await Import(baseWorkbook, _app.Staff);
+        var response = await Import(baseWorkbook, _app.BusinessAdmin);
         Ok(response, "Stock imported.");
         Assert.Equal(3, response.Data.GetProperty("receivedQuantity").GetInt32());
         Assert.Equal("IN_STOCK", response.Data.GetProperty("status").GetString());
@@ -43,7 +43,7 @@ public sealed partial class InventoryHttpTests
     {
         var a = Guid.NewGuid();
         var b = Guid.NewGuid();
-        Ok(await Import(Workbook(DataRow(2, a, "SN-SHARED") + DataRow(3, b, "SN-SHARED")), _app.Staff), "Stock imported.");
+        Ok(await Import(Workbook(DataRow(2, a, "SN-SHARED") + DataRow(3, b, "SN-SHARED")), _app.BusinessAdmin), "Stock imported.");
         Assert.Equal("IN_STOCK", await Status(a, "SN-SHARED"));
         Assert.Equal("IN_STOCK", await Status(b, "SN-SHARED"));
         Assert.Equal((1, (int?)0), await Stock(a));
@@ -57,10 +57,10 @@ public sealed partial class InventoryHttpTests
         var x2 = Guid.NewGuid();
         byte[] baseWorkbook = Workbook(DataRow(2, x1, "000042") + DataRow(3, x1, "SN-A002") + DataRow(4, x2, "SN-B001"));
         var count = await TotalUnits();
-        Error(await Import(null, _app.Staff), 400, "BAD_REQUEST", "File");
-        Error(await Import([], _app.Staff), 400, "BAD_REQUEST", "File");
-        Error(await Import(baseWorkbook, _app.Staff, "inventory.xls"), 400, "BAD_REQUEST", "File");
-        Error(await Import("broken"u8.ToArray(), _app.Staff), 400, "BAD_REQUEST", "File");
+        Error(await Import(null, _app.BusinessAdmin), 400, "BAD_REQUEST", "File");
+        Error(await Import([], _app.BusinessAdmin), 400, "BAD_REQUEST", "File");
+        Error(await Import(baseWorkbook, _app.BusinessAdmin, "inventory.xls"), 400, "BAD_REQUEST", "File");
+        Error(await Import("broken"u8.ToArray(), _app.BusinessAdmin), 400, "BAD_REQUEST", "File");
         Assert.Equal(count, await TotalUnits());
     }
 
@@ -69,9 +69,9 @@ public sealed partial class InventoryHttpTests
     {
         var count = await TotalUnits();
         var id = Guid.NewGuid();
-        Error(await Import(Workbook(DataRow(2, id, "A"), Row(1, Cell("A1", "Something") + Cell("B1", "SerialNumber"))), _app.Staff), 400, "BAD_REQUEST", "File");
-        Error(await Import(Workbook(""), _app.Staff), 400, "BAD_REQUEST", "File");
-        Error(await Import(Workbook(Row(2, Cell("A2", id.ToString()) + Cell("B2", "A") + Cell("C2", "extra"))), _app.Staff), 400, "BAD_REQUEST", "Rows[2]");
+        Error(await Import(Workbook(DataRow(2, id, "A"), Row(1, Cell("A1", "Something") + Cell("B1", "SerialNumber"))), _app.BusinessAdmin), 400, "BAD_REQUEST", "File");
+        Error(await Import(Workbook(""), _app.BusinessAdmin), 400, "BAD_REQUEST", "File");
+        Error(await Import(Workbook(Row(2, Cell("A2", id.ToString()) + Cell("B2", "A") + Cell("C2", "extra"))), _app.BusinessAdmin), 400, "BAD_REQUEST", "Rows[2]");
         Assert.Equal(count, await TotalUnits());
     }
 
@@ -82,7 +82,7 @@ public sealed partial class InventoryHttpTests
         foreach (string invalid in new[] { "NOT-A-UUID", Guid.Empty.ToString() })
         {
             byte[] workbook = Workbook(DataRow(2, id, "A") + Row(3, Cell("A3", invalid) + Cell("B3", "B")) + Row(4, Cell("A4", id.ToString())));
-            var result = await Import(workbook, _app.Staff);
+            var result = await Import(workbook, _app.BusinessAdmin);
             Error(result, 400, "BAD_REQUEST", "Rows[3].ProductId");
             Error(result, 400, "BAD_REQUEST", "Rows[4].SerialNumber");
             Assert.True(await Stock(id) == null, "valid prior row not applied");
@@ -94,7 +94,7 @@ public sealed partial class InventoryHttpTests
     {
         var id = Guid.NewGuid();
         byte[] workbook = Workbook(DataRow(2, id, "A") + Row(5, Cell("A5", id.ToString("N")) + Cell("B5", "A")));
-        Error(await Import(workbook, _app.Staff), 400, "BAD_REQUEST", "Rows[5].SerialNumber");
+        Error(await Import(workbook, _app.BusinessAdmin), 400, "BAD_REQUEST", "Rows[5].SerialNumber");
         Assert.True(await Stock(id) == null, "duplicate workbook rows no writes");
     }
 
@@ -104,7 +104,7 @@ public sealed partial class InventoryHttpTests
         var id = Guid.NewGuid();
         foreach (string cell in new[] { """<c r="B2"><f>1+1</f><v>2</v></c>""", """<c r="B2" t="e"><v>#REF!</v></c>""" })
         {
-            Error(await Import(Workbook(Row(2, Cell("A2", id.ToString()) + cell)), _app.Staff), 400, "BAD_REQUEST", "Rows[2]");
+            Error(await Import(Workbook(Row(2, Cell("A2", id.ToString()) + cell)), _app.BusinessAdmin), 400, "BAD_REQUEST", "Rows[2]");
         }
         Assert.True(await Stock(id) == null, "unsupported cells no writes");
     }
@@ -116,9 +116,9 @@ public sealed partial class InventoryHttpTests
         var invalid = Guid.NewGuid();
         byte[] atLimit = Workbook(string.Concat(Enumerable.Range(2, 5000).Select(i => DataRow(i, valid, "L-" + i))));
         byte[] overLimit = Workbook(string.Concat(Enumerable.Range(2, 5001).Select(i => DataRow(i, invalid, "L-" + i))));
-        Error(await Import(overLimit, _app.Staff), 400, "BAD_REQUEST", "File");
+        Error(await Import(overLimit, _app.BusinessAdmin), 400, "BAD_REQUEST", "File");
         Assert.True(await Stock(invalid) == null, "5001 rows leave stock absent");
-        var response = await Import(atLimit, _app.Staff);
+        var response = await Import(atLimit, _app.BusinessAdmin);
         Ok(response, "Stock imported.");
         Assert.Equal(5000, response.Data.GetProperty("receivedQuantity").GetInt32());
         Assert.Equal(5000, await UnitCount(valid));
@@ -129,7 +129,7 @@ public sealed partial class InventoryHttpTests
     public async Task RejectsFilesAboveTheValidatorLimit()
     {
         var count = await TotalUnits();
-        Error(await Import(new byte[5 * 1024 * 1024 + 1], _app.Staff), 400, "BAD_REQUEST", "File", details: "The import file must not exceed 5 MiB.");
+        Error(await Import(new byte[5 * 1024 * 1024 + 1], _app.BusinessAdmin), 400, "BAD_REQUEST", "File", details: "The import file must not exceed 5 MiB.");
         Assert.Equal(count, await TotalUnits());
     }
 
@@ -137,7 +137,7 @@ public sealed partial class InventoryHttpTests
     public async Task RejectsRequestsAboveTheMultipartLimit()
     {
         var count = await TotalUnits();
-        var response = await Import(new byte[5 * 1024 * 1024 + 65 * 1024], _app.Staff, expectContinue: true);
+        var response = await Import(new byte[5 * 1024 * 1024 + 65 * 1024], _app.BusinessAdmin, expectContinue: true);
         Assert.True(response.Code is 400 or 413, "oversized request must be rejected with a client error");
         Assert.Equal(count, await TotalUnits());
     }
@@ -151,8 +151,8 @@ public sealed partial class InventoryHttpTests
         {
             (earlier, later) = (later, earlier);
         }
-        Ok(await Receive(later, ["TAKEN"], _app.Staff), "Stock received.");
-        Error(await Import(Workbook(DataRow(2, earlier, "NEW") + DataRow(3, later, "TAKEN")), _app.Staff), 409, "CONFLICT");
+        Ok(await Receive(later, ["TAKEN"], _app.BusinessAdmin), "Stock received.");
+        Error(await Import(Workbook(DataRow(2, earlier, "NEW") + DataRow(3, later, "TAKEN")), _app.BusinessAdmin), 409, "CONFLICT");
         Assert.True(await Stock(earlier) == null, "earlier product stock rolled back");
         Assert.Equal(0, await UnitCount(earlier));
         Assert.Equal((1, (int?)0), await Stock(later));
@@ -166,8 +166,8 @@ public sealed partial class InventoryHttpTests
         var x2 = Guid.NewGuid();
         byte[] baseWorkbook = Workbook(DataRow(2, x1, "000042") + DataRow(3, x1, "SN-A002") + DataRow(4, x2, "SN-B001"));
         await SeedStock(x1, 10, 3);
-        Ok(await Import(baseWorkbook, _app.Staff), "Stock imported.");
-        Error(await Import(baseWorkbook, _app.Staff), 409, "CONFLICT");
+        Ok(await Import(baseWorkbook, _app.BusinessAdmin), "Stock imported.");
+        Error(await Import(baseWorkbook, _app.BusinessAdmin), 409, "CONFLICT");
         Assert.Equal((12, (int?)3), await Stock(x1));
         Assert.Equal((1, (int?)0), await Stock(x2));
     }
@@ -178,8 +178,8 @@ public sealed partial class InventoryHttpTests
         var a = Guid.NewGuid();
         var b = Guid.NewGuid();
         var files = await Task.WhenAll(
-            Import(Workbook(DataRow(2, a, "A1") + DataRow(3, b, "B1")), _app.Staff),
-            Import(Workbook(DataRow(2, b, "B2") + DataRow(3, a, "A2")), _app.Staff));
+            Import(Workbook(DataRow(2, a, "A1") + DataRow(3, b, "B1")), _app.BusinessAdmin),
+            Import(Workbook(DataRow(2, b, "B2") + DataRow(3, a, "A2")), _app.BusinessAdmin));
         foreach (var r in files)
         {
             Ok(r, "Stock imported.");
@@ -198,7 +198,7 @@ public sealed partial class InventoryHttpTests
         byte[] baseWorkbook = Workbook(DataRow(2, x1, "000042") + DataRow(3, x1, "SN-A002") + DataRow(4, x2, "SN-B001"));
         int count = await TotalUnits();
         await AssertRestrictedAsync(credential => Import(baseWorkbook, credential));
-        Assert.Equal(415, (await _app.SendAsync(HttpMethod.Post, "/api/inventory/import", _app.Staff, new { file = "not multipart" })).Code);
+        Assert.Equal(415, (await _app.SendAsync(HttpMethod.Post, "/api/inventory/import", _app.BusinessAdmin, new { file = "not multipart" })).Code);
         Assert.Equal(count, await TotalUnits());
     }
 
@@ -212,7 +212,7 @@ public sealed partial class InventoryHttpTests
             (earlier, later) = (later, earlier);
         }
         await SeedStock(later, int.MaxValue, 0);
-        Error(await Import(Workbook(DataRow(2, earlier, "NEW") + DataRow(3, later, "EXTRA")), _app.Staff),
+        Error(await Import(Workbook(DataRow(2, earlier, "NEW") + DataRow(3, later, "EXTRA")), _app.BusinessAdmin),
             422, "INVENTORY.STOCK_QUANTITY_LIMIT_EXCEEDED");
         Assert.True(await Stock(earlier) == null, "first group rolled back on overflow");
         Assert.Equal(0, await UnitCount(earlier));
@@ -226,10 +226,10 @@ public sealed partial class InventoryHttpTests
         var id = Guid.NewGuid();
         foreach (var invalid in new[] { "", "  ", Repeat("😀", 101) })
         {
-            Error(await Import(Workbook(DataRow(2, id, invalid)), _app.Staff), 400, "BAD_REQUEST", "Rows[2].SerialNumber");
+            Error(await Import(Workbook(DataRow(2, id, invalid)), _app.BusinessAdmin), 400, "BAD_REQUEST", "Rows[2].SerialNumber");
         }
         Assert.True(await Stock(id) == null, "invalid serial cells no writes");
-        Ok(await Import(Workbook(DataRow(2, id, Repeat("😀", 100))), _app.Staff), "Stock imported.");
+        Ok(await Import(Workbook(DataRow(2, id, Repeat("😀", 100))), _app.BusinessAdmin), "Stock imported.");
         Assert.Equal(1, await UnitCount(id));
     }
 
@@ -256,7 +256,7 @@ public sealed partial class InventoryHttpTests
         };
         foreach (var workbook in malformed)
         {
-            Error(await Import(workbook, _app.Staff), 400, "BAD_REQUEST", "File", details: "The file is not a readable .xlsx workbook.");
+            Error(await Import(workbook, _app.BusinessAdmin), 400, "BAD_REQUEST", "File", details: "The file is not a readable .xlsx workbook.");
         }
         Assert.True(await Stock(id) == null, "malformed workbook no writes");
     }
@@ -268,12 +268,12 @@ public sealed partial class InventoryHttpTests
         var malformed = new[] { "<row r=\"x\"/>", "<row r=\"1048577\"/>", "<row r=\"1\"/>" };
         foreach (string rows in malformed)
         {
-            Error(await Import(Workbook(rows), _app.Staff), 400, "BAD_REQUEST", "File");
+            Error(await Import(Workbook(rows), _app.BusinessAdmin), 400, "BAD_REQUEST", "File");
         }
         byte[] firstNotOne = Workbook("", Row(2, Cell("A2", "ProductId") + Cell("B2", "SerialNumber")));
-        Error(await Import(firstNotOne, _app.Staff), 400, "BAD_REQUEST", "File");
+        Error(await Import(firstNotOne, _app.BusinessAdmin), 400, "BAD_REQUEST", "File");
         string implicitRow = """<row><c t="str"><v>""" + id + """</v></c><c><v>17</v></c><c><v></v></c></row>""";
-        Ok(await Import(Workbook(implicitRow), _app.Staff), "Stock imported.");
+        Ok(await Import(Workbook(implicitRow), _app.BusinessAdmin), "Stock imported.");
         Assert.Equal("IN_STOCK", await Status(id, "17"));
     }
 
@@ -281,7 +281,7 @@ public sealed partial class InventoryHttpTests
     public async Task RejectsDuplicateCellsAndUnsupportedCellValues()
     {
         var id = Guid.NewGuid();
-        Error(await Import(Workbook(Row(2, Cell("A2", id.ToString()) + Cell("B2", "A") + Cell("B2", "B"))), _app.Staff),
+        Error(await Import(Workbook(Row(2, Cell("A2", id.ToString()) + Cell("B2", "A") + Cell("B2", "B"))), _app.BusinessAdmin),
             400, "BAD_REQUEST", "File");
         foreach (string raw in new[]
         {
@@ -290,7 +290,7 @@ public sealed partial class InventoryHttpTests
             """<c r="B2" t="b"><v>1</v></c>"""
         })
         {
-            Error(await Import(Workbook(Row(2, Cell("A2", id.ToString()) + raw), sharedString: "unused"), _app.Staff),
+            Error(await Import(Workbook(Row(2, Cell("A2", id.ToString()) + raw), sharedString: "unused"), _app.BusinessAdmin),
                 400, "BAD_REQUEST", "Rows[2]");
         }
         Assert.True(await Stock(id) == null, "bad cells no writes");

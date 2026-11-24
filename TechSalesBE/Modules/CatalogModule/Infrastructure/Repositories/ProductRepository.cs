@@ -6,6 +6,7 @@ using CatalogModule.Application.Exceptions;
 using CommonModule.BusinessExceptions;
 using Microsoft.EntityFrameworkCore;
 using CatalogModule.Domain.Enums;
+using System.Linq.Expressions;
 
 namespace CatalogModule.Infrastructure.Repositories;
 
@@ -70,7 +71,9 @@ internal sealed class ProductRepository : IProductRepository
 
     public async Task<(List<Product> Items, int TotalCount)> GetPageAsync(int pageNumber, int pageSize,
         string? keyword, List<Guid> keywordBrandIds, Guid? categoryId, ProductStatus? status,
-        Guid? productId, Guid? brandId, CancellationToken cancellationToken)
+        Guid? productId, Guid? brandId, CancellationToken cancellationToken,
+        long? minPrice = null, long? maxPrice = null, string sortBy = "newest",
+        Dictionary<Guid, double>? ratings = null)
     {
         IQueryable<ProductDbModel> query = _db.Products.AsNoTracking();
         if (!string.IsNullOrWhiteSpace(keyword))
@@ -96,9 +99,42 @@ internal sealed class ProductRepository : IProductRepository
             query = query.Where(product => product.Id == productId.Value);
         }
 
+        if (minPrice.HasValue)
+        {
+            query = query.Where(product => product.Price >= minPrice.Value);
+        }
+        if (maxPrice.HasValue)
+        {
+            query = query.Where(product => product.Price <= maxPrice.Value);
+        }
         int totalCount = await query.CountAsync(cancellationToken);
-        List<ProductDbModel> rows = await query.Include(product => product.Images)
-            .OrderByDescending(product => product.CreatedAt).ThenBy(product => product.Id)
+        IOrderedQueryable<ProductDbModel> ordered;
+        if (sortBy == "price_asc" || sortBy == "price_desc")
+        {
+            // Unpriced products always follow priced products in either direction.
+            ordered = query.OrderBy(product => product.Price == null);
+            ordered = sortBy == "price_asc"
+                ? ordered.ThenBy(product => product.Price)
+                : ordered.ThenByDescending(product => product.Price);
+        }
+        else if (sortBy == "rating")
+        {
+            ParameterExpression product = Expression.Parameter(typeof(ProductDbModel), "product");
+            Expression score = Expression.Constant(0d);
+            foreach (var rating in ratings ?? new Dictionary<Guid, double>())
+            {
+                score = Expression.Condition(
+                    Expression.Equal(Expression.Property(product, nameof(ProductDbModel.Id)), Expression.Constant(rating.Key)),
+                    Expression.Constant(rating.Value), score);
+            }
+            ordered = query.OrderByDescending(Expression.Lambda<Func<ProductDbModel, double>>(score, product));
+        }
+        else
+        {
+            ordered = query.OrderByDescending(product => product.CreatedAt);
+        }
+        List<ProductDbModel> rows = await ordered.ThenByDescending(product => product.CreatedAt)
+            .ThenBy(product => product.Id).Include(product => product.Images)
             .Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
         return (rows.Select(Map).ToList(), totalCount);
     }

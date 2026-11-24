@@ -1,16 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router';
+import { ChangePasswordPage } from './ChangePasswordPage';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
+import { DatePicker } from '../../components/ui/date-picker';
 import { useAuth } from '../../context/AuthContext';
 import { userService } from '../../../services/userService';
 import { User as UserIcon, Mail, Phone, Camera, Save, Loader2, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function ProfilePage() {
-  const navigate = useNavigate();
+
   const { user, setAuthUser } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
@@ -19,6 +20,7 @@ export function ProfilePage() {
     name: user?.name || '',
     email: user?.email || '',
     phone: user?.phone || '',
+    dateOfBirth: '',
   });
 
   useEffect(() => {
@@ -30,6 +32,7 @@ export function ProfilePage() {
           name: latestUser.fullName,
           email: latestUser.email,
           phone: latestUser.phone,
+          dateOfBirth: latestUser.dateOfBirth?.slice(0, 10) ?? '',
         });
         
         // Update context if data changed
@@ -98,7 +101,8 @@ export function ProfilePage() {
     try {
       await userService.updateProfile({
         fullName: formData.name,
-        phone: formData.phone
+        phone: formData.phone,
+        dateOfBirth: formData.dateOfBirth || undefined
       });
       
       // Update local auth context
@@ -122,8 +126,8 @@ export function ProfilePage() {
     switch (role) {
       case 'Customer': return 'Khách hàng';
       case 'Staff': return 'Nhân viên bán hàng';
-      case 'BusinessAdmin': return 'Quản trị kinh doanh';
-      case 'TechnicalAdmin': return 'Quản trị kỹ thuật';
+      case 'Business Admin': return 'Quản trị kinh doanh';
+      case 'Technical Admin': return 'Quản trị kỹ thuật';
       default: return role || '';
     }
   };
@@ -131,8 +135,8 @@ export function ProfilePage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-12">
       <div className="space-y-0.5 px-1">
-        <h1 className="text-2xl font-bold tracking-tight uppercase text-foreground">Thông tin cá nhân</h1>
-        <p className="text-sm text-muted-foreground font-medium">Quản lý thông tin hồ sơ và liên hệ của bạn.</p>
+        <h1 className="text-2xl font-bold tracking-tight uppercase text-foreground">Tài khoản cá nhân</h1>
+        <p className="text-sm text-muted-foreground font-medium">Cập nhật hồ sơ, ảnh đại diện và mật khẩu của bạn.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -174,16 +178,6 @@ export function ProfilePage() {
                </div>
             </div>
 
-            <div className="mt-6 pt-4 border-t border-border w-full px-2">
-               <Button 
-                variant="ghost" 
-                className="w-full justify-start text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground hover:bg-muted"
-                onClick={() => navigate('/customer/change-password')}
-               >
-                  <ShieldCheck className="mr-2 h-4 w-4" />
-                  Bảo mật & Mật khẩu
-               </Button>
-            </div>
           </CardContent>
         </Card>
 
@@ -219,6 +213,11 @@ export function ProfilePage() {
               </div>
 
               <div className="space-y-1.5">
+                <Label htmlFor="dateOfBirth">Ngày sinh</Label>
+                <DatePicker id="dateOfBirth" value={formData.dateOfBirth} placeholder="Chọn ngày sinh" maxDate={new Date()} disabled={isLoading || isUploadingAvatar}
+                  onChange={dateOfBirth => setFormData(previous => ({ ...previous, dateOfBirth }))} />
+              </div>
+              <div className="space-y-1.5">
                 <Label htmlFor="email" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Địa chỉ Email</Label>
                 <Input 
                   id="email" 
@@ -244,6 +243,7 @@ export function ProfilePage() {
           </CardContent>
         </Card>
       </div>
+      <ChangePasswordPage embedded />
     </div>
   );
 }

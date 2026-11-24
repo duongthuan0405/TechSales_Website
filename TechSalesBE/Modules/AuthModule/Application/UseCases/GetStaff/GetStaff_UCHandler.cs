@@ -27,7 +27,7 @@ internal sealed class GetStaff_UCHandler : IRequestHandler<GetStaff_UCInput, Get
         List<string> visibleRoles = AccountManagementRules.GetVisibleStaffRoles(actor);
         List<string> filteredRoles = AccountManagementRules.FilterVisibleRoles(visibleRoles, input.Role);
 
-        (List<User> Items, int Count) page = await _users.GetPageAsync(filteredRoles, input.PageNumber, input.PageSize, ct);
+        (List<User> Items, int Count) page = await _users.GetPageAsync(filteredRoles, input.PageNumber, input.PageSize, ct, input.Keyword);
         List<GetStaff_UCOutput.UserItem> items = new List<GetStaff_UCOutput.UserItem>();
         foreach (User user in page.Items)
         {

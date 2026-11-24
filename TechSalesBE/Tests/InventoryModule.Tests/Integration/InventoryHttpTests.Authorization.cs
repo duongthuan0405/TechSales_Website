@@ -11,7 +11,7 @@ public sealed partial class InventoryHttpTests
         (Guid userId, string token) = await _app.CreateAccountAsync("Staff");
         var productId = Guid.NewGuid();
         var missingProductId = Guid.NewGuid();
-        Ok(await Receive(productId, ["D"], _app.Staff), "Stock received.");
+        Ok(await Receive(productId, ["D"], _app.BusinessAdmin), "Stock received.");
         await _app.InactivateAccountAsync(userId);
 
         Error(await Receive(missingProductId, ["R"], token), 401, "UNAUTHORIZED");
@@ -23,9 +23,13 @@ public sealed partial class InventoryHttpTests
     }
 
     [InventoryPostgresFact]
-    public async Task AllWarehouseRolesCanAccessEveryInventoryEndpoint()
+    public async Task OnlyAdministratorsCanReceiveAndImportStock()
     {
-        foreach (string token in new[] { _app.Staff, _app.BusinessAdmin, _app.TechnicalAdmin })
+        var rejectedProduct = Guid.NewGuid();
+        Error(await Receive(rejectedProduct, ["R"], _app.Staff), 403, "FORBIDDEN");
+        Error(await Import(Workbook(DataRow(2, rejectedProduct, "X")), _app.Staff), 403, "FORBIDDEN");
+        Assert.Null(await Stock(rejectedProduct));
+        foreach (string token in new[] { _app.BusinessAdmin, _app.TechnicalAdmin })
         {
             var productId = Guid.NewGuid();
             Ok(await Receive(productId, ["R"], token), "Stock received.");

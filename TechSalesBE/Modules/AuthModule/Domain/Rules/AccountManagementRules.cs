@@ -8,6 +8,15 @@ namespace AuthModule.Domain.Rules;
 
 internal static class AccountManagementRules
 {
+    public static void EnsureCanDeactivate(User actor, User target)
+    {
+        if (!HasRole(actor, AccountRoleNames.TECHNICAL_ADMIN) && !HasRole(actor, AccountRoleNames.BUSINESS_ADMIN))
+        {
+            throw new DomainException(DomainExceptionCode.RULE_CANNOT_MANAGE_ACCOUNT, DomainExceptionMessage.CannotManageAccount);
+        }
+        EnsureCanManage(actor, target);
+    }
+
     public static void EnsureCanCreate(User actor, IEnumerable<string> requestedRoles)
     {
         EnsureActiveActor(actor);
@@ -16,22 +25,7 @@ internal static class AccountManagementRules
             return;
         }
 
-        if (!HasRole(actor, AccountRoleNames.BUSINESS_ADMIN))
-        {
-            throw new DomainException(DomainExceptionCode.RULE_CANNOT_MANAGE_ACCOUNT, DomainExceptionMessage.CannotManageAccount);
-        }
-
-        foreach (string roleName in requestedRoles)
-        {
-            if (roleName == AccountRoleNames.TECHNICAL_ADMIN)
-            {
-                throw new DomainException(DomainExceptionCode.RULE_CANNOT_CREATE_TECHNICAL_ADMIN, DomainExceptionMessage.CannotCreateTechnicalAdmin);
-            }
-            if (roleName != AccountRoleNames.CUSTOMER && roleName != AccountRoleNames.STAFF)
-            {
-                throw new DomainException(DomainExceptionCode.RULE_CANNOT_CREATE_ADMIN, DomainExceptionMessage.CannotCreateAdmin);
-            }
-        }
+        throw new DomainException(DomainExceptionCode.RULE_CANNOT_MANAGE_ACCOUNT, DomainExceptionMessage.CannotManageAccount);
     }
 
     public static void EnsureCanManage(User actor, User target)
@@ -70,6 +64,16 @@ internal static class AccountManagementRules
         throw new DomainException(DomainExceptionCode.RULE_CANNOT_MANAGE_ACCOUNT, DomainExceptionMessage.CannotManageAccount);
     }
 
+    public static void EnsureCanEdit(User actor, User target)
+    {
+        EnsureActiveActor(actor);
+        if (!HasRole(actor, AccountRoleNames.TECHNICAL_ADMIN))
+        {
+            throw new DomainException(DomainExceptionCode.RULE_CANNOT_MANAGE_ACCOUNT, DomainExceptionMessage.CannotManageAccount);
+        }
+        EnsureDifferentAccount(actor.Id, target.Id);
+    }
+
     public static void EnsureCanAssignRoles(User actor, Guid targetUserId)
     {
         EnsureActiveActor(actor);
@@ -90,6 +94,17 @@ internal static class AccountManagementRules
             roleNames.Add(AccountRoleNames.TECHNICAL_ADMIN);
         }
         return roleNames;
+    }
+
+    public static List<string> GetVisibleUserRoles(User actor)
+    {
+        EnsureActiveActor(actor);
+        if (!HasRole(actor, AccountRoleNames.TECHNICAL_ADMIN))
+        {
+            throw new DomainException(DomainExceptionCode.RULE_TECHNICAL_ADMIN_REQUIRED, DomainExceptionMessage.TechnicalAdminRequired);
+        }
+        return new List<string> { AccountRoleNames.CUSTOMER, AccountRoleNames.STAFF,
+            AccountRoleNames.BUSINESS_ADMIN, AccountRoleNames.TECHNICAL_ADMIN };
     }
 
     public static List<string> FilterVisibleRoles(List<string> visibleRoles, string? requestedRole)

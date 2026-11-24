@@ -15,6 +15,17 @@ public sealed class InventoryControllerTests
 {
     private readonly Guid _productId = Guid.NewGuid();
 
+    [Theory]
+    [InlineData(nameof(InventoryController.ReceiveStock))]
+    [InlineData(nameof(InventoryController.ImportStock))]
+    public void ReceivingRequiresAnAdministrator(string action)
+    {
+        var method = typeof(InventoryController).GetMethod(action)!;
+        var policy = Assert.Single(method.GetCustomAttributes(typeof(Microsoft.AspNetCore.Authorization.AuthorizeAttribute), false)
+            .Cast<Microsoft.AspNetCore.Authorization.AuthorizeAttribute>());
+        Assert.Equal(new[] { "Business Admin", "Technical Admin" }, policy.Roles!.Split(','));
+    }
+
     [Fact]
     public async Task ReceiveStockMapsTheRouteAndJsonBodyToTheUseCase()
     {

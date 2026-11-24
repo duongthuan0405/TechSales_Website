@@ -52,23 +52,23 @@ export function VoucherManagementPage() {
   const handleCreate = (data: any) => {
     createMutation.mutate(data, {
       onSuccess: () => {
-        toast.success("Voucher created successfully");
+        toast.success("Đã tạo mã giảm giá thành công.");
         setIsFormOpen(false);
       },
       onError: (error: any) => {
-        toast.error(error.message || "Failed to create voucher");
+        toast.error(error.message || "Không tạo được mã giảm giá.");
       },
     });
   };
 
   const handleDeactivate = (id: string) => {
-    if (window.confirm("Are you sure you want to stop this voucher early? This action cannot be undone.")) {
+    if (window.confirm("Bạn có chắc muốn ngừng mã giảm giá trước hạn? Thao tác này không thể hoàn tác.")) {
       deactivateMutation.mutate(id, {
         onSuccess: () => {
-          toast.success("Voucher deactivated successfully");
+          toast.success("Đã ngừng mã giảm giá.");
         },
         onError: () => {
-          toast.error("Failed to deactivate voucher");
+          toast.error("Không ngừng được mã giảm giá.");
         },
       });
     }
@@ -79,24 +79,24 @@ export function VoucherManagementPage() {
     const startDate = voucher.startDate ? new Date(voucher.startDate) : null;
     const endDate = voucher.endDate ? new Date(voucher.endDate) : null;
 
-    if (!voucher.isActive) return <Badge variant="secondary">Deactivated</Badge>;
-    if (voucher.usedCount >= voucher.maxUsage) return <Badge variant="destructive">Exhausted</Badge>;
-    if (endDate && now > endDate) return <Badge variant="destructive">Expired</Badge>;
-    if (startDate && now < startDate) return <Badge variant="outline">Scheduled</Badge>;
+    if (!voucher.isActive) return <Badge variant="secondary">Đã ngừng</Badge>;
+    if (voucher.usedCount >= voucher.maxUsage) return <Badge variant="destructive">Hết lượt</Badge>;
+    if (endDate && now > endDate) return <Badge variant="destructive">Hết hạn</Badge>;
+    if (startDate && now < startDate) return <Badge variant="outline">Chưa đến hạn</Badge>;
     
-    return <Badge variant="success">Active</Badge>;
+    return <Badge variant="success">Đang áp dụng</Badge>;
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Voucher Management</h1>
-          <p className="text-muted-foreground">Create and manage discount codes for customers</p>
+          <h1 className="text-3xl font-bold tracking-tight">Quản lý mã giảm giá</h1>
+          <p className="text-muted-foreground">Tạo và quản lý mã giảm giá dành cho khách hàng</p>
         </div>
         <Button onClick={() => setIsFormOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Create Voucher
+          Tạo mã giảm giá
         </Button>
       </div>
 
@@ -107,27 +107,27 @@ export function VoucherManagementPage() {
       ) : !voucherData?.items || voucherData.items.length === 0 ? (
         <Card className="flex h-64 flex-col items-center justify-center text-center">
           <Ticket className="h-12 w-12 text-muted-foreground mb-4" />
-          <p className="text-xl font-semibold">No vouchers found</p>
-          <p className="text-muted-foreground">Start by creating your first discount code</p>
+          <p className="text-xl font-semibold">Chưa có mã giảm giá</p>
+          <p className="text-muted-foreground">Tạo mã giảm giá đầu tiên để bắt đầu</p>
         </Card>
       ) : (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg font-medium">
-              Active Vouchers ({voucherData.totalCount})
+              Danh sách mã giảm giá ({voucherData.totalCount})
             </CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Code</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Value</TableHead>
-                  <TableHead>Usage</TableHead>
-                  <TableHead>Validity</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>Mã giảm giá</TableHead>
+                  <TableHead>Loại giảm</TableHead>
+                  <TableHead>Giá trị</TableHead>
+                  <TableHead>Lượt sử dụng</TableHead>
+                  <TableHead>Thời gian áp dụng</TableHead>
+                  <TableHead>Trạng thái</TableHead>
+                  <TableHead className="text-right">Thao tác</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -138,9 +138,9 @@ export function VoucherManagementPage() {
                     </TableCell>
                     <TableCell>
                       {voucher.type === VoucherType.PERCENTAGE ? (
-                        <span className="flex items-center gap-1"><TrendingDown className="h-3 w-3" /> Percentage</span>
+                        <span className="flex items-center gap-1"><TrendingDown className="h-3 w-3" /> Phần trăm</span>
                       ) : (
-                        <span className="flex items-center gap-1"><Zap className="h-3 w-3" /> Fixed</span>
+                        <span className="flex items-center gap-1"><Zap className="h-3 w-3" /> Số tiền</span>
                       )}
                     </TableCell>
                     <TableCell className="font-semibold">
@@ -149,7 +149,7 @@ export function VoucherManagementPage() {
                     <TableCell>
                       <div className="space-y-1">
                         <div className="text-xs text-muted-foreground">
-                          {voucher.usedCount} / {voucher.maxUsage} used
+                          {voucher.usedCount} / {voucher.maxUsage === Number.MAX_SAFE_INTEGER ? 'Không giới hạn' : voucher.maxUsage} lượt
                         </div>
                         <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
                           <div 
@@ -163,12 +163,12 @@ export function VoucherManagementPage() {
                       <div className="flex flex-col text-xs gap-1">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" /> 
-                          {voucher.startDate ? new Date(voucher.startDate).toLocaleDateString() : 'Immediate'}
+                          {voucher.startDate ? new Date(voucher.startDate).toLocaleDateString('vi-VN') : 'Áp dụng ngay'}
                         </span>
-                        <span className="text-muted-foreground pl-4">to</span>
+                        <span className="text-muted-foreground pl-4">đến</span>
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
-                          {voucher.endDate ? new Date(voucher.endDate).toLocaleDateString() : 'Never'}
+                          {voucher.endDate ? new Date(voucher.endDate).toLocaleDateString('vi-VN') : 'Không giới hạn'}
                         </span>
                       </div>
                     </TableCell>
@@ -181,7 +181,7 @@ export function VoucherManagementPage() {
                           className="text-destructive hover:text-destructive hover:bg-destructive/10"
                           onClick={() => handleDeactivate(voucher.id)}
                           disabled={deactivateMutation.isPending}
-                          title="Stop Voucher Early"
+                          title="Ngừng mã trước hạn"
                         >
                           <CircleOff className="h-4 w-4" />
                         </Button>
@@ -205,11 +205,11 @@ export function VoucherManagementPage() {
         <CardContent className="p-4 flex gap-4">
           <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
           <div className="text-sm">
-            <p className="font-semibold text-primary">Voucher Logic</p>
+            <p className="font-semibold text-primary">Điều kiện áp dụng</p>
             <ul className="list-disc list-inside text-muted-foreground mt-1 space-y-1">
-              <li>Customers can only apply vouchers if their order meets the minimum amount.</li>
-              <li>Percentage vouchers are calculated based on the total order value.</li>
-              <li>Vouchers automatically expire based on the end date or when the usage limit is reached.</li>
+              <li>Đơn hàng phải đạt giá trị tối thiểu để sử dụng mã giảm giá.</li>
+              <li>Mã giảm theo phần trăm được tính dựa trên giá trị đơn hàng.</li>
+              <li>Mã không còn áp dụng khi hết hạn hoặc hết lượt sử dụng.</li>
             </ul>
           </div>
         </CardContent>
@@ -217,11 +217,11 @@ export function VoucherManagementPage() {
 
       {/* Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Create New Voucher</DialogTitle>
+            <DialogTitle>Tạo mã giảm giá mới</DialogTitle>
             <DialogDescription>
-              Set up a new discount code for your store.
+              Nhập thông tin để tạo mã giảm giá cho cửa hàng.
             </DialogDescription>
           </DialogHeader>
           <VoucherForm 

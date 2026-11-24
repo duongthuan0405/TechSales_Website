@@ -20,6 +20,7 @@ public static class ModuleRegistration
         services.AddInventoryPersistence(configuration);
         services.AddScoped<InventoryModule.Contracts.IInventoryQuery, InventoryQuery>();
         services.AddScoped<IInventoryRepository, InventoryRepository>();
+        services.AddScoped<IProductUnitReader, ProductUnitReader>();
         services.AddScoped<IExecuteAtomically, ExecuteAtomically>();
         services.AddScoped<IStockImportWorkbookReader, XlsxStockImportReader>();
         services.AddScoped<StockReceiver>();

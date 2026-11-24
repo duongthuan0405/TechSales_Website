@@ -1,5 +1,6 @@
 import { useDebouncedValue } from '../../../dataHook/useDebouncedValue';
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
+import { ListPagination } from '../../components/ui/list-pagination';
 import { formatCurrency } from '../../../utils/format';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -23,8 +24,8 @@ import {
   Tag,
   DollarSign
 } from 'lucide-react';
-import { useGetProducts } from '../../../dataHook/productDataHook';
-import { useGetProductCategories } from '../../../dataHook/productDataHook';
+import { useGetProductPage } from '../../../dataHook/productDataHook';
+
 import { useAddToCart } from '../../../dataHook/cartDataHook';
 import { toast } from 'sonner';
 import { useNavigate, useSearchParams } from 'react-router';
@@ -33,34 +34,40 @@ export function ProductCatalogPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   
-  const [searchTerm, setSearchTerm] = useState('');
+  const searchTerm = searchParams.get('keyword') || '';
   const debouncedSearch = useDebouncedValue(searchTerm);
-  
   const selectedCategoryId = searchParams.get('category') || 'all';
-  const [minPrice, setMinPrice] = useState<string>('');
-  const [maxPrice, setMaxPrice] = useState<string>('');
-  const [sortBy, setSortBy] = useState<string>('newest');
-
-  const setSelectedCategory = (categoryId: string) => {
-    const newParams = new URLSearchParams(searchParams);
-    if (categoryId === 'all') {
-      newParams.delete('category');
-    } else {
-      newParams.set('category', categoryId);
-    }
-    setSearchParams(newParams);
+  const selectedBrandId = searchParams.get('brand') || 'all';
+  const minPrice = searchParams.get('minPrice') || '';
+  const maxPrice = searchParams.get('maxPrice') || '';
+  const debouncedMinPrice = useDebouncedValue(minPrice);
+  const debouncedMaxPrice = useDebouncedValue(maxPrice);
+  const sortBy = searchParams.get('sortBy') || 'newest';
+  const parsedPage = Number(searchParams.get('page') || 1);
+  const pageNumber = Number.isSafeInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+  const parsedSize = Number(searchParams.get('pageSize') || 20);
+  const pageSize = Number.isInteger(parsedSize) && parsedSize >= 1 && parsedSize <= 100 ? parsedSize : 20;
+  const changeFilter = (key: string, value: string, replace = false) => {
+    setSearchParams(previous => {
+      const next = new URLSearchParams(previous);
+      if (value === '' || value === 'all') next.delete(key);
+      else next.set(key, value);
+      next.delete('page');
+      return next;
+    }, { replace });
   };
-
-
-  const { data: products = [], isLoading, isError } = useGetProducts({
-    search: debouncedSearch,
+  const ready = searchTerm === debouncedSearch && minPrice === debouncedMinPrice && maxPrice === debouncedMaxPrice;
+  const { data: productPage, isLoading, isFetching, isError, error, refetch } = useGetProductPage({
+    pageNumber, pageSize, search: debouncedSearch,
     categoryIds: selectedCategoryId === 'all' ? undefined : selectedCategoryId,
-    minPrice: minPrice ? Number(minPrice) : undefined,
-    maxPrice: maxPrice ? Number(maxPrice) : undefined,
-    sortBy: sortBy as any
-  });
-
-  const { data: categoriesData = [] } = useGetProductCategories();
+    brandId: selectedBrandId === 'all' ? undefined : selectedBrandId,
+    minPrice: debouncedMinPrice !== '' ? Number(debouncedMinPrice) : undefined,
+    maxPrice: debouncedMaxPrice !== '' ? Number(debouncedMaxPrice) : undefined,
+    sortBy: sortBy as 'newest' | 'price_asc' | 'price_desc' | 'rating',
+  }, ready);
+  const products = productPage?.items ?? [];
+  const categoriesData = productPage?.categories ?? [];
+  const brandsData = productPage?.brands ?? [];
   const { mutate: addToCart, isPending: isAdding } = useAddToCart();
 
   useEffect(() => {
@@ -76,13 +83,7 @@ export function ProductCatalogPage() {
     });
   };
 
-  const clearFilters = () => {
-    setSelectedCategory('all');
-    setMinPrice('');
-    setMaxPrice('');
-    setSearchTerm('');
-    setSortBy('newest');
-  };
+  const clearFilters = () => setSearchParams({});
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 pb-12 px-4 md:px-0">
@@ -98,7 +99,7 @@ export function ProductCatalogPage() {
           <Input
             placeholder="Tìm kiếm sản phẩm..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => changeFilter('keyword', e.target.value, true)}
             className="pl-11 h-12 rounded-xl border-none bg-card shadow-sm ring-1 ring-border focus-visible:ring-2 focus-visible:ring-primary transition-all text-base"
           />
         </div>
@@ -114,7 +115,7 @@ export function ProductCatalogPage() {
                 <Tag className="h-3 w-3 text-muted-foreground" />
                 <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Danh mục</span>
               </div>
-              <Select value={selectedCategoryId} onValueChange={setSelectedCategory}>
+              <Select value={selectedCategoryId} onValueChange={value => changeFilter('category', value)}>
                 <SelectTrigger className="h-10 rounded-lg border-border bg-card">
                   <SelectValue placeholder="Tất cả danh mục" />
                 </SelectTrigger>
@@ -127,6 +128,15 @@ export function ProductCatalogPage() {
               </Select>
             </div>
 
+            <div className="flex-1 min-w-[150px]">
+              <div className="mb-1.5 text-xs font-bold text-muted-foreground">Hãng</div>
+              <Select value={selectedBrandId} onValueChange={value => changeFilter('brand', value)}>
+                <SelectTrigger className="h-10 rounded-lg border-border bg-card" aria-label="Hãng"><SelectValue placeholder="Tất cả hãng" /></SelectTrigger>
+                <SelectContent><SelectItem value="all">Tất cả hãng</SelectItem>
+                  {brandsData.map(brand => <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
             {/* Price */}
             <div className="flex-[1.5] min-w-[220px]">
               <div className="flex items-center gap-2 mb-1.5 ml-1">
@@ -138,7 +148,7 @@ export function ProductCatalogPage() {
                   placeholder="Từ" 
                   type="number" 
                   value={minPrice} 
-                  onChange={(e) => setMinPrice(e.target.value)}
+                  onChange={(e) => changeFilter('minPrice', e.target.value, true)}
                   className="h-10 rounded-lg border-border bg-card font-medium"
                 />
                 <span className="text-muted">-</span>
@@ -146,7 +156,7 @@ export function ProductCatalogPage() {
                   placeholder="Đến" 
                   type="number" 
                   value={maxPrice} 
-                  onChange={(e) => setMaxPrice(e.target.value)}
+                  onChange={(e) => changeFilter('maxPrice', e.target.value, true)}
                   className="h-10 rounded-lg border-border bg-card font-medium"
                 />
               </div>
@@ -158,7 +168,7 @@ export function ProductCatalogPage() {
                 <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
                 <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Sắp xếp theo</span>
               </div>
-              <Select value={sortBy} onValueChange={setSortBy}>
+              <Select value={sortBy} onValueChange={value => changeFilter('sortBy', value)}>
                 <SelectTrigger className="h-10 rounded-lg border-border bg-card">
                   <SelectValue />
                 </SelectTrigger>
@@ -187,12 +197,12 @@ export function ProductCatalogPage() {
       {/* Results Info */}
       <div className="flex items-center justify-between px-1">
         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-          Tìm thấy <span className="text-foreground">{products.length}</span> sản phẩm
+          Tìm thấy <span className="text-foreground">{productPage?.totalCount ?? 0}</span> sản phẩm
         </p>
       </div>
 
       {/* Product Grid */}
-      {isLoading ? (
+      {isError ? (<div role="alert" className="space-y-3"><p className="text-destructive">{error?.message}</p><Button variant="outline" onClick={() => refetch()}>Thử lại</Button></div>) : isLoading || !ready ? (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
             <div key={i} className="h-[350px] rounded-2xl bg-muted/50 animate-pulse" />
@@ -234,17 +244,17 @@ export function ProductCatalogPage() {
                   <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{product.brand}</p>
                   <div className="flex items-center gap-1.5 bg-muted/50 px-2 py-0.5 rounded-full">
                     <Star className="h-3.5 w-3.5 fill-primary text-primary" />
-                    <span className="text-xs font-bold text-foreground">{product.rating}</span>
+                    <span className="text-xs font-bold text-foreground">{product.rating ?? 0}</span>
                   </div>
                 </div>
                 <CardTitle className="mb-4 text-base font-bold leading-snug line-clamp-1 text-foreground">{product.name}</CardTitle>
                 <div className="flex items-center justify-between">
                   <span className="text-xl font-bold text-foreground tracking-tight">
-                    {formatCurrency(product.price)}
+                    {product.priceIsUnset ? 'Chưa có giá' : formatCurrency(product.price)}
                   </span>
                   <Button
                     onClick={(e) => { e.stopPropagation(); handleAddToCart(product.id); }}
-                    disabled={product.stock === 0 || isAdding}
+                    disabled={product.stock === 0 || product.priceIsUnset || isAdding || !ready}
                     className="h-10 w-10 rounded-xl p-0 bg-primary text-primary-foreground hover:opacity-90 shadow-sm"
                   >
                     {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
@@ -255,6 +265,10 @@ export function ProductCatalogPage() {
           ))}
         </div>
       )}
+      <ListPagination pageNumber={pageNumber} pageSize={pageSize} totalCount={productPage?.totalCount ?? 0}
+        disabled={isFetching || !ready || isError}
+        onPageChange={page => setSearchParams(previous => { const next = new URLSearchParams(previous); next.set('page', String(page)); return next; })}
+        onPageSizeChange={size => changeFilter('pageSize', String(size))} />
     </div>
   );
 }

@@ -11,6 +11,8 @@ public static class ModuleRegistration
         this IServiceCollection services, IConfiguration configuration)
     {
         services.AddReviewNotificationPersistence(configuration);
+        services.AddScoped<ReviewNotificationModule.Contracts.IProductRatings,
+            ReviewNotificationModule.Infrastructure.ProductRatings>();
         services.AddControllers().AddApplicationPart(typeof(ModuleRegistration).Assembly);
         return services;
     }

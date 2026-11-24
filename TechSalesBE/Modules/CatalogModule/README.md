@@ -72,3 +72,10 @@ Tổng số ảnh sau cập nhật tối đa 10. Để xóa hết, gửi form ch
 Ảnh giữ lại phải thuộc sản phẩm và không được trùng ID. Không nhận đường dẫn ảnh từ client.
 Chỉ xóa file cũ sau khi lưu database thành công; khi thất bại sẽ dọn file mới.
 Form sửa sản phẩm dùng API này sau API cập nhật thông tin; hai thao tác lưu độc lập.
+
+## Lọc và sắp xếp danh sách public
+
+GET /api/products nhận pageNumber, pageSize (1–100), keyword, categoryId, brandId, minPrice/maxPrice (số nguyên VND không âm, min <= max) và sortBy: newest, price_asc, price_desc, rating. Lọc và ORDER BY chạy trước Skip/Take tại database. Tổng số kết quả tính sau lọc, trước phân trang. Không có giá: loại khi lọc giá, xếp cuối khi sắp theo giá. Các trường hợp bằng nhau dùng CreatedAt giảm dần rồi Id tăng dần.
+
+Catalog nhận điểm trung bình và số review VISIBLE qua IProductRatings do Host adapter nối với contract ReviewNotification. Điểm mặc định 0; hidden/deleted không được tính. Response item thêm rating và reviewsCount. Không cần migration.
+

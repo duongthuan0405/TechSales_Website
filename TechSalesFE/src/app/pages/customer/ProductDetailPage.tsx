@@ -1,3 +1,4 @@
+import { ProductImageGallery } from '../../components/ProductImageGallery';
 import { useState, useEffect } from 'react';
 import { formatCurrency } from '../../../utils/format';
 import { useParams, useNavigate } from 'react-router';
@@ -28,7 +29,7 @@ export function ProductDetailPage() {
   const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
   const { data: product, isLoading: isProductLoading, isError } = useGetProduct(id || '');
-  const { data: reviewData, isLoading: isReviewsLoading } = useGetProductReviews(id || '');
+  const { data: reviewData, isLoading: isReviewsLoading, error: reviewError } = useGetProductReviews(id || '');
   const reviews = reviewData?.reviews || [];
   const { mutate: addToCart, isPending: isAdding } = useAddToCart();
 
@@ -68,15 +69,7 @@ export function ProductDetailPage() {
 
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 items-start">
         {/* Product Images */}
-        <div className="space-y-4">
-          <div className="aspect-square overflow-hidden rounded-2xl border border-border bg-card p-10">
-            <img 
-              src={product.imageUrl || ''} 
-              alt={product.name} 
-              className="h-full w-full object-contain transition-transform duration-500 hover:scale-105"
-            />
-          </div>
-        </div>
+        <ProductImageGallery key={product.id} product={product} />
 
         {/* Product Info */}
         <div className="space-y-6">
@@ -219,7 +212,7 @@ export function ProductDetailPage() {
 
             <div className="flex-1 space-y-6">
               <h3 className="text-xl font-bold uppercase tracking-tight text-foreground">Đánh giá gần đây</h3>
-              {isReviewsLoading ? (
+              {reviewError ? <p role="status" className="text-sm text-muted-foreground">{reviewError.message}</p> : isReviewsLoading ? (
                 <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
               ) : reviews.length === 0 ? (
                 <div className="py-12 text-center text-muted-foreground font-bold uppercase tracking-widest bg-muted/20 rounded-2xl border border-dashed border-border">

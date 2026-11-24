@@ -7,6 +7,13 @@ namespace InventoryModule.Domain.Rules;
 
 internal static class ProductUnitRules
 {
+    public static bool IsBrowseStatus(string? status)
+    {
+        return string.IsNullOrWhiteSpace(status)
+            || (Enum.TryParse(status, out ProductUnitStatus parsed) && Enum.IsDefined(parsed)
+                && parsed.ToString() == status);
+    }
+
     public static bool IsValidSerialNumber(string? serialNumber)
     {
         return !string.IsNullOrWhiteSpace(serialNumber)
@@ -21,7 +28,8 @@ internal static class ProductUnitRules
 
     public static bool IsManualStatusTarget(string? status)
     {
-        return string.Equals(status, nameof(ProductUnitStatus.DAMAGED), StringComparison.OrdinalIgnoreCase);
+        return string.Equals(status, nameof(ProductUnitStatus.DAMAGED), StringComparison.OrdinalIgnoreCase)
+            || string.Equals(status, nameof(ProductUnitStatus.IN_STOCK), StringComparison.OrdinalIgnoreCase);
     }
 
     public static void EnsureSerialNumber(string serialNumber)
@@ -42,12 +50,22 @@ internal static class ProductUnitRules
         }
     }
 
+    public static void EnsureManualRestoration(ProductUnitStatus currentStatus)
+    {
+        if (currentStatus != ProductUnitStatus.DAMAGED)
+        {
+            throw new DomainException(DomainExceptionCode.INVALID_PRODUCT_UNIT_TRANSITION,
+                DomainExceptionMessage.InvalidProductUnitTransition);
+        }
+    }
+
     public static void EnsureTransition(ProductUnitStatus currentStatus, ProductUnitStatus targetStatus)
     {
         bool allowed = (currentStatus, targetStatus) switch
         {
             (ProductUnitStatus.IN_STOCK, ProductUnitStatus.RESERVED or ProductUnitStatus.DAMAGED) => true,
             (ProductUnitStatus.RESERVED, ProductUnitStatus.IN_STOCK or ProductUnitStatus.SOLD) => true,
+            (ProductUnitStatus.DAMAGED, ProductUnitStatus.IN_STOCK) => true,
             _ => false
         };
 

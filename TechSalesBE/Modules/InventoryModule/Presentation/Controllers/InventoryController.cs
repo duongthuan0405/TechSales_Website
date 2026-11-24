@@ -2,6 +2,7 @@ using CommonModule.Presentation.ApiResponseModels;
 using InventoryModule.Application.Constants;
 using InventoryModule.Application.Messages;
 using InventoryModule.Application.UseCases.ImportStock;
+using InventoryModule.Application.UseCases.BrowseProductUnits;
 using InventoryModule.Application.UseCases.ReceiveStock;
 using InventoryModule.Application.UseCases.UpdateProductUnitStatus;
 using InventoryModule.Presentation.Authorization;
@@ -25,7 +26,18 @@ public sealed class InventoryController : ControllerBase
         _sender = sender;
     }
 
+    [HttpGet("~/api/inventory/units")]
+    [ProducesResponseType(typeof(ApiSuccessResponse<BrowseProductUnits_UCOutput>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> BrowseUnits(Guid? productId = null, string? keyword = null,
+        string? status = null, int pageNumber = 1, int pageSize = 20, CancellationToken cancellationToken = default)
+    {
+        BrowseProductUnits_UCOutput output = await _sender.Send(
+            new BrowseProductUnits_UCInput(productId, keyword, status, pageNumber, pageSize), cancellationToken);
+        return Ok(new ApiSuccessResponse<BrowseProductUnits_UCOutput>(output, ResponseMessage.UnitsListed));
+    }
+
     [HttpPost("receive")]
+    [Authorize(Roles = RoleAccess.StockReceivers)]
     [ProducesResponseType(typeof(ApiSuccessResponse<ReceiveStock_UCOutput>), StatusCodes.Status200OK)]
     public async Task<IActionResult> ReceiveStock(
         Guid productId, [FromBody] ReceiveStockRequest request, CancellationToken cancellationToken)
@@ -38,6 +50,7 @@ public sealed class InventoryController : ControllerBase
     }
 
     [HttpPost("~/api/inventory/import")]
+    [Authorize(Roles = RoleAccess.StockReceivers)]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(StockImportLimits.MaxRequestBytes)]
     [RequestFormLimits(MultipartBodyLengthLimit = StockImportLimits.MaxRequestBytes)]

@@ -39,7 +39,7 @@ const roleNavItems: Record<string, NavItem[]> = {
     { icon: <RotateCcw className="h-5 w-5" />, label: 'Yêu cầu hoàn trả', path: '/customer/returns' },
     { icon: <Wrench className="h-5 w-5" />, label: 'Sửa chữa & bảo trì', path: '/customer/repairs' },
     { icon: <MapPin className="h-5 w-5" />, label: 'Sổ địa chỉ', path: '/customer/addresses' },
-    { icon: <UserCircle className="h-5 w-5" />, label: 'Hồ sơ cá nhân', path: '/customer/profile' },
+    { icon: <UserCircle className="h-5 w-5" />, label: 'Tài khoản cá nhân', path: '/customer/profile' },
   ],
   Staff: [
     { icon: <LayoutDashboard className="h-5 w-5" />, label: 'Tổng quan', path: '/sales' },
@@ -49,21 +49,24 @@ const roleNavItems: Record<string, NavItem[]> = {
     { icon: <MessageSquare className="h-5 w-5" />, label: 'Đánh giá', path: '/sales/reviews' },
     { icon: <Package className="h-5 w-5" />, label: 'Sản phẩm', path: '/sales/products' },
     { icon: <Users className="h-5 w-5" />, label: 'Khách hàng', path: '/sales/customers' },
+    { icon: <UserCircle className="h-5 w-5" />, label: 'Tài khoản cá nhân', path: '/sales/profile' },
   ],
   'Business Admin': [
     { icon: <LayoutDashboard className="h-5 w-5" />, label: 'Tổng quan', path: '/business' },
     { icon: <Package className="h-5 w-5" />, label: 'Quản lý sản phẩm', path: '/business/products' },
-    { icon: <FolderTree className="h-5 w-5" />, label: 'Quản lý danh mục', path: '/business/categories' },
+    { icon: <MapPin className="h-5 w-5" />, label: 'Phí vận chuyển', path: '/business/shipping-fees' },
     { icon: <Users className="h-5 w-5" />, label: 'Quản lý khách hàng', path: '/business/customers' },
     { icon: <UserCircle className="h-5 w-5" />, label: 'Quản lý nhân viên', path: '/business/staff' },
     { icon: <FileText className="h-5 w-5" />, label: 'Báo cáo doanh thu', path: '/business/reports' },
     { icon: <Ticket className="h-5 w-5" />, label: 'Khuyến mãi & Voucher', path: '/business/vouchers' },
-    { icon: <UserCircle className="h-5 w-5" />, label: 'Hồ sơ cá nhân', path: '/business/profile' },
+    { icon: <UserCircle className="h-5 w-5" />, label: 'Tài khoản cá nhân', path: '/business/profile' },
   ],
   'Technical Admin': [
     { icon: <Package className="h-5 w-5" />, label: 'Quản lý sản phẩm', path: '/business/products' },
+    { icon: <MapPin className="h-5 w-5" />, label: 'Phí vận chuyển', path: '/business/shipping-fees' },
     { icon: <Users className="h-5 w-5" />, label: 'Quản lý người dùng', path: '/technical/users' },
     { icon: <FileText className="h-5 w-5" />, label: 'Nhật ký hệ thống', path: '/technical/logs' },
+    { icon: <UserCircle className="h-5 w-5" />, label: 'Tài khoản cá nhân', path: '/technical/profile' },
   ],
 };
 

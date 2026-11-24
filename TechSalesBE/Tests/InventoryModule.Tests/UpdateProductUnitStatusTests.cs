@@ -38,7 +38,6 @@ public sealed class UpdateProductUnitStatusTests
     }
 
     [Theory]
-    [InlineData("IN_STOCK")]
     [InlineData("RESERVED")]
     [InlineData("SOLD")]
     [InlineData(" DAMAGED ")]
@@ -110,6 +109,44 @@ public sealed class UpdateProductUnitStatusTests
         Assert.Equal(DomainExceptionCode.INSUFFICIENT_AVAILABLE_STOCK, error.Code);
         Assert.Equal(0, _store.Stocks[_productId].Quantity);
         Assert.Equal(ProductUnitStatus.IN_STOCK, _store.Units[(_productId, SerialNumber)].Status);
+    }
+
+    [Theory]
+    [InlineData("IN_STOCK")]
+    [InlineData("in_stock")]
+    public async Task RestoresDamagedUnitAndOnlyIncrementsAvailableStockOnce(string target)
+    {
+        SeedUnit(ProductUnitStatus.DAMAGED, 0);
+        Assert.True(_validator.Validate(new UpdateProductUnitStatus_UCInput(_productId, SerialNumber, target)).IsValid);
+        var result = await MarkDamaged(target);
+        Assert.Equal("IN_STOCK", result.Status);
+        Assert.Equal(1, result.Quantity);
+        Assert.Equal(2, _store.Stocks[_productId].ReservedQuantity);
+        await Assert.ThrowsAsync<DomainException>(() => MarkDamaged(target));
+        Assert.Equal(1, _store.Stocks[_productId].Quantity);
+        Assert.Equal(ProductUnitStatus.IN_STOCK, _store.Units[(_productId, SerialNumber)].Status);
+    }
+
+    [Theory]
+    [InlineData("RESERVED")]
+    [InlineData("SOLD")]
+    public async Task RestorationCannotReleaseReservedOrSoldUnits(string currentStatus)
+    {
+        ProductUnitStatus status = Enum.Parse<ProductUnitStatus>(currentStatus);
+        SeedUnit(status, 3);
+        await Assert.ThrowsAsync<DomainException>(() => MarkDamaged("IN_STOCK"));
+        Assert.Equal(3, _store.Stocks[_productId].Quantity);
+        Assert.Equal(status, _store.Units[(_productId, SerialNumber)].Status);
+    }
+
+    [Fact]
+    public async Task RestorationRejectsOverflowWithoutPersistingUnitChange()
+    {
+        SeedUnit(ProductUnitStatus.DAMAGED, int.MaxValue);
+        var error = await Assert.ThrowsAsync<DomainException>(() => MarkDamaged("IN_STOCK"));
+        Assert.Equal(DomainExceptionCode.STOCK_QUANTITY_LIMIT_EXCEEDED, error.Code);
+        Assert.Equal(ProductUnitStatus.DAMAGED, _store.Units[(_productId, SerialNumber)].Status);
+        Assert.Equal(int.MaxValue, _store.Stocks[_productId].Quantity);
     }
 
     private void SeedUnit(ProductUnitStatus status, int quantity)

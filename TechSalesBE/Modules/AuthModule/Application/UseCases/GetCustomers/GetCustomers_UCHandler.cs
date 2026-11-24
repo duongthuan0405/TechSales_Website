@@ -20,7 +20,7 @@ internal sealed class GetCustomers_UCHandler : IRequestHandler<GetCustomers_UCIn
         {
             UserRoleName.CUSTOMER
         };
-        (List<User> Items, int Count) page = await _users.GetPageAsync(roleNames, input.PageNumber, input.PageSize, ct);
+        (List<User> Items, int Count) page = await _users.GetPageAsync(roleNames, input.PageNumber, input.PageSize, ct, input.Keyword);
         List<GetCustomers_UCOutput.UserItem> items = new List<GetCustomers_UCOutput.UserItem>();
         foreach (User user in page.Items)
         {

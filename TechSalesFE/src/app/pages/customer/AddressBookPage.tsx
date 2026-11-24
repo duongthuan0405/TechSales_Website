@@ -6,6 +6,8 @@ import { Input } from '../../components/ui/input';
 import { Modal } from '../../components/ui/modal';
 import { LocationFields } from '../../components/customer/LocationFields';
 import { toast } from 'sonner';
+import { CheckCircle2, MapPin } from 'lucide-react';
+import { Badge } from '../../components/ui/badge';
 
 const empty = { province: '', provinceCode: '', ward: '', wardCode: '', detail: '', isDefault: false };
 export function AddressBookPage() {
@@ -26,9 +28,14 @@ export function AddressBookPage() {
     {addresses.isPending && <p>Đang tải địa chỉ…</p>}
     {addresses.error && <p role="alert" className="text-destructive">{addresses.error.message}</p>}
     {addresses.data?.length === 0 && <p>Chưa có địa chỉ giao hàng.</p>}
-    {addresses.data?.map(address => <div key={address.id} className="space-y-3 rounded-xl border p-5">
-      <p>{address.detail}, {address.ward}, {address.province}</p>
-      {address.isDefault && <p className="text-sm font-semibold">Địa chỉ mặc định</p>}
+    {addresses.data?.map(address => <div key={address.id}
+      className={`space-y-4 rounded-xl border p-5 ${address.isDefault ? 'border-primary bg-primary/5 ring-1 ring-primary/30 shadow-sm' : 'border-border bg-card'}`}>
+      <div className="flex flex-wrap items-center gap-2">
+        <MapPin className={`h-5 w-5 shrink-0 ${address.isDefault ? 'text-primary' : 'text-muted-foreground'}`} aria-hidden="true" />
+        <span className="font-semibold">Địa chỉ giao hàng</span>
+        {address.isDefault && <Badge className="gap-1"><CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />Địa chỉ mặc định</Badge>}
+      </div>
+      <p className={address.isDefault ? 'font-medium' : undefined}>{address.detail}, {address.ward}, {address.province}</p>
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" disabled={busy} onClick={() => start(address)}>Sửa</Button>
         {!address.isDefault && <Button variant="outline" disabled={busy} onClick={() => setDefault.mutate(address.id, { onError: showError })}>Đặt mặc định</Button>}
