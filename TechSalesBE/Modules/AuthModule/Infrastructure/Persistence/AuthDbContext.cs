@@ -12,6 +12,7 @@ public sealed class AuthDbContext : DbContext
     internal DbSet<PermissionDbModel> Permissions => Set<PermissionDbModel>();
     internal DbSet<RolePermissionDbModel> RolePermissions => Set<RolePermissionDbModel>();
     internal DbSet<UserRoleDbModel> UserRoles => Set<UserRoleDbModel>();
+    internal DbSet<RefreshSessionDbModel> RefreshSessions => Set<RefreshSessionDbModel>();
 
     public const string Schema = "identify_access";
 

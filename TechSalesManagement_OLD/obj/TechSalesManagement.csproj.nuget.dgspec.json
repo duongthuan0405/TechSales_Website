@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\UIT\\26_27_HK1\\SE310_DotNet\\TechSales_Website\\TechSalesManagement_OLD\\TechSalesManagement.csproj": {}
+    "d:\\UIT\\26_27_HK1\\SE310_DotNet\\TechSales_Website\\TechSalesManagement_OLD\\TechSalesManagement.csproj": {}
   },
   "projects": {
-    "D:\\UIT\\26_27_HK1\\SE310_DotNet\\TechSales_Website\\TechSalesManagement_OLD\\TechSalesManagement.csproj": {
+    "d:\\UIT\\26_27_HK1\\SE310_DotNet\\TechSales_Website\\TechSalesManagement_OLD\\TechSalesManagement.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\UIT\\26_27_HK1\\SE310_DotNet\\TechSales_Website\\TechSalesManagement_OLD\\TechSalesManagement.csproj",
+        "projectUniqueName": "d:\\UIT\\26_27_HK1\\SE310_DotNet\\TechSales_Website\\TechSalesManagement_OLD\\TechSalesManagement.csproj",
         "projectName": "TechSalesManagement",
-        "projectPath": "D:\\UIT\\26_27_HK1\\SE310_DotNet\\TechSales_Website\\TechSalesManagement_OLD\\TechSalesManagement.csproj",
+        "projectPath": "d:\\UIT\\26_27_HK1\\SE310_DotNet\\TechSales_Website\\TechSalesManagement_OLD\\TechSalesManagement.csproj",
         "packagesPath": "C:\\Users\\ASUS\\.nuget\\packages\\",
-        "outputPath": "D:\\UIT\\26_27_HK1\\SE310_DotNet\\TechSales_Website\\TechSalesManagement_OLD\\obj\\",
+        "outputPath": "d:\\UIT\\26_27_HK1\\SE310_DotNet\\TechSales_Website\\TechSalesManagement_OLD\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

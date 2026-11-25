@@ -26,7 +26,8 @@ Triển khai lại các chức năng tài khoản từ BE cũ theo Clean Archite
 | `POST /api/auth/forgot-password` | Gửi OTP đặt lại mật khẩu; trả cùng thông báo khi email không tồn tại. |
 | `PUT /api/auth/reset-password` | Đổi mật khẩu qua OTP dùng một lần. |
 | `PUT /api/auth/change-password` | Đổi mật khẩu bằng mật khẩu hiện tại của người đang đăng nhập. |
-| `POST /api/auth/logout` | Thu hồi phiên hiện tại. |
+| `POST /api/auth/refresh` | Đổi refresh token trong cookie lấy access token mới. |
+| `POST /api/auth/logout` | Thu hồi nhóm refresh token hiện tại và xóa cookie; không cần access token còn hạn. |
 | `GET /api/user/me` | Đọc tài khoản và hồ sơ của người đang đăng nhập. |
 | `PUT /api/user-profile` | Cập nhật hồ sơ, nhận multipart/form-data. |
 | `GET /api/admin/users/customers` | Danh sách Customer, hỗ trợ pageNumber/pageSize. |
@@ -55,7 +56,7 @@ Role dùng ID cố định từ BE cũ. Migration `SeedAuthRolesAndPermissions` 
 
 Hiện tại API dùng role-based authorization tại Controller qua `[Authorize(Roles = ...)]` hoặc policy RequireRole. Các quy tắc nghiệp vụ theo vai trò vẫn được use case kiểm tra tại `Domain/Rules/AccountManagementRules.cs`; role cho phép gọi API không thay thế hạn chế đối với tài khoản đích. Handler lấy actor từ repository bằng ActorId đã được Controller lấy từ claims, rồi gọi rule trước khi thay đổi dữ liệu. Các quy tắc này vẫn có hiệu lực khi use case được gọi qua MediatR ngoài HTTP.
 
-Giữ danh mục permission tại `Application/Constants/AuthPermission.cs`, dữ liệu, repository, API quản trị và cơ chế HasPermission để dùng lại sau. Hiện không gắn HasPermission lên endpoint; sửa permission không thay đổi quyền gọi API. Chỉ Technical Admin được gán role hoặc chỉnh RBAC; không tự thay role/khóa chính mình. JWT dùng role hiện tại được nạp lại từ database mỗi request, không có phiên lưu trữ để thu hồi.
+Giữ danh mục permission tại `Application/Constants/AuthPermission.cs`, dữ liệu, repository, API quản trị và cơ chế HasPermission để dùng lại sau. Hiện không gắn HasPermission lên endpoint; sửa permission không thay đổi quyền gọi API. Chỉ Technical Admin được gán role hoặc chỉnh RBAC; không tự thay role/khóa chính mình. JWT dùng role hiện tại được nạp lại từ database mỗi request. Refresh token có phiên lưu trữ riêng để xoay vòng và thu hồi.
 
 | API | Role được truy cập |
 |---|---|
@@ -75,9 +76,13 @@ Các giới hạn nghiệp vụ tập trung tại `Domain/Constants/AuthLimits.c
 - Giữ bảy bảng hiện tại, mapping bằng `IEntityTypeConfiguration<T>`, schema `identify_access`.
 - Email được trim/lowercase khi ghi; mật khẩu BCrypt cost 12, tối thiểu 8 ký tự, tối đa 72 byte UTF-8, tương thích thuật toán BE cũ.
 - OTP ngẫu nhiên sáu chữ số, hạn năm phút, dùng một lần. Bảng `UserOtp` lưu SHA-256 của OTP có gắn user/type, không lưu mã nguyên văn.
-- JWT HS256 kiểm tra issuer/audience/lifetime/signature và phiên trong database. Secret cấu hình là Base64 của ít nhất 32 byte ngẫu nhiên.
-- `UserSession` lưu SHA-256 của JWT jti; mỗi tài khoản có một phiên hoạt động. Đăng nhập mới thay phiên cũ. OTP được lưu riêng trong `UserOtp`.
-- Đăng xuất, đổi/reset mật khẩu, khóa tài khoản, đổi email/role thu hồi phiên. JWT còn hạn nhưng phiên đã bị thu hồi sẽ nhận 401. Authentication đọc role hiện tại từ database.
+- JWT HS256 kiểm tra issuer/audience/lifetime/signature và trạng thái tài khoản. Secret cấu hình là Base64 của ít nhất 32 byte ngẫu nhiên.
+- Refresh token ngẫu nhiên 64 byte, chỉ trả qua cookie `techsales_refresh` HttpOnly, SameSite=Strict, Path=/api/auth; Secure khi HTTPS hoặc ngoài môi trường Development. Database `identify_access.RefreshSession` chỉ lưu SHA-256, người dùng, nhóm phiên, hạn sử dụng và thời điểm thu hồi; OTP vẫn ở `UserOtp`.
+- Refresh token có hạn tuyệt đối mặc định 7 ngày từ khi đăng nhập (`AUTH__RefreshToken__DurationInDays`, từ 1 đến 30); mỗi lần refresh đổi token và giữ hạn tuyệt đối. Token đã dùng bị từ chối; phát hiện dùng lại sẽ thu hồi cả nhóm phiên. PostgreSQL khóa dòng user trước khi kiểm tra lại và xoay token trong transaction để tuần tự hóa các yêu cầu đồng thời.
+- Đăng xuất thu hồi nhóm refresh token trong cookie. Với client cũ chỉ gửi access token, logout thu hồi mọi refresh token của user. Đổi/reset mật khẩu, khóa hoặc ngừng hoạt động thu hồi mọi refresh token của tài khoản. Access token vẫn có hiệu lực đến hạn nếu trạng thái tài khoản cho phép; hệ thống chưa thu hồi JWT theo jti. Role hiện tại luôn được nạp lại từ database.
+- Refresh/logout dùng cookie cần header `X-Requested-With: XMLHttpRequest` để chặn gửi form chéo nguồn. Chỉ origin lấy từ `AUTH__FrontendUrl` được CORS có credentials; triển khai FE/BE cùng site hoặc dùng proxy để cookie SameSite hoạt động.
+- FE gửi cookie bằng `credentials: include`; gặp 401 ở API cần xác thực sẽ refresh và thử lại đúng một lần. Nhiều request dùng chung một lần refresh; Web Locks điều phối giữa các tab khi trình duyệt hỗ trợ. Refresh bị từ chối sẽ xóa phiên và chuyển về đăng nhập; lỗi mạng/5xx không xóa phiên. Không refresh khi đăng nhập sai hoặc nhận 403.
+- Áp dụng migration `AddRefreshSessions` trước khi chạy BE mới. Các phiên đăng nhập từ bản cũ chưa có refresh cookie cần đăng nhập lại để nhận cookie.
 - Năm lần sai mật khẩu trong cửa sổ hoạt động dẫn đến khóa 30 phút. Counter được commit trước khi trả lỗi. Hạn khóa tự động được xét lại khi đăng nhập; reset mật khẩu không gỡ khóa thủ công.
 - `LastLoginFailedAt` ghi riêng thời điểm đăng nhập sai gần nhất, dùng để xét cửa sổ của chuỗi thất bại theo `AuthLimits.FailedLoginWindowMinutes`. Thay đổi hồ sơ/tài khoản không ảnh hưởng mốc này. Đăng nhập thành công, đổi/reset mật khẩu hoặc mở khóa sẽ xóa mốc và reset counter. Sau migration, tài khoản cũ chưa có mốc sẽ bắt đầu chuỗi đếm mới ở lần đăng nhập sai tiếp theo.
 - Transaction thuộc từng handler qua `IExecuteAtomically`. Repository không tự commit. PostgreSQL khóa row khi đọc/sửa tài khoản hoặc thay permission để tránh ghi đè từ request đồng thời.

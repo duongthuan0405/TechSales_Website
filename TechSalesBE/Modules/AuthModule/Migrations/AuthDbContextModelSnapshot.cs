@@ -108,6 +108,43 @@ namespace AuthModule.Migrations
                         });
                 });
 
+            modelBuilder.Entity("AuthModule.Infrastructure.Persistence.Models.RefreshSessionDbModel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("FamilyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FamilyId");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("RefreshSession", "identify_access");
+                });
+
             modelBuilder.Entity("AuthModule.Infrastructure.Persistence.Models.RoleDbModel", b =>
                 {
                     b.Property<Guid>("Id")
@@ -407,6 +444,15 @@ namespace AuthModule.Migrations
                     b.HasIndex("RoleId");
 
                     b.ToTable("UserRole", "identify_access");
+                });
+
+            modelBuilder.Entity("AuthModule.Infrastructure.Persistence.Models.RefreshSessionDbModel", b =>
+                {
+                    b.HasOne("AuthModule.Infrastructure.Persistence.Models.UserDbModel", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("AuthModule.Infrastructure.Persistence.Models.RolePermissionDbModel", b =>

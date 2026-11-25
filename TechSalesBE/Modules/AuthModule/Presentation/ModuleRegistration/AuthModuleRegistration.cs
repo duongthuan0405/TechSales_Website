@@ -30,6 +30,8 @@ public static class ModuleRegistration
         services.AddVietnameseResponses();
         services.AddAuthPersistence(configuration);
         services.AddServices();
+        services.AddScoped<AuthModule.Application.Repositories.IRefreshSessionRepository, RefreshSessionRepository>();
+        services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddScoped<IAuthOtpManager,AuthOtpManager>();
         services.AddRepositories();
         services.AddControllers().AddApplicationPart(typeof(ModuleRegistration).Assembly);
@@ -43,6 +45,13 @@ public static class ModuleRegistration
         services.AddHttpContextAccessor();
         services.AddAuthN(configuration);
         services.AddAuthZ();
+        services.AddCors(options => options.AddPolicy("auth-frontend", policy =>
+        {
+            var frontend = configuration["AUTH:FrontendUrl"];
+            if (Uri.TryCreate(frontend, UriKind.Absolute, out var uri)
+                && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+                policy.WithOrigins(uri.GetLeftPart(UriPartial.Authority)).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+        }));
         services.AddHostedService<AuthBootstrapService>();
         services.AddOptions<AuthRateLimitOptions>()
             .Bind(configuration.GetSection(AuthRateLimitOptions.SectionName))
