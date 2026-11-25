@@ -24,6 +24,62 @@ function backend(handler) {
   };
 }
 const productId = '11111111-1111-4111-8111-111111111111';
+test('parallel expired requests share one refresh and retry with the new access token', async () => {
+  backend(async call => {
+    if (call.url === '/api/auth/refresh') {
+      assert.equal(call.credentials, 'include');
+      assert.equal(call.headers['X-Requested-With'], 'XMLHttpRequest');
+      await new Promise(resolve => setTimeout(resolve, 15));
+      return { token: 'renewed-access' };
+    }
+    if (call.headers.get('Authorization') === 'Bearer real-token') return { status: 401 };
+    assert.equal(call.headers.get('Authorization'), 'Bearer renewed-access');
+    return { items: [], totalCount: 0, pageNumber: 1, pageSize: 20 };
+  });
+  const results = await Promise.all([
+    modules.user.getAccountPage('all', { pageNumber: 1, pageSize: 20 }),
+    modules.user.getAccountPage('staff', { pageNumber: 1, pageSize: 20 }),
+  ]);
+  assert.equal(results.length, 2);
+  assert.equal(calls.filter(call => call.url === '/api/auth/refresh').length, 1);
+  assert.equal(calls.length, 5);
+  assert.equal(localStorage.getItem('token'), 'renewed-access');
+});
+
+test('a second 401 after refresh signs out without an infinite retry', async () => {
+  backend(call => call.url === '/api/auth/refresh' ? { token: 'renewed-access' } : { status: 401 });
+  await assert.rejects(modules.user.getAccountPage('all', { pageNumber: 1, pageSize: 20 }), error => error.status === 401);
+  assert.equal(calls.length, 3);
+  assert.equal(localStorage.getItem('token'), null);
+});
+
+test('temporary refresh server failures keep the current session and login errors never refresh', async () => {
+  backend(call => ({ status: call.url === '/api/auth/refresh' ? 503 : 401 }));
+  await assert.rejects(modules.user.getAccountPage('all', { pageNumber: 1, pageSize: 20 }), error => error.status === 503);
+  assert.equal(localStorage.getItem('token'), 'real-token');
+  backend(() => ({ status: 401 }));
+  await assert.rejects(modules.auth.login({ email: 'wrong@example.com', password: 'wrong' }), error => error.status === 401);
+  assert.equal(calls.length, 1);
+});
+
+test('logging out during refresh cannot restore an old access token', async () => {
+  let release;
+  let started;
+  const ready = new Promise(resolve => { started = resolve; });
+  const gate = new Promise(resolve => { release = resolve; });
+  backend(async call => {
+    if (call.url === '/api/auth/refresh') { started(); await gate; return { token: 'late-access' }; }
+    if (call.url === '/api/auth/logout') return null;
+    return { status: 401 };
+  });
+  const pending = modules.auth.getCurrentUser();
+  const rejected = assert.rejects(pending, error => error.status === 0);
+  await ready;
+  await modules.auth.logout();
+  release();
+  await rejected;
+  assert.equal(localStorage.getItem('token'), null);
+});
 test('expired password-change sessions emit unauthorized while forbidden responses retain the session', async () => {
   backend(() => ({ status: 401 }));
   const events = [];

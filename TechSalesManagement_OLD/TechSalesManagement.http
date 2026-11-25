@@ -1,6 +1,0 @@
-@TechSalesManagement_HostAddress = http://localhost:5198
-
-GET {{TechSalesManagement_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

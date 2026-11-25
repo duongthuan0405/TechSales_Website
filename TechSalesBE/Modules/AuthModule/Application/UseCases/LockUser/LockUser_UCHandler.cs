@@ -15,11 +15,13 @@ internal sealed class LockUser_UCHandler : IRequestHandler<LockUser_UCInput, Loc
 {
     private readonly IUserRepository _users;
     private readonly IExecuteAtomically _transaction;
+    private readonly IRefreshSessionRepository _sessions;
 
-    public LockUser_UCHandler(IUserRepository users, IExecuteAtomically transaction)
+    public LockUser_UCHandler(IUserRepository users, IExecuteAtomically transaction, IRefreshSessionRepository sessions)
     {
         _users = users;
         _transaction = transaction;
+        _sessions = sessions;
     }
 
     public async Task<LockUser_UCOutput> Handle(LockUser_UCInput input, CancellationToken ct)
@@ -37,6 +39,7 @@ internal sealed class LockUser_UCHandler : IRequestHandler<LockUser_UCInput, Loc
             var now = DateTimeOffset.UtcNow;
             user.LockAccount(input.Until, now);
             await _users.UpdateAsync(user, ct);
+            await _sessions.RevokeUserAsync(user.Id, DateTimeOffset.UtcNow, ct);
 
             return new LockUser_UCOutput(ResponseMessage.SuccessAccountLocked);
         }, ct);

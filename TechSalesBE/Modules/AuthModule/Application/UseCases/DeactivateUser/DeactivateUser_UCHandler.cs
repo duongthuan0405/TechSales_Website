@@ -13,11 +13,13 @@ internal sealed class DeactivateUser_UCHandler : IRequestHandler<DeactivateUser_
 {
     private readonly IUserRepository _users;
     private readonly IExecuteAtomically _transaction;
+    private readonly IRefreshSessionRepository _sessions;
 
-    public DeactivateUser_UCHandler(IUserRepository users, IExecuteAtomically transaction)
+    public DeactivateUser_UCHandler(IUserRepository users, IExecuteAtomically transaction, IRefreshSessionRepository sessions)
     {
         _users = users;
         _transaction = transaction;
+        _sessions = sessions;
     }
 
     public async Task<DeactivateUser_UCOutput> Handle(DeactivateUser_UCInput input, CancellationToken cancellationToken)
@@ -32,6 +34,7 @@ internal sealed class DeactivateUser_UCHandler : IRequestHandler<DeactivateUser_
             AccountManagementRules.EnsureCanDeactivate(actor, target);
             target.Deactivate(DateTimeOffset.UtcNow);
             await _users.UpdateAsync(target, cancellationToken);
+            await _sessions.RevokeUserAsync(target.Id, DateTimeOffset.UtcNow, cancellationToken);
             return new DeactivateUser_UCOutput(ResponseMessage.SuccessAccountDeactivated);
         }, cancellationToken);
     }

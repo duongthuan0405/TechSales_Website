@@ -4,6 +4,7 @@ namespace AuthModule.Application.Exceptions;
 
 public static class BusinessExceptionMessage
 {
+    public const string RefreshTokenInvalid = "Phiên đăng nhập đã hết hạn hoặc không hợp lệ. Vui lòng đăng nhập lại.";
     public const string PhoneAlreadyUsed = "Số điện thoại đã được sử dụng.";
     public const string AccessDenied = "Bạn không có quyền thực hiện thao tác này.";
     public const string AccountInactive = "Tài khoản chưa được kích hoạt hoặc đã bị vô hiệu hóa.";

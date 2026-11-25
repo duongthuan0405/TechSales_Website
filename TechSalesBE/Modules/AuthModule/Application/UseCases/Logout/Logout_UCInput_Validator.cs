@@ -5,6 +5,6 @@ internal sealed class Logout_UCInput_Validator : AbstractValidator<Logout_UCInpu
 {
     public Logout_UCInput_Validator()
     {
-        RuleFor(x => x.ActorId).NotEmpty();
+        RuleFor(x => x.RefreshToken).MaximumLength(256);
     }
 }

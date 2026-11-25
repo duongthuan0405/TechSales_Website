@@ -77,7 +77,7 @@ public sealed class AuthFlowsTests
         Assert.Equal(UserStatus.BLOCKED, await app.DbAsync(db => db.Users.Where(u => u.Id == id).Select(u => u.Status).SingleAsync()));
     }
     [Fact]
-    public async Task Logout_is_client_side_and_new_login_keeps_existing_jwt_valid()
+    public async Task Logout_does_not_revoke_unexpired_access_jwts()
     {
         await using var app = await AuthTestApp.CreateAsync();
         await app.SeedUserAsync("customer@example.com", UserRoleName.CUSTOMER);
