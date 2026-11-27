@@ -15,6 +15,34 @@ public sealed class CheckoutPaymentUrlTests
     [Theory]
     [InlineData("MOMO")]
     [InlineData("VNPAY")]
+    public async Task ConcurrentCheckoutFailsImmediatelyAndDoesNotCallGatewayTwice(string gatewayCode)
+    {
+        var repository = new Repository(NewPayment(gatewayCode));
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var gateway = new Gateway(repository, false, false) { Started = started, Continue = release.Task };
+        var input = new CheckoutPayment_UCInput(Guid.NewGuid(), repository.Payment.Id);
+        var first = CreateHandler(repository, gateway).Handle(input, default);
+        try
+        {
+            await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            var second = CreateHandler(repository, gateway).Handle(input, default);
+            var error = await Assert.ThrowsAsync<BusinessException>(() => second.WaitAsync(TimeSpan.FromSeconds(2)));
+            Assert.Equal(BusinessExceptionCode.CONFLICT, error.Code);
+            Assert.False(first.IsCompleted);
+            Assert.Equal(1, gateway.CallCount);
+            Assert.Equal(1, gateway.ResolveCount);
+        }
+        finally { release.TrySetResult(); }
+        var result = await first;
+        var again = await CreateHandler(repository, gateway).Handle(input, default);
+        Assert.Equal(result.PaymentUrl, again.PaymentUrl);
+        Assert.Equal(1, gateway.CallCount);
+    }
+
+    [Theory]
+    [InlineData("MOMO")]
+    [InlineData("VNPAY")]
     public async Task ReturnsStoredUrlWithoutCallingGateway(string gatewayCode)
     {
         Repository repository = new Repository(NewPayment(gatewayCode));
@@ -78,6 +106,9 @@ public sealed class CheckoutPaymentUrlTests
 
         Assert.Null(repository.Payment.PaymentUrl);
         Assert.Equal(0, repository.UpdateCount);
+        var retry = new Gateway(repository, false, false);
+        await CreateHandler(repository, retry).Handle(new CheckoutPayment_UCInput(Guid.NewGuid(), repository.Payment.Id), default);
+        Assert.Equal(1, retry.CallCount); // Failure released the transaction's lock.
     }
 
     private static Payment NewPayment(string gatewayCode)
@@ -90,17 +121,35 @@ public sealed class CheckoutPaymentUrlTests
     private static CheckoutPayment_UCHandler CreateHandler(Repository repository, Gateway gateway)
     {
         Ownership ownership = new Ownership();
+        var lease = new LockService(repository.Gate);
         return new CheckoutPayment_UCHandler(repository,
-            new PaymentOwnershipService(ownership, ownership), gateway, new Transaction());
+            new PaymentOwnershipService(ownership, ownership), gateway, new Transaction(lease), lease);
     }
     private sealed class Ownership : IOrderOwnershipPort, IRepairOwnershipPort
     {
         public Task<bool> IsOwnedByCustomerAsync(Guid refId, Guid customerId, CancellationToken cancellationToken = default) => Task.FromResult(true);
     }
 
-    private sealed class Transaction : IExecuteAtomically
+    private sealed class Transaction(LockService lease) : IExecuteAtomically
     {
-        public Task<T> ExecuteAtomicallyAsync<T>(Func<Task<T>> mainTask, CancellationToken cancellationToken = default) => mainTask();
+        public async Task<T> ExecuteAtomicallyAsync<T>(Func<Task<T>> mainTask, CancellationToken cancellationToken = default)
+        {
+            try { return await mainTask(); }
+            finally { lease.Release(); }
+        }
+    }
+
+    private sealed class LockService(SemaphoreSlim gate) : IPaymentLockService
+    {
+        private bool _acquired;
+        public Task<bool> TryLockReferenceAsync(PaymentType type, Guid refId, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            _acquired = gate.Wait(0);
+            return Task.FromResult(_acquired);
+        }
+        public Task LockReferenceAsync(PaymentType type, Guid refId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public void Release() { if (_acquired) { _acquired = false; gate.Release(); } }
     }
 
     private sealed class Gateway : IPaymentGatewayFactory, IPaymentGatewayStrategy
@@ -111,6 +160,9 @@ public sealed class CheckoutPaymentUrlTests
         public string GatewayCode => "TEST";
 
         public int ResolveCount { get; private set; }
+        public int CallCount { get; private set; }
+        public TaskCompletionSource? Started { get; init; }
+        public Task? Continue { get; init; }
         public Gateway(Repository repository, bool callbackArrives, bool fails)
         {
             _repository = repository;
@@ -122,8 +174,11 @@ public sealed class CheckoutPaymentUrlTests
             ResolveCount++;
             return Task.FromResult<IPaymentGatewayStrategy>(this);
         }
-        public Task<PaymentCheckoutResult> CheckoutAsync(PaymentCheckoutRequest request, CancellationToken cancellationToken = default)
+        public async Task<PaymentCheckoutResult> CheckoutAsync(PaymentCheckoutRequest request, CancellationToken cancellationToken = default)
         {
+            CallCount++;
+            Started?.TrySetResult();
+            if (Continue != null) await Continue.WaitAsync(cancellationToken);
             if (_fails)
             {
                 throw new BusinessException(BusinessExceptionCode.CONFLICT, "Test gateway failure");
@@ -137,13 +192,14 @@ public sealed class CheckoutPaymentUrlTests
                 refreshed.ConfirmOnline("paid-reference");
                 _repository.Payment = refreshed;
             }
-            return Task.FromResult(new PaymentCheckoutResult("https://gateway.example/pay/test", DateTimeOffset.UtcNow.AddMinutes(15)));
+            return new PaymentCheckoutResult("https://gateway.example/pay/test", DateTimeOffset.UtcNow.AddMinutes(15));
         }
     }
 
     private sealed class Repository : IPaymentRepository
     {
         public Payment Payment { get; set; }
+        public SemaphoreSlim Gate { get; } = new(1, 1);
         public int UpdateCount { get; private set; }
         public Repository(Payment payment)
         {

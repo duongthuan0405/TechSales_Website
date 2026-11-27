@@ -2,6 +2,7 @@ namespace PaymentRefundModule.Application.Exceptions;
 
 internal static class BusinessExceptionMessage
 {
+    public const string CheckoutInProgress = "Giao dịch đang được khởi tạo thanh toán. Vui lòng không gửi yêu cầu trùng.";
     public const string PaymentClientIpInvalid = "Không xác định được địa chỉ IP của khách hàng để tạo liên kết thanh toán.";
     public const string VnpayAmountInvalid = "Số tiền thanh toán VNPAY phải từ 1 đến 9.999.999.999 VNĐ.";
     public const string PaymentNotificationInvalid = "Thông báo thanh toán không khớp giao dịch hoặc không hợp lệ.";
