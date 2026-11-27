@@ -183,6 +183,11 @@ public sealed class PaymentContractTests
 
     private sealed class LockService : IPaymentLockService
     {
+        public async Task<bool> TryLockReferenceAsync(PaymentType type, Guid refId, CancellationToken cancellationToken = default)
+        {
+            await LockReferenceAsync(type, refId, cancellationToken);
+            return true;
+        }
         private readonly Repository _repository;
 
         public LockService(Repository repository)
