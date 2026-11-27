@@ -1,3 +1,4 @@
+import { PasswordInput } from '../../components/ui/password-input';
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router';
 import { Button } from '../../components/ui/button';
@@ -64,9 +65,9 @@ export function LoginPage() {
                     Quên mật khẩu?
                   </Link>
                 </div>
-                <Input
+                <PasswordInput
                   id="password"
-                  type="password"
+                  
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -98,8 +99,8 @@ export function LoginPage() {
                   size="sm"
                   className="text-xs justify-start h-9"
                   onClick={() => {
-                    setEmail('customer@email.com');
-                    setPassword('password');
+                    setEmail('customer@gmail.com');
+                    setPassword('customer@123');
                   }}
                 >
                   <span className="h-2 w-2 rounded-full bg-emerald-500 mr-1.5 shrink-0" />
@@ -111,8 +112,8 @@ export function LoginPage() {
                   size="sm"
                   className="text-xs justify-start h-9"
                   onClick={() => {
-                    setEmail('sales@techsales.com');
-                    setPassword('password');
+                    setEmail('staff@techsales.com');
+                    setPassword('staff@123');
                   }}
                 >
                   <span className="h-2 w-2 rounded-full bg-blue-500 mr-1.5 shrink-0" />
@@ -124,8 +125,8 @@ export function LoginPage() {
                   size="sm"
                   className="text-xs justify-start h-9"
                   onClick={() => {
-                    setEmail('business@techsales.com');
-                    setPassword('password');
+                    setEmail('businessadmin@techsales.com');
+                    setPassword('businessadmin@123');
                   }}
                 >
                   <span className="h-2 w-2 rounded-full bg-purple-500 mr-1.5 shrink-0" />
@@ -137,8 +138,8 @@ export function LoginPage() {
                   size="sm"
                   className="text-xs justify-start h-9"
                   onClick={() => {
-                    setEmail('admin@techsales.com');
-                    setPassword('password');
+                    setEmail('techadmin@techsales.com');
+                    setPassword('techadmin@123');
                   }}
                 >
                   <span className="h-2 w-2 rounded-full bg-rose-500 mr-1.5 shrink-0" />

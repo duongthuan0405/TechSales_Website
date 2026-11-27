@@ -1,6 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { productService, ProductQueryParams } from '../services/productService';
+import { productService, ProductQueryParams, AdminProductQuery } from '../services/productService';
 import { Product, ProductStatus } from '../models/ui_types/product';
+
+export const useGetProductLookups = () => useQuery({
+  queryKey: ['product-lookups'],
+  queryFn: () => productService.getLookups(),
+});
+
+export const useGetProductCategories = () => useQuery({
+  queryKey: ['product-lookups'],
+  queryFn: () => productService.getLookups(),
+  select: data => data.categories,
+});
 
 export const useGetProducts = (params?: ProductQueryParams) => {
   return useQuery({
@@ -9,9 +20,16 @@ export const useGetProducts = (params?: ProductQueryParams) => {
   });
 };
 
-export const useGetAdminProducts = (params?: { keyword?: string; categoryId?: string; status?: ProductStatus; pageNumber?: number; pageSize?: number }) => {
+export const useGetProductPage = (params: ProductQueryParams, enabled = true) => useQuery({
+  queryKey: ['products', 'page', params],
+  queryFn: () => productService.getProductPage(params),
+  enabled,
+});
+
+export const useGetAdminProducts = (params?: AdminProductQuery, enabled = true) => {
   return useQuery({
     queryKey: ['admin-products', params],
+    enabled,
     queryFn: () => productService.getAdminProducts(params),
   });
 };
@@ -45,7 +63,7 @@ export const useCreateProduct = () => {
 export const useUpdateProduct = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Product> }) => 
+    mutationFn: ({ id, data }: { id: string; data: Parameters<typeof productService.updateProduct>[1] }) =>
       productService.updateProduct(id, data),
     onSuccess: (updatedProduct) => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -81,9 +99,11 @@ export const useToggleProductStatus = () => {
 export const useUpdateInventory = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, value, type }: { id: string; value: number; type: 'ADD' | 'SET' }) => 
-      productService.updateInventory(id, value, type),
+    mutationFn: ({ id, serialNumbers }: { id: string; serialNumbers: string[] }) =>
+      productService.updateInventory(id, serialNumbers),
     onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['inventory-units'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-product-picker'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       queryClient.invalidateQueries({ queryKey: ['product', variables.id] });

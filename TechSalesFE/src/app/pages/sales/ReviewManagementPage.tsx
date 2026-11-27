@@ -1,3 +1,4 @@
+import { useDebouncedValue } from '../../../dataHook/useDebouncedValue';
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
@@ -24,6 +25,7 @@ export function ReviewManagementPage() {
   const { mutate: replyToReview } = useReplyToReview();
   
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebouncedValue(searchTerm);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
 
@@ -31,9 +33,9 @@ export function ReviewManagementPage() {
   const [confirmingMod, setConfirmingMod] = useState<{ id: string, status: ReviewStatus } | null>(null);
 
   const filteredReviews = reviews.filter(rev => 
-    rev.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    rev.comment.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (rev.productName || '').toLowerCase().includes(searchTerm.toLowerCase())
+    rev.userName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+    rev.comment.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+    (rev.productName || '').toLowerCase().includes(debouncedSearch.toLowerCase())
   );
 
   const handleModerate = () => {
@@ -163,10 +165,10 @@ export function ReviewManagementPage() {
                         />
                         <div className="flex gap-2">
                           <Button size="sm" className="h-8 px-4 rounded-lg text-[9px] font-bold uppercase tracking-widest" onClick={() => handleReply(review.id)}>
-                            Send Reply
+                            Gửi phản hồi
                           </Button>
                           <Button variant="ghost" size="sm" className="h-8 px-4 rounded-lg text-[9px] font-bold uppercase tracking-widest" onClick={() => setReplyingTo(null)}>
-                            Cancel
+                            Hủy
                           </Button>
                         </div>
                       </div>
@@ -179,7 +181,7 @@ export function ReviewManagementPage() {
                           onClick={() => setReplyingTo(review.id)}
                         >
                           <MessageSquare className="h-3.5 w-3.5 mr-2" />
-                          {(review.responses && review.responses.length > 0) || review.reply ? 'Reply Again' : 'Reply'}
+                          {(review.responses && review.responses.length > 0) || review.reply ? 'Phản hồi thêm' : 'Phản hồi'}
                         </Button>
                         <Button 
                           variant="ghost" 
@@ -188,14 +190,14 @@ export function ReviewManagementPage() {
                           onClick={() => setConfirmingMod({ id: review.id, status: review.status === ReviewStatus.VISIBLE ? ReviewStatus.HIDDEN : ReviewStatus.VISIBLE })}
                         >
                           {review.status === ReviewStatus.VISIBLE ? (
-                            <><EyeOff className="h-3.5 w-3.5 mr-2" /> Hide</>
+                            <><EyeOff className="h-3.5 w-3.5 mr-2" /> Ẩn</>
                           ) : (
-                            <><Eye className="h-3.5 w-3.5 mr-2" /> Show</>
+                            <><Eye className="h-3.5 w-3.5 mr-2" /> Hiện</>
                           )}
                         </Button>
                         <Button variant="ghost" size="sm" className="h-8 px-4 rounded-lg text-[9px] font-bold uppercase tracking-widest text-destructive hover:bg-destructive/10">
                           <ShieldAlert className="h-3.5 w-3.5 mr-2" />
-                          Report
+                          Báo cáo
                         </Button>
                       </div>
                     )}
@@ -227,12 +229,12 @@ export function ReviewManagementPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-6">
-            <AlertDialogCancel className="h-10 rounded-xl text-[10px] font-bold uppercase tracking-widest border-border">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="h-10 rounded-xl text-[10px] font-bold uppercase tracking-widest border-border">Hủy</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleModerate}
               className="h-10 rounded-xl text-[10px] font-bold uppercase tracking-widest text-white bg-primary hover:bg-primary/90"
             >
-              Update Visibility
+              Cập nhật hiển thị
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

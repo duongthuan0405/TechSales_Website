@@ -20,6 +20,8 @@ internal sealed class BusinessRuleExceptionBehavior<TRequest, TResponse> : IPipe
             switch (exception.Code)
             {
                 case DomainExceptionCode.RULE_CANNOT_CREATE_TECHNICAL_ADMIN:
+                case DomainExceptionCode.RULE_CANNOT_CREATE_ADMIN:
+                case DomainExceptionCode.RULE_USER_FILTER_FORBIDDEN:
                     throw new BusinessException(BusinessExceptionCode.FORBIDDEN, BusinessExceptionMessage.CannotCreateTechnicalAdmin);
                 case DomainExceptionCode.RULE_CANNOT_MANAGE_ADMIN:
                     throw new BusinessException(BusinessExceptionCode.FORBIDDEN, BusinessExceptionMessage.CannotManageAdmin);

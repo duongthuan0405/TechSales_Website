@@ -1,11 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { userService } from '../services/userService';
+import { userService, AccountPageParams } from '../services/userService';
 import { User, UserRole, UserStatus } from '../models/ui_types/user';
 
-export const useGetUsers = () => {
+export const useAccountPage = (kind: 'customers' | 'staff' | 'all', params: AccountPageParams) => useQuery({
+  queryKey: ['users', 'page', kind, params],
+  queryFn: () => userService.getAccountPage(kind, params),
+});
+
+export const useGetUsers = (role?: string, keyword?: string) => {
   return useQuery({
-    queryKey: ['users'],
-    queryFn: () => userService.getUsers(),
+    queryKey: ['users', 'all', role, keyword],
+    queryFn: () => userService.getUsers(role, keyword),
   });
 };
 
@@ -16,10 +21,10 @@ export const useGetCustomers = () => {
   });
 };
 
-export const useGetStaff = () => {
+export const useGetStaff = (role?: string) => {
   return useQuery({
-    queryKey: ['users', 'staff-management'],
-    queryFn: () => userService.getStaff(),
+    queryKey: ['users', 'staff-management', role],
+    queryFn: () => userService.getStaff(role),
   });
 };
 
@@ -46,6 +51,10 @@ export const useUpdateUser = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<User> }) => 
       userService.updateUser(id, data),
+    onError: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['user', variables.id] });
+    },
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       queryClient.invalidateQueries({ queryKey: ['user', updated.id] });
@@ -60,6 +69,17 @@ export const useToggleUserStatus = () => {
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       queryClient.invalidateQueries({ queryKey: ['user', updated.id] });
+    },
+  });
+};
+
+export const useDeactivateUser = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => userService.deactivateUser(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['user', id] });
     },
   });
 };

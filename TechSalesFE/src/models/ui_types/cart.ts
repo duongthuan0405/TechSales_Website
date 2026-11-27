@@ -9,6 +9,7 @@ export interface CartItem {
   productName?: string;
   price?: number;
   imageUrl?: string;
+  unavailable?: boolean;
 }
 
 export interface Cart {

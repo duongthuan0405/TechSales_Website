@@ -115,7 +115,7 @@ export function OrderManagementDetailPage({ readOnly = false }: OrderManagementD
       <div className="flex flex-col items-center justify-center py-20 text-center mx-auto max-w-md">
         <AlertCircle className="mb-4 h-10 w-10 text-muted" />
         <h2 className="text-xl font-bold uppercase tracking-tight">Protocol Error: Order Not Found</h2>
-        <Button onClick={() => navigate('/sales/orders')} className="mt-4 h-11 px-6 rounded-xl bg-primary text-primary-foreground font-medium uppercase tracking-widest text-xs">Return to Terminal</Button>
+        <Button onClick={() => navigate('/sales/orders')} className="mt-4 h-11 px-6 rounded-xl bg-primary text-primary-foreground font-medium uppercase tracking-widest text-xs">Quay lại danh sách đơn hàng</Button>
       </div>
     );
   }
@@ -180,7 +180,7 @@ export function OrderManagementDetailPage({ readOnly = false }: OrderManagementD
         </div>
         <div className="flex gap-2">
            <Button variant="outline" className="h-10 px-4 rounded-xl text-[10px] font-bold uppercase tracking-widest border-border" onClick={() => window.print()}>
-             <Printer className="h-3.5 w-3.5 mr-2" /> Print Invoice
+             <Printer className="h-3.5 w-3.5 mr-2" /> In hóa đơn
            </Button>
            <Badge variant={getStatusVariant(order.status)} className="h-10 px-4 flex items-center font-black uppercase tracking-widest text-[10px] rounded-xl">
              {order.status}
@@ -245,7 +245,7 @@ export function OrderManagementDetailPage({ readOnly = false }: OrderManagementD
                     onClick={() => setShowSerialModal(true)}
                   >
                     <Barcode className="h-5 w-5" />
-                    <span className="text-[9px] font-bold uppercase tracking-widest">Approve + Serie</span>
+                    <span className="text-[9px] font-bold uppercase tracking-widest">Duyệt và gán serial</span>
                   </Button>
                   <Button 
                     className="flex flex-col h-20 gap-2 rounded-xl bg-blue-500 hover:bg-blue-600 text-white disabled:bg-zinc-100 disabled:text-zinc-400 disabled:border-zinc-200 disabled:shadow-none"
@@ -253,7 +253,7 @@ export function OrderManagementDetailPage({ readOnly = false }: OrderManagementD
                     onClick={() => setConfirmingStatus(OrderStatus.SHIPPING)}
                   >
                     <Truck className="h-5 w-5" />
-                    <span className="text-[9px] font-bold uppercase tracking-widest">Ship Order</span>
+                    <span className="text-[9px] font-bold uppercase tracking-widest">Giao cho vận chuyển</span>
                   </Button>
                   <Button 
                     className="flex flex-col h-20 gap-2 rounded-xl bg-green-500 hover:bg-green-600 text-white disabled:bg-zinc-100 disabled:text-zinc-400 disabled:border-zinc-200 disabled:shadow-none"
@@ -261,7 +261,7 @@ export function OrderManagementDetailPage({ readOnly = false }: OrderManagementD
                     onClick={() => setConfirmingStatus(OrderStatus.DELIVERED)}
                   >
                     <Package className="h-5 w-5" />
-                    <span className="text-[9px] font-bold uppercase tracking-widest">Deliver</span>
+                    <span className="text-[9px] font-bold uppercase tracking-widest">Xác nhận đã giao</span>
                   </Button>
                   <Button 
                     className="flex flex-col h-20 gap-2 rounded-xl bg-destructive hover:bg-destructive/90 text-white disabled:bg-zinc-100 disabled:text-zinc-400 disabled:border-zinc-200 disabled:shadow-none"
@@ -270,7 +270,7 @@ export function OrderManagementDetailPage({ readOnly = false }: OrderManagementD
                     title={order.status === OrderStatus.DELIVERED || order.status === OrderStatus.SHIPPING ? 'Không thể hủy đơn khi đang/đã giao' : 'Hủy đơn hàng'}
                   >
                     <XCircle className="h-5 w-5" />
-                    <span className="text-[9px] font-bold uppercase tracking-widest">Void Protocol</span>
+                    <span className="text-[9px] font-bold uppercase tracking-widest">Hủy đơn hàng</span>
                   </Button>
                 </div>
 
@@ -333,7 +333,7 @@ export function OrderManagementDetailPage({ readOnly = false }: OrderManagementD
               <Table>
                 <TableHeader>
                   <TableRow className="border-border hover:bg-transparent">
-                    <TableHead className="font-bold uppercase tracking-widest text-[9px] text-muted-foreground">Product</TableHead>
+                    <TableHead className="font-bold uppercase tracking-widest text-[9px] text-muted-foreground">Sản phẩm</TableHead>
                     <TableHead className="text-center font-bold uppercase tracking-widest text-[9px] text-muted-foreground">Qty</TableHead>
                     <TableHead className="font-bold uppercase tracking-widest text-[9px] text-muted-foreground">Serial Numbers</TableHead>
                     <TableHead className="text-right font-bold uppercase tracking-widest text-[9px] text-muted-foreground">Total</TableHead>
@@ -435,7 +435,7 @@ export function OrderManagementDetailPage({ readOnly = false }: OrderManagementD
                       className="h-6 px-2 text-[9px] font-bold uppercase tracking-wider text-primary hover:bg-primary/10 flex items-center gap-1"
                     >
                       <Edit3 className="h-3 w-3" />
-                      Edit
+                      Sửa
                     </Button>
                   ) : (
                     <span className="text-[8px] text-muted-foreground flex items-center gap-1 italic">
@@ -493,12 +493,12 @@ export function OrderManagementDetailPage({ readOnly = false }: OrderManagementD
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-6">
-            <AlertDialogCancel className="h-10 rounded-xl text-[10px] font-bold uppercase tracking-widest border-border">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="h-10 rounded-xl text-[10px] font-bold uppercase tracking-widest border-border">Hủy</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleStatusChange}
               className={`h-10 rounded-xl text-[10px] font-bold uppercase tracking-widest text-white ${conf.actionColor}`}
             >
-              Execute Protocol
+              Xác nhận
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -568,7 +568,7 @@ export function OrderManagementDetailPage({ readOnly = false }: OrderManagementD
               disabled={isUpdatingPayment}
               className="h-10 rounded-xl text-xs font-bold uppercase tracking-wider border-border"
             >
-              Cancel
+              Hủy
             </Button>
             <Button
               onClick={() => {
@@ -595,10 +595,10 @@ export function OrderManagementDetailPage({ readOnly = false }: OrderManagementD
               {isUpdatingPayment ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
-                  Saving...
+                  Đang lưu…
                 </>
               ) : (
-                'Save Changes'
+                'Lưu thay đổi'
               )}
             </Button>
           </DialogFooter>

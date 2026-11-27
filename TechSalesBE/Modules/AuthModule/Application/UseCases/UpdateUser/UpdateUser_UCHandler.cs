@@ -34,7 +34,7 @@ internal sealed class UpdateUser_UCHandler : IRequestHandler<UpdateUser_UCInput,
                 throw new BusinessException(BusinessExceptionCode.NOT_FOUND, BusinessExceptionMessage.ActorNotFound);
             }
             var user = await _users.GetByIdAsync(input.UserId, ct) ?? throw new BusinessException(BusinessExceptionCode.NOT_FOUND, BusinessExceptionMessage.UserNotFound);
-            AccountManagementRules.EnsureCanManage(actor, user);
+            AccountManagementRules.EnsureCanEdit(actor, user);
             var existing = await _users.GetUserByEmailAsync(input.Email, ct);
             AuthWorkflowRules.EnsureEmailAvailable(existing, user.Id);
 

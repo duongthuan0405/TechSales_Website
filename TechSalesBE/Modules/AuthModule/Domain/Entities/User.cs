@@ -104,6 +104,15 @@ internal sealed class User
         UpdatedAt = now;
     }
 
+    internal void Deactivate(DateTimeOffset now)
+    {
+        Status = UserStatus.INACTIVE;
+        LockedUntil = null;
+        FailedLoginAttempts = 0;
+        LastLoginFailedAt = null;
+        UpdatedAt = now;
+    }
+
     internal void UnlockAccount(DateTimeOffset now)
     {
         UserRules.EnsureBlocked(Status);

@@ -1,4 +1,6 @@
+import { useDebouncedValue } from '../../../dataHook/useDebouncedValue';
 import { useState } from 'react';
+import { useListUrlState } from '../../../dataHook/useListUrlState';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Badge } from '../../components/ui/badge';
@@ -17,8 +19,10 @@ import { useGetAuditLogs } from '../../../dataHook/auditDataHook';
 import { AuditLog } from '../../../models/ui_types/auditLog';
 
 export function SystemLogsPage() {
-  const [page, setPage] = useState(1);
-  const [searchTerm, setSearchTerm] = useState('');
+  const list = useListUrlState({ keyword: '' });
+  const { pageNumber: page, setPageNumber: setPage } = list;
+  const [searchTerm, setSearchTerm] = list.field('keyword');
+  const debouncedSearch = useDebouncedValue(searchTerm);
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   
   const { data, isLoading } = useGetAuditLogs(page, 15);
@@ -46,9 +50,9 @@ export function SystemLogsPage() {
 
   const filteredLogs = logs.filter(log => {
     return (
-      log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.tableName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (log.userId && log.userId.toLowerCase().includes(searchTerm.toLowerCase()))
+      log.action.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      log.tableName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      (log.userId && log.userId.toLowerCase().includes(debouncedSearch.toLowerCase()))
     );
   });
 
@@ -138,7 +142,7 @@ export function SystemLogsPage() {
                           onClick={() => setSelectedLog(log)}
                         >
                           <Eye className="h-4 w-4 mr-1 text-primary" />
-                          Inspect
+                          Xem chi tiết
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -156,19 +160,19 @@ export function SystemLogsPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    onClick={() => setPage(Math.max(1, page - 1))}
                     disabled={page === 1}
                   >
                     <ArrowLeft className="h-4 w-4 mr-1" />
-                    Previous
+                    Trước
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    onClick={() => setPage(Math.min(totalPages, page + 1))}
                     disabled={page >= totalPages}
                   >
-                    Next
+                    Sau
                     <ArrowRight className="h-4 w-4 ml-1" />
                   </Button>
                 </div>
@@ -247,7 +251,7 @@ export function SystemLogsPage() {
           )}
 
           <DialogFooter>
-            <Button onClick={() => setSelectedLog(null)}>Close Inspection</Button>
+            <Button onClick={() => setSelectedLog(null)}>Đóng chi tiết</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

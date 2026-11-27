@@ -3,9 +3,10 @@ namespace AuthModule.Application.Repositories;
 internal interface IUserRepository
 {
     Task<Guid> AddAsync(User user, CancellationToken cancellationToken = default);
+    Task<bool> PhoneExistsAsync(string phone, Guid? excludingUserId, CancellationToken cancellationToken);
     Task<User?> GetUserByEmailAsync(string email, CancellationToken cancellationToken = default, bool forUpdate = false);
     Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task UpdateAsync(User user, CancellationToken cancellationToken = default);
     Task LockUsersAsync(Guid[] ids, CancellationToken cancellationToken);
-    Task<(List<User> Items, int Count)> GetPageAsync(string[] roles, int page, int size, CancellationToken cancellationToken);
+    Task<(List<User> Items, int Count)> GetPageAsync(List<string> roles, int page, int size, CancellationToken cancellationToken, string? keyword = null);
 }

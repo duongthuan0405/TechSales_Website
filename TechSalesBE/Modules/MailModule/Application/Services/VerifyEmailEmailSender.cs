@@ -17,7 +17,7 @@ public class VerifyEmailEmailSender : IVerifyEmaiEmailSender
         _configuration = configuration;
     }
 
-    private readonly string frontendPage = "verify-email";
+    private readonly string frontendPage = "auth/verify-email";
     private readonly string subject = EmailMessageContent.VerificationSubject;
 
     public async Task Execute(string toEmail, string token, int expiredInMinutes, CancellationToken cancellationToken = default)

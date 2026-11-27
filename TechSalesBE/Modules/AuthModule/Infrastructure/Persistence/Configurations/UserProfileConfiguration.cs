@@ -11,6 +11,7 @@ internal sealed class UserProfileConfiguration : IEntityTypeConfiguration<UserPr
     {
         builder.ToTable("UserProfile");
         builder.HasKey(e => e.UserId);
+        builder.HasIndex(e => e.PhoneNumber).IsUnique().HasDatabaseName("IX_UserProfile_PhoneNumber");
         builder.Property(e => e.UserId).HasColumnName("UserId").HasColumnType("uuid").IsRequired().ValueGeneratedNever();
         builder.Property(e => e.FullName).HasColumnName("FullName").HasColumnType($"character varying({AuthLimits.FullNameMaxLength})").HasMaxLength(AuthLimits.FullNameMaxLength).IsRequired();
         builder.Property(e => e.PhoneNumber).HasColumnName("PhoneNumber").HasColumnType("character varying(20)").HasMaxLength(20).IsRequired();
