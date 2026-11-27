@@ -25,4 +25,15 @@ internal sealed class PaymentLockService : IPaymentLockService
         await _db.Database.ExecuteSqlInterpolatedAsync(
             $"SELECT pg_advisory_xact_lock(hashtextextended({lockKey}, 0))", cancellationToken);
     }
+
+    public async Task<bool> TryLockReferenceAsync(PaymentType type, Guid refId, CancellationToken cancellationToken = default)
+    {
+        if (_db.Database.CurrentTransaction == null)
+            throw new InvalidOperationException("Payment reference locking requires an active transaction.");
+
+        string lockKey = $"payment:{type}:{refId:D}";
+        return await _db.Database.SqlQuery<bool>(
+            $"SELECT pg_try_advisory_xact_lock(hashtextextended({lockKey}, 0)) AS \"Value\"")
+            .SingleAsync(cancellationToken);
+    }
 }
