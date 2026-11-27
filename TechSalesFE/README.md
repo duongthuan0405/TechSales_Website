@@ -11,6 +11,13 @@
 
 ## Kết nối API thực tế
 
+FE tự làm mới access token khi API cần xác thực trả 401 qua `POST /api/auth/refresh`,
+sau đó thử lại request một lần. Refresh token nằm trong cookie HttpOnly do BE quản lý,
+không lưu trong localStorage; access token vẫn được lưu ở key `token`.
+Các request hết hạn đồng thời dùng chung một lần refresh. Refresh bị từ chối sẽ chuyển về
+đăng nhập; lỗi 403 hoặc lỗi mạng/máy chủ không tự đăng xuất. BE phải áp dụng migration
+`AddRefreshSessions`; đăng nhập lại một lần sau nâng cấp để nhận refresh cookie.
+
 Ứng dụng đang chạy từ `src/main.tsx` → `src/app/App.tsx`. Các thư mục
 `src/pages`, `src/components`, `src/context` cũ không phải cây giao diện chính.
 

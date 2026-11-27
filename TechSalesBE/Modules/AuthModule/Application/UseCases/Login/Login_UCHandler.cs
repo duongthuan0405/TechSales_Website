@@ -14,13 +14,18 @@ internal sealed class Login_UCHandler : IRequestHandler<Login_UCInput, Login_UCO
     private readonly IPasswordHasher _hasher;
     private readonly IAccessTokenService _jwt;
     private readonly IExecuteAtomically _transaction;
+    private readonly IRefreshSessionRepository _sessions;
+    private readonly IRefreshTokenService _refreshTokens;
 
-    public Login_UCHandler(IUserRepository users, IPasswordHasher hasher, IAccessTokenService jwt, IExecuteAtomically transaction)
+    public Login_UCHandler(IUserRepository users, IPasswordHasher hasher, IAccessTokenService jwt, IExecuteAtomically transaction,
+        IRefreshSessionRepository sessions, IRefreshTokenService refreshTokens)
     {
         _users = users;
         _hasher = hasher;
         _jwt = jwt;
         _transaction = transaction;
+        _sessions = sessions;
+        _refreshTokens = refreshTokens;
     }
 
     public async Task<Login_UCOutput> Handle(Login_UCInput input, CancellationToken ct)
@@ -51,6 +56,7 @@ internal sealed class Login_UCHandler : IRequestHandler<Login_UCInput, Login_UCO
             {
                 user.RecordFailedLogin(now);
                 await _users.UpdateAsync(user, ct);
+                if (AuthWorkflowRules.IsBlocked(user)) await _sessions.RevokeUserAsync(user.Id, now, ct);
 
                 return (null, AuthWorkflowRules.IsBlocked(user));
             }
@@ -64,7 +70,9 @@ internal sealed class Login_UCHandler : IRequestHandler<Login_UCInput, Login_UCO
                 roleNames.Add(role.Name);
             }
 
-            Login_UCOutput output = new Login_UCOutput(issued.Token, user.Email, roleNames, issued.ExpiresAt);
+            var refresh = _refreshTokens.Issue(user.Id);
+            await _sessions.AddAsync(refresh.Session, ct);
+            Login_UCOutput output = new Login_UCOutput(issued.Token, user.Email, roleNames, issued.ExpiresAt, refresh.Token, refresh.Session.ExpiresAt);
             return (output, false);
         }, ct);
         if (result.Output != null)

@@ -1,5 +1,5 @@
 import { AuthUser, UserRole } from '../models/ui_types/user';
-import api, { apiAssetUrl } from '../api/apiClient';
+import api, { apiAssetUrl, clearSession, startSession } from '../api/apiClient';
 
 export interface LoginParams { email: string; password?: string; }
 export interface RegisterParams { fullName: string; email: string; phone: string; password?: string; confirmPassword?: string; }
@@ -17,14 +17,13 @@ const mapUser = (me: MeResponse): AuthUser => ({
 export const authService = {
   login: async ({ email, password }: LoginParams): Promise<AuthUser> => {
     const result = await api.post<{ token: string }>('/api/auth/login', { email: email.trim(), password });
-    localStorage.setItem('token', result.token);
+    startSession(result.token);
     try {
       const user = mapUser(await api.get<MeResponse>('/api/user/me'));
       localStorage.setItem('tech_sales_user', JSON.stringify(user));
       return user;
     } catch (error) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('tech_sales_user');
+      clearSession();
       throw error;
     }
   },
@@ -55,11 +54,11 @@ export const authService = {
     return mapUser(await api.get<MeResponse>('/api/user/me'));
   },
   logout: async (): Promise<void> => {
+    clearSession();
     try {
-      if (localStorage.getItem('token')) await api.post('/api/auth/logout');
+      await api.post('/api/auth/logout');
     } finally {
-      localStorage.removeItem('token');
-      localStorage.removeItem('tech_sales_user');
+      clearSession();
     }
   },
 };

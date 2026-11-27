@@ -77,6 +77,7 @@ namespace TechSalesBE.WebAPI
             Directory.CreateDirectory(webRoot);
             app.UseStaticFiles(new StaticFileOptions { FileProvider = new PhysicalFileProvider(webRoot) });
             app.UseRouting();
+            app.UseCors("auth-frontend");
             app.UseAuthentication();
             app.UseRateLimiter();
             app.UseAuthorization();

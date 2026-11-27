@@ -17,13 +17,15 @@ internal sealed class ChangePassword_UCHandler : IRequestHandler<ChangePassword_
     private readonly IUserOtpRepository _tokens;
     private readonly IPasswordHasher _hasher;
     private readonly IExecuteAtomically _transaction;
+    private readonly IRefreshSessionRepository _sessions;
 
-    public ChangePassword_UCHandler(IUserRepository users, IUserOtpRepository tokens, IPasswordHasher hasher, IExecuteAtomically transaction)
+    public ChangePassword_UCHandler(IUserRepository users, IUserOtpRepository tokens, IPasswordHasher hasher, IExecuteAtomically transaction, IRefreshSessionRepository sessions)
     {
         _users = users;
         _tokens = tokens;
         _hasher = hasher;
         _transaction = transaction;
+        _sessions = sessions;
     }
 
     public async Task<ChangePassword_UCOutput> Handle(ChangePassword_UCInput input, CancellationToken ct)
@@ -41,6 +43,7 @@ internal sealed class ChangePassword_UCHandler : IRequestHandler<ChangePassword_
             var now = DateTimeOffset.UtcNow;
             user.ChangePassword(_hasher.HashPassword(input.NewPassword), now);
             await _users.UpdateAsync(user, ct);
+            await _sessions.RevokeUserAsync(user.Id, DateTimeOffset.UtcNow, ct);
 
             await _tokens.InvalidateAsync(user.Id, OtpType.RESET_PASSWORD, now, ct);
             return new ChangePassword_UCOutput(ResponseMessage.SuccessPasswordChanged);

@@ -12,6 +12,7 @@ using CommonModule.Presentation.Middlewares;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -90,6 +91,7 @@ internal sealed class AuthTestApp : IAsyncDisposable
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = "Production", ContentRootPath = test._root, ApplicationName = typeof(AuthRegistration).Assembly.GetName().Name });
         builder.Logging.ClearProviders().AddConsole().SetMinimumLevel(LogLevel.Error);
         builder.WebHost.UseTestServer();
+        builder.Services.AddDataProtection().UseEphemeralDataProtectionProvider();
         var config = new Dictionary<string, string?>
         {
             ["AUTH:DbConnectionString"] = "Host=localhost;Database=not_used;Username=not_used;Password=not_used",
@@ -121,6 +123,7 @@ internal sealed class AuthTestApp : IAsyncDisposable
 
         test._app.UseMiddleware<GlobalExceptionMiddleware>();
         test._app.UseRouting();
+        test._app.UseCors("auth-frontend");
         test._app.UseAuthentication();
         test._app.UseRateLimiter();
         test._app.UseAuthorization();
